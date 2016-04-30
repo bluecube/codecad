@@ -44,17 +44,23 @@ class Shape:
     def __sub__(self, second):
         return Subtract(self, second)
 
-    def translated(self, x, y, z):
+    def translated(self, x, y = None, z = None):
         """ Returns current shape translated by a given offset """
-        return Transformed(MatrixTransform(None), self) # TODO
+        if isinstance(x, util.Vector):
+            if y is not None or z is not None:
+                raise TypeError("If first parameter is Vector, the others must be left unspecified.")
+            offset = x
+        else:
+            offset = util.Vector(x, y, z)
+        return Translation(self, offset)
 
     def rotated(self, x, y, z):
         """ Returns current shape rotated by given angles """
         return Transformed(MatrixTransform(None), self) # TODO
 
-    def scaled(self, x, y, z):
+    def scaled(self, s):
         """ Returns current shape scaled by given ratios """
-        return Transformed(MatrixTransform(None), self) # TODO
+        return Scaled(MatrixTransform(None), self) # TODO
 
 
 class Box(Shape):
@@ -64,11 +70,9 @@ class Box(Shape):
         if z is None:
             z = x
         self.half_size = util.Vector(x, y, z) / 2
-        print(self.half_size)
 
     def distance_estimate(self, point):
         v = point.elementwise_abs() - self.half_size
-        print('XX', point, v)
         return v.max()
 
     def bounding_box(self):
@@ -135,6 +139,19 @@ class Intersection(Shape):
         b1 = self.s1.bounding_box()
         b2 = self.s2.bounding_box()
         return util.BoundingBox(b1.a.max(b2.a), b1.b.min(b2.b))
+
+
+class Translation(Shape):
+    def __init__(self, s, offset):
+        self.s = s
+        self.offset = offset
+
+    def distance_estimate(self, point):
+        return self.s.distance_estimate(point - self.offset)
+
+    def bounding_box(self):
+        b = self.s.bounding_box()
+        return util.BoundingBox(b.a + self.offset, b.b + self.offset)
 
 
 class Subtract(Shape):
