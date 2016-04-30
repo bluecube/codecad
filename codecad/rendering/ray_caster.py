@@ -13,42 +13,6 @@ class RayCaster:
         self.size = size
         self.view_angle = 90
 
-    @staticmethod
-    def get_trace_function(obj, epsilon):
-        """ Returns a trace function that takes vectors of origin x, y, z and
-        normalized direction x, y, z and returns distance to intersection."""
-
-        ox = T.vector("ox")
-        oy = T.vector("oy")
-        oz = T.vector("oz")
-
-        dx = T.vector("dx")
-        dy = T.vector("dy")
-        dz = T.vector("dz")
-
-        def trace_func(previous, ox, oy, oz, dx, dy, dz):
-            o = util.Vector(ox, oy, oz)
-            d = util.Vector(dx, dy, dz)
-
-            distance = obj.distance_estimate(o + d * previous)
-
-            return previous + distance, \
-                   theano.scan_module.until(T.all(T.or_(distance < epsilon / 2,
-                                                        T.isinf(distance))))
-        trace_expr, _ = theano.scan(trace_func,
-                                    outputs_info=T.zeros_like(dx),
-                                    non_sequences=[ox, oy, oz, dx, dy, dz],
-                                    n_steps = 100)
-
-        print("compiling...")
-        f = theano.function([ox, oy, oz, dx, dy, dz],
-                            trace_expr[-1],
-                            givens=[(shapes.Shape.Epsilon, epsilon)],
-                            on_unused_input = 'ignore') # Epsilon might not be used
-        print("compiled")
-        return f
-
-
     def render(self, obj):
         box = obj.bounding_box()
         box_size = box.b - box.a
@@ -70,17 +34,51 @@ class RayCaster:
                                  ys - self.size[1] / 2)
         directions = directions.normalized()
 
-        trace_f = self.get_trace_function(obj, epsilon)
+        ox = T.vector("ox")
+        oy = T.vector("oy")
+        oz = T.vector("oz")
 
-        pixels = trace_f(numpy.full_like(directions.x, origin.x),
-                         numpy.full_like(directions.x, origin.y),
-                         numpy.full_like(directions.x, origin.z),
-                         directions.x,
-                         numpy.full_like(directions.x, directions.y),
-                         directions.z)
+        dx = T.vector("dx")
+        dy = T.vector("dy")
+        dz = T.vector("dz")
+
+        def trace_func(previous, _, ox, oy, oz, dx, dy, dz):
+            o = util.Vector(ox, oy, oz)
+            d = util.Vector(dx, dy, dz)
+
+            distance = obj.distance_estimate(o + d * previous)
+
+            return [previous + 0.8 * distance, distance], \
+                   theano.scan_module.until(T.all(T.or_(distance < epsilon / 2,
+                                                        T.isinf(distance))))
+        d1, d2 = theano.scan(trace_func,
+                             outputs_info=[T.zeros_like(dx),T.zeros_like(dx)],
+                             non_sequences=[ox, oy, oz, dx, dy, dz],
+                             n_steps = 100)[0]
+
+        d1 = d1[-1]
+        d2 = d2[-1]
+
+        min_distance = T.min(d1)
+        max_distance = T.ptp(T.switch(d2 < epsilon, d1, 0.0))
+        colors = 255 - 255 * T.clip(0.5 * (d1 - min_distance) / (max_distance - min_distance), 0.0, 1.0)
+
+        print("compiling...")
+        f = theano.function([ox, oy, oz, dx, dy, dz],
+                            colors,
+                            givens=[(shapes.Shape.Epsilon, epsilon)],
+                            on_unused_input = 'ignore') # Epsilon might not be used
+        print("compiled")
+
+        pixels = f(numpy.full_like(directions.x, origin.x),
+                   numpy.full_like(directions.y, origin.y),
+                   numpy.full_like(directions.z, origin.z),
+                   directions.x,
+                   numpy.full_like(directions.x, directions.y),
+                   directions.z)
 
         print(pixels)
 
         img = PIL.Image.new("L", self.size)
-        img.putdata(numpy.minimum(pixels, 255))
+        img.putdata(pixels)
         img.save(self.filename)
