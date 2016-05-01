@@ -61,14 +61,14 @@ class RayCaster:
 
         min_distance = T.min(d1)
         max_distance = T.ptp(T.switch(d2 < epsilon, d1, 0.0))
-        colors = 255 - 255 * T.clip(0.5 * (d1 - min_distance) / (max_distance - min_distance), 0.0, 1.0)
+        colors = 255 - 255 * T.clip(0.8 * (d1 - min_distance) / (max_distance - min_distance), 0.0, 1.0)
 
         print("compiling...")
         f = theano.function([ox, oy, oz, dx, dy, dz],
                             colors,
                             givens=[(shapes.Shape.Epsilon, epsilon)],
                             on_unused_input = 'ignore') # Epsilon might not be used
-        print("compiled")
+        print("running...")
 
         pixels = f(numpy.full_like(directions.x, origin.x),
                    numpy.full_like(directions.y, origin.y),
@@ -77,7 +77,7 @@ class RayCaster:
                    numpy.full_like(directions.x, directions.y),
                    directions.z)
 
-        print(pixels)
+        print("saving...")
 
         img = PIL.Image.new("L", self.size)
         img.putdata(pixels)
