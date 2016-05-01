@@ -10,4 +10,5 @@ holes = cylinder + cylinder.rotated(1, 0, 0, 90) + cylinder.rotated(0, 0, 1, 90)
 
 o = sphere & cube - holes
 
-o.render(codecad.rendering.RayCaster("/tmp/picture.png"))
+#o.render(codecad.rendering.RayCaster("/tmp/picture.png"))
+o.render(codecad.rendering.StlRenderer("/tmp/picture.stl", 0.01))
