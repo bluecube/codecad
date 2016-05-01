@@ -12,9 +12,9 @@ To do
 -----
 (just the main things, roughly in order)
 
-- [ ] Get ray caster working properly (not just black on white)
-- [ ] Matrix transformations
+- [X] Get ray caster working properly (not just black on white) (partly done)
+- [X] Matrix transformations (no matrices, but translations and rotations work now)
 - [ ] Extrusions
-- [ ] Marching cubes & STL output
+- [X] Marching cubes & STL output (initial version is done)
 - [ ] Figure out converting objects given by parametric equations to implicit functions (should be easy, right? :-D)
 - [ ] Use the whole thing to model the _mystery project_.
