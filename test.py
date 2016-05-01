@@ -4,8 +4,10 @@ import codecad
 
 sphere = codecad.Sphere(1.55)
 cube = codecad.Box()
-cylinder = codecad.Cylinder(d = 0.75, h=2)
+cylinder = codecad.Cylinder(d = 0.5, h=2)
 
-o = sphere & cube - cylinder
+holes = cylinder + cylinder.rotated(1, 0, 0, 90) + cylinder.rotated(0, 0, 1, 90)
+
+o = sphere & cube - holes
 
 o.render(codecad.rendering.RayCaster("/tmp/picture.png"))

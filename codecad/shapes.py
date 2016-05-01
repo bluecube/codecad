@@ -1,3 +1,5 @@
+import math
+
 import theano
 import theano.tensor as T
 
@@ -54,12 +56,12 @@ class Shape:
             offset = util.Vector(x, y, z)
         return Translation(self, offset)
 
-    def rotated(self, x, y, z):
+    def rotated(self, x, y, z, angle):
         """ Returns current shape rotated by given angles """
-        return Transformed(MatrixTransform(None), self) # TODO
+        return Rotation(self, util.Vector(x, y, z), angle)
 
     def scaled(self, s):
-        """ Returns current shape scaled by given ratios """
+        """ Returns current shape scaled by given ratio """
         return Scaled(MatrixTransform(None), self) # TODO
 
 
@@ -148,6 +150,20 @@ class Translation(Shape):
 
     def distance_estimate(self, point):
         return self.s.distance_estimate(point - self.offset)
+
+    def bounding_box(self):
+        b = self.s.bounding_box()
+        return util.BoundingBox(b.a + self.offset, b.b + self.offset)
+
+
+class Rotation(Shape):
+    def __init__(self, s, axis, angle):
+        self.s = s
+        phi = math.radians(angle) / 2
+        self.quat = util.Quaternion(axis.normalized() * math.sin(phi), math.cos(phi))
+
+    def distance_estimate(self, point):
+        return self.s.distance_estimate(self.quat.rotate_vector(point))
 
     def bounding_box(self):
         b = self.s.bounding_box()

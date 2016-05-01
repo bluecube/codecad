@@ -62,6 +62,11 @@ class Vector(collections.namedtuple("Vector", "x y z")):
     def dot(self, other):
         return self.x * other.x + self.y * other.y + self.z * other.z
 
+    def cross(self, other):
+        return Vector(self.y * other.z - self.z * other.y,
+                      self.z * other.x - self.x * other.z,
+                      self.x * other.y - self.y * other.x)
+
     def normalized(self):
         return self / abs(self)
 
@@ -75,3 +80,19 @@ class Vector(collections.namedtuple("Vector", "x y z")):
 
 
 BoundingBox = collections.namedtuple("BoundingBox", "a b")
+
+class Quaternion(collections.namedtuple("Quaternion", "v w")):
+    # http://www.cs.ucr.edu/~vbz/resources/quatut.pdf
+    __slots__ = ()
+
+    def __mul__(self, other):
+        return Quaternion(self.v * other.w + other.v * self.w + self.v.cross(other.v),
+                          self.w * other.w - self.v.dot(other.v))
+
+    def conjugate(self):
+        return Quaternion(-self.v, self.w)
+
+    def rotate_vector(self, vector):
+        q = Quaternion(vector, 0)
+        rotated = self * q * self.conjugate()
+        return rotated.v
