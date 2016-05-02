@@ -14,7 +14,7 @@ class Shape:
     Outside = Epsilon
     Inside = -Epsilon
 
-    def distance_estimate(point):
+    def distance(point):
         """ Returns lower bound on distance between the given point and surface
         of the shape as a Theano expression.
         Must be overridden in subclasses.
@@ -73,7 +73,7 @@ class Box(Shape):
             z = x
         self.half_size = util.Vector(x, y, z) / 2
 
-    def distance_estimate(self, point):
+    def distance(self, point):
         v = point.elementwise_abs() - self.half_size
         return v.max()
 
@@ -88,7 +88,7 @@ class Sphere(Shape):
         else:
             self.r = r
 
-    def distance_estimate(self, point):
+    def distance(self, point):
         return abs(point) - self.r;
 
     def bounding_box(self):
@@ -104,7 +104,7 @@ class Cylinder(Shape):
         else:
             self.r = d / 2
 
-    def distance_estimate(self, point):
+    def distance(self, point):
         return util.maximum(util.sqrt(point.x * point.x + point.y * point.y) - self.r,
                             abs(point.z) - self.h / 2)
 
@@ -118,9 +118,9 @@ class Union(Shape):
         self.s1 = s1
         self.s2 = s2
 
-    def distance_estimate(self, point):
-        return util.minimum(self.s1.distance_estimate(point),
-                            self.s2.distance_estimate(point))
+    def distance(self, point):
+        return util.minimum(self.s1.distance(point),
+                            self.s2.distance(point))
 
     def bounding_box(self):
         b1 = self.s1.bounding_box()
@@ -133,9 +133,9 @@ class Intersection(Shape):
         self.s1 = s1
         self.s2 = s2
 
-    def distance_estimate(self, point):
-        return util.maximum(self.s1.distance_estimate(point),
-                            self.s2.distance_estimate(point))
+    def distance(self, point):
+        return util.maximum(self.s1.distance(point),
+                            self.s2.distance(point))
 
     def bounding_box(self):
         b1 = self.s1.bounding_box()
@@ -148,9 +148,9 @@ class Subtraction(Shape):
         self.s1 = s1
         self.s2 = s2
 
-    def distance_estimate(self, point):
-        return util.maximum(self.s1.distance_estimate(point),
-                            -self.s2.distance_estimate(point))
+    def distance(self, point):
+        return util.maximum(self.s1.distance(point),
+                            -self.s2.distance(point))
 
     def bounding_box(self):
         return self.s1.bounding_box()
@@ -161,8 +161,8 @@ class Translation(Shape):
         self.s = s
         self.offset = offset
 
-    def distance_estimate(self, point):
-        return self.s.distance_estimate(point - self.offset)
+    def distance(self, point):
+        return self.s.distance(point - self.offset)
 
     def bounding_box(self):
         b = self.s.bounding_box()
@@ -175,8 +175,8 @@ class Rotation(Shape):
         phi = math.radians(angle) / 2
         self.quat = util.Quaternion(axis.normalized() * math.sin(phi), math.cos(phi))
 
-    def distance_estimate(self, point):
-        return self.s.distance_estimate(self.quat.rotate_vector(point))
+    def distance(self, point):
+        return self.s.distance(self.quat.rotate_vector(point))
 
     def bounding_box(self):
         b = self.s.bounding_box()
@@ -188,8 +188,8 @@ class Scaling(Shape):
         self.s = s
         self.scale = scale
 
-    def distance_estimate(self, point):
-        return self.s.distance_estimate(point / self.scale) * self.scale
+    def distance(self, point):
+        return self.s.distance(point / self.scale) * self.scale
 
     def bounding_box(self):
         b = self.s.bounding_box()

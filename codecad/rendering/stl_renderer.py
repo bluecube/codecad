@@ -22,7 +22,7 @@ class StlRenderer:
 
         print("compiling...")
         f = theano.function([x, y, z],
-                            shape.distance_estimate(util.Vector(x, y, z)),
+                            shape.distance(util.Vector(x, y, z)),
                             givens=[(shapes.Shape.Epsilon, self.resolution)],
                             on_unused_input = 'ignore') # Epsilon might not be used
         print("running...")

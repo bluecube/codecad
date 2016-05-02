@@ -46,7 +46,7 @@ class RayCaster:
             o = util.Vector(ox, oy, oz)
             d = util.Vector(dx, dy, dz)
 
-            distance = obj.distance_estimate(o + d * previous)
+            distance = obj.distance(o + d * previous)
 
             return [previous + 0.8 * distance, distance], \
                    theano.scan_module.until(T.all(T.or_(distance < epsilon / 2,
