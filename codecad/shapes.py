@@ -180,7 +180,7 @@ class Rotation(Shape):
 
     def bounding_box(self):
         b = self.s.bounding_box()
-        return util.BoundingBox(b.a + self.offset, b.b + self.offset)
+        return util.BoundingBox.containing(self.quat.rotate_vector(v) for v in b.vertices())
 
 
 class Scaling(Shape):

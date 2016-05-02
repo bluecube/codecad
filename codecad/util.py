@@ -1,5 +1,6 @@
 import collections
 import functools
+import itertools
 import math
 import theano
 import theano.tensor as T
@@ -79,7 +80,23 @@ class Vector(collections.namedtuple("Vector", "x y z")):
                           op(self.z, other.z))
 
 
-BoundingBox = collections.namedtuple("BoundingBox", "a b")
+class BoundingBox(collections.namedtuple("BoundingBox", "a b")):
+    __slots__ = ()
+
+    def vertices(self):
+        for selector in itertools.product((0, 1), repeat=3):
+            yield Vector(*(self[x][i] for i, x in enumerate(selector)))
+
+    @classmethod
+    def containing(cls, vector_iterable):
+        a = Vector(float("inf"), float("inf"), float("inf"))
+        b = -a
+
+        for v in vector_iterable:
+            a = a.min(v)
+            b = b.min(v)
+
+        return cls(a, b)
 
 class Quaternion(collections.namedtuple("Quaternion", "v w")):
     # http://www.cs.ucr.edu/~vbz/resources/quatut.pdf
