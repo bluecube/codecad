@@ -105,8 +105,8 @@ class Cylinder(Shape):
             self.r = d / 2
 
     def distance_estimate(self, point):
-        return util.maximum(util.sqrt(point.x * point.x + point.z * point.z) - self.r,
-                            abs(point.y) - self.h / 2)
+        return util.maximum(util.sqrt(point.x * point.x + point.y * point.y) - self.r,
+                            abs(point.z) - self.h / 2)
 
     def bounding_box(self):
         v = util.Vector(self.r, self.r, self.h)
