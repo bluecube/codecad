@@ -47,6 +47,6 @@ class StlRenderer:
         mesh = stl.mesh.Mesh(numpy.empty(triangles.shape[0], dtype=stl.mesh.Mesh.dtype))
         for i, f in enumerate(triangles):
             for j in range(3):
-                mesh.vectors[i][j] = vertices[f[j],:]
+                mesh.vectors[i][2 -  j] = vertices[f[j],:]
 
         mesh.save(self.filename)
