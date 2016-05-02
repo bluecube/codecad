@@ -62,7 +62,7 @@ class Shape:
 
     def scaled(self, s):
         """ Returns current shape scaled by given ratio """
-        return Scaled(MatrixTransform(None), self) # TODO
+        return Scaling(self, s)
 
 
 class Box(Shape):
@@ -181,6 +181,19 @@ class Rotation(Shape):
     def bounding_box(self):
         b = self.s.bounding_box()
         return util.BoundingBox(b.a + self.offset, b.b + self.offset)
+
+
+class Scaling(Shape):
+    def __init__(self, s, scale):
+        self.s = s
+        self.scale = scale
+
+    def distance_estimate(self, point):
+        return self.s.distance_estimate(point / self.scale) * self.scale
+
+    def bounding_box(self):
+        b = self.s.bounding_box()
+        return util.BoundingBox(b.a * self.scale, b.b * self.scale)
 
 
 class Extrude(Shape):
