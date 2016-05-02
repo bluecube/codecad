@@ -44,7 +44,7 @@ class Shape:
         return Intersection(self, second)
 
     def __sub__(self, second):
-        return Subtract(self, second)
+        return Subtraction(self, second)
 
     def translated(self, x, y = None, z = None):
         """ Returns current shape translated by a given offset """
@@ -143,6 +143,19 @@ class Intersection(Shape):
         return util.BoundingBox(b1.a.max(b2.a), b1.b.min(b2.b))
 
 
+class Subtraction(Shape):
+    def __init__(self, s1, s2):
+        self.s1 = s1
+        self.s2 = s2
+
+    def distance_estimate(self, point):
+        return util.maximum(self.s1.distance_estimate(point),
+                            -self.s2.distance_estimate(point))
+
+    def bounding_box(self):
+        return self.s1.bounding_box()
+
+
 class Translation(Shape):
     def __init__(self, s, offset):
         self.s = s
@@ -168,19 +181,6 @@ class Rotation(Shape):
     def bounding_box(self):
         b = self.s.bounding_box()
         return util.BoundingBox(b.a + self.offset, b.b + self.offset)
-
-
-class Subtract(Shape):
-    def __init__(self, s1, s2):
-        self.s1 = s1
-        self.s2 = s2
-
-    def distance_estimate(self, point):
-        return util.maximum(self.s1.distance_estimate(point),
-                            -self.s2.distance_estimate(point))
-
-    def bounding_box(self):
-        return self.s1.bounding_box()
 
 
 class Extrude(Shape):
