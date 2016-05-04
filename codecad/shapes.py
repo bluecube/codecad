@@ -105,8 +105,13 @@ class Cylinder(Shape):
             self.r = d / 2
 
     def distance(self, point):
-        return util.maximum(util.sqrt(point.x * point.x + point.y * point.y) - self.r,
-                            abs(point.z) - self.h / 2)
+        infinite_cylinder = util.sqrt(point.x * point.x + point.y * point.y) - self.r
+
+        if math.isinf(self.h):
+            return infinite_cylinder
+        else:
+            return util.maximum(infinite_cylinder,
+                                abs(point.z) - self.h / 2)
 
     def bounding_box(self):
         v = util.Vector(self.r, self.r, self.h)

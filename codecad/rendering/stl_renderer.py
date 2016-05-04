@@ -42,7 +42,7 @@ class StlRenderer:
 
         vertices, triangles = mcubes.marching_cubes(values, 0)
 
-        print("exporting ...")
+        print("exporting {} triangles...".format(len(triangles)))
 
         mesh = stl.mesh.Mesh(numpy.empty(triangles.shape[0], dtype=stl.mesh.Mesh.dtype))
         for i, f in enumerate(triangles):
