@@ -27,6 +27,12 @@ def sqrt(x):
     else:
         return numpy.sqrt(x)
 
+def round(x):
+    if is_theano(x):
+        return T.round(x)
+    else:
+        return numpy.round(x)
+
 class Vector(collections.namedtuple("Vector", "x y z")):
     __slots__ = ()
 
