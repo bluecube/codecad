@@ -8,11 +8,14 @@ from .. import util
 from .. import shapes
 
 class RayCaster:
-    def __init__(self, filename, size = (800, 600), view_angle = math.radians(90), mode="dot"):
+    def __init__(self, filename, size = (800, 600), view_angle = math.radians(90), mode=None):
         self.filename = filename
         self.size = size
         self.view_angle = 90
-        self.mode = mode
+        if mode is None:
+            self.mode = self.dot
+        else:
+            self.mode = mode
 
     def render(self, obj):
         box = obj.bounding_box()
@@ -38,14 +41,12 @@ class RayCaster:
         ox = T.vector("ox")
         oy = T.vector("oy")
         oz = T.vector("oz")
-        o = util.Vector(ox, oy, oz)
 
         dx = T.vector("dx")
         dy = T.vector("dy")
         dz = T.vector("dz")
-        d = util.Vector(dx, dy, dz)
 
-        def trace_func(previous, _, ox, oy, oz, dx, dy, dz):
+        def _trace_func(previous, _, ox, oy, oz, dx, dy, dz):
             o = util.Vector(ox, oy, oz)
             d = util.Vector(dx, dy, dz)
 
@@ -54,7 +55,8 @@ class RayCaster:
             return [previous + 0.8 * distance, distance], \
                    theano.scan_module.until(T.all(T.or_(distance < epsilon / 2,
                                                         T.isinf(distance))))
-        distance, final_value = theano.scan(trace_func,
+
+        distance, final_value = theano.scan(_trace_func,
                                             outputs_info=[T.zeros_like(dx),T.zeros_like(dx)],
                                             non_sequences=[ox, oy, oz, dx, dy, dz],
                                             n_steps = 100)[0]
@@ -62,24 +64,11 @@ class RayCaster:
         distance = distance[-1]
         final_value = final_value[-1]
 
-        hit = final_value < epsilon
+        colors = self.mode(obj,
+                           distance, final_value, epsilon,
+                           util.Vector(ox, oy, oz),
+                           util.Vector(dx, dy, dz))
 
-        if self.mode == "dot":
-            i = o + d * distance
-
-            n = util.Vector(obj.distance(i + util.Vector(epsilon, 0, 0)) - final_value,
-                            obj.distance(i + util.Vector(0, epsilon, 0)) - final_value,
-                            obj.distance(i + util.Vector(0, 0, epsilon)) - final_value)
-            n = n.normalized()
-
-            colors = T.switch(hit, - 255 * n.dot(d), 0)
-
-        elif self.mode == "distance":
-            min_distance = T.min(distance)
-            max_distance = T.max(T.switch(hit, distance, 0.0))
-            colors = 255 - 255 * T.clip(0.8 * (distance - min_distance) / (max_distance - min_distance), 0.0, 1.0)
-        else:
-            raise ValueError("Unknown value for mode")
 
         print("compiling...")
         f = theano.function([ox, oy, oz, dx, dy, dz],
@@ -100,3 +89,21 @@ class RayCaster:
         img = PIL.Image.new("L", self.size)
         img.putdata(pixels)
         img.save(self.filename)
+
+    @staticmethod
+    def dot(obj, distances, final_values, epsilon, origins, directions):
+        intersections = origins + directions * distances
+
+        normals = util.Vector(obj.distance(intersections + util.Vector(epsilon, 0, 0)) - final_values,
+                              obj.distance(intersections + util.Vector(0, epsilon, 0)) - final_values,
+                              obj.distance(intersections + util.Vector(0, 0, epsilon)) - final_values)
+        normals = normals.normalized()
+
+        return T.switch(final_values < epsilon, -255 * normals.dot(directions), 0)
+
+    @staticmethod
+    def distance(obj, distances, final_values, epsilon, origins, directions):
+        min_distances = T.min(distances)
+        max_distances = T.max(T.switch(final_values < epsilon, distances, 0.0))
+        return 255 * T.clip(1 - 0.8 * (distances - min_distances) / (max_distances - min_distances),
+                            0.0, 1.0)
