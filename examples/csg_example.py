@@ -8,8 +8,8 @@ cube = codecad.Box()
 cylinder = codecad.Cylinder(d = 0.4, h=2)
 
 holes = cylinder.scaled(1.5) + \
-        cylinder.rotated(1, 0, 0, 90) + \
-        cylinder.rotated(0, 1, 0, 90).translated(0, 0.2, 0)
+        cylinder.rotated((1, 0, 0), 90) + \
+        cylinder.rotated((0, 1, 0), 90).translated(0, 0.2, 0)
 
 o = sphere & cube - holes
 

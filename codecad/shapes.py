@@ -56,9 +56,9 @@ class Shape:
             offset = util.Vector(x, y, z)
         return Translation(self, offset)
 
-    def rotated(self, x, y, z, angle):
+    def rotated(self, vector, angle):
         """ Returns current shape rotated by given angles """
-        return Rotation(self, util.Vector(x, y, z), angle)
+        return Rotation(self, util.Vector(*vector), angle)
 
     def scaled(self, s):
         """ Returns current shape scaled by given ratio """
