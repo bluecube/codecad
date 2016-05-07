@@ -8,7 +8,10 @@ from .. import util
 from .. import shapes
 
 class RayCaster:
-    def __init__(self, filename, size = (800, 600), view_angle = math.radians(90), mode=None):
+    def __init__(self, filename, size = (800, 600),
+                 view_angle = math.radians(90),
+                 mode=None,
+                 resolution=None):
         self.filename = filename
         self.size = size
         self.view_angle = 90
@@ -16,6 +19,8 @@ class RayCaster:
             self.mode = self.dot
         else:
             self.mode = mode
+
+        self.resolution = resolution
 
     def render(self, obj):
         box = obj.bounding_box()
@@ -25,7 +30,10 @@ class RayCaster:
         xs = xs.flatten()
         ys = ys.flatten()
 
-        epsilon = min(box_size.x, box_size.y, box_size.z) / 100;
+        if self.resolution is None:
+            epsilon = min(box_size.x, box_size.y, box_size.z) / 1000;
+        else:
+            epsilon = self.resolution
 
         focal_length = self.size[0] / math.tan(self.view_angle / 2)
         distance = 1.2 * max(box_size.x * focal_length / self.size[0],
