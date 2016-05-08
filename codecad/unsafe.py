@@ -15,12 +15,15 @@ class Repetition(shapes.Shape):
     bounding box size should be smaller than the spacing along that axis. """
     #TODO: At least minimal checks generating warnings
 
-    def __init__(self, s, x_spacing, y_spacing=float("inf"), z_spacing=float("inf")):
+    def __init__(self, s, spacing):
+        """
+        spacing - tuple of distances along axes, if value is None, the object is not repeated along this axis
+        """
         self.s = s
-        self.spacing = util.Vector(x_spacing, y_spacing, z_spacing)
+        self.spacing = util.Vector(*spacing)
 
     def _coordinate(self, x, spacing):
-        if math.isinf(spacing):
+        if spacing is None:
             return x
         else:
             return x - util.round(x / spacing) * spacing
@@ -31,5 +34,5 @@ class Repetition(shapes.Shape):
 
     def bounding_box(self):
         b = self.s.bounding_box()
-        return util.BoundingBox(util.Vector(*(x if math.isinf(s) else s for x, s in zip(b.a, self.spacing))),
-                                util.Vector(*(x if math.isinf(s) else s for x, s in zip(b.b, self.spacing))))
+        return util.BoundingBox(util.Vector(*(x if s is None else s for x, s in zip(b.a, self.spacing))),
+                                util.Vector(*(x if s is None else s for x, s in zip(b.b, self.spacing))))
