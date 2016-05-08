@@ -6,6 +6,8 @@ import theano
 import theano.tensor as T
 import numpy
 
+#TODO: Performance: Parallelization friendly version of reduce? Probably won't help, though.
+
 def is_theano(x):
     return isinstance(x, theano.Variable)
 
@@ -121,6 +123,12 @@ class BoundingBox(collections.namedtuple("BoundingBox", "a b")):
             b = b.min(v)
 
         return cls(a, b)
+
+    def intersection(self, other):
+        return BoundingBox(self.a.max(other.a), self.b.min(other.b))
+
+    def union(self, other):
+        return BoundingBox(self.a.min(other.a), self.b.max(other.b))
 
 class Quaternion(collections.namedtuple("Quaternion", "v w")):
     # http://www.cs.ucr.edu/~vbz/resources/quatut.pdf

@@ -3,17 +3,16 @@
 import codecad
 import os
 
-def mesh(outline, spacing, diameter):
+def mesh(outline, spacing, diameter, rounding = None):
+    if rounding is None:
+        rounding = diameter
+
     cylinder = codecad.Cylinder(d=diameter, h=float("inf"))
     z_grid = codecad.unsafe.Repetition(cylinder, (spacing, spacing, None))
     x_grid = z_grid.rotated((0, 1, 0), 90)
     y_grid = z_grid.rotated((1, 0, 0), 90)
 
-    #grid = x_grid + y_grid + z_grid
-    grid = x_grid + y_grid
-
-    grid = codecad.RoundedUnion(codecad.RoundedUnion(x_grid, y_grid, diameter),
-                                z_grid, diameter)
+    grid = codecad.Union([x_grid, y_grid, z_grid], rounding)
 
     return outline & grid
 
