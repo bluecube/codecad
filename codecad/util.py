@@ -33,6 +33,24 @@ def round(x):
     else:
         return numpy.round(x)
 
+def sin(x):
+    if is_theano(x):
+        return T.sin(x)
+    else:
+        return numpy.sin(x)
+
+def asin(x):
+    if is_theano(x):
+        return T.arcsin(x)
+    else:
+        return numpy.arcsin(x)
+
+def switch(cond, true, false):
+    if is_theano(cond) or is_theano(true) or is_theano(false):
+        return T.switch(cond, true, false)
+    else:
+        return numpy.switch(cond, true, false)
+
 class Vector(collections.namedtuple("Vector", "x y z")):
     __slots__ = ()
 
