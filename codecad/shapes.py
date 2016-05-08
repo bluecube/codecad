@@ -185,7 +185,14 @@ class Rotation(Shape):
 
     def bounding_box(self):
         b = self.s.bounding_box()
-        return util.BoundingBox.containing(self.quat.rotate_vector(v) for v in b.vertices())
+        if any(math.isinf(x) for x in b.a) or any(math.isinf(x) for x in b.b):
+            # Special case for rotating infinite objects.
+            # TODO: Make even more special cases for axis aligned rotations and 90 degree
+            # rotations.
+            inf = util.Vector(float("inf"), float("inf"), float("inf"))
+            return util.BoundingBox(-inf, inf)
+        else:
+            return util.BoundingBox.containing(self.quat.rotate_vector(v) for v in b.vertices())
 
 
 class Scaling(Shape):
