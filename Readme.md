@@ -19,4 +19,4 @@ Main sources so far:
 - [ ] Function for successive approximation of the geometry
   - [ ] Use it to calculate model volume
   - [ ] Use it to improve STL export
-- [ ] Better geometry representation in IPython
+- [ ] Better geometry representation in IPython using three.js
