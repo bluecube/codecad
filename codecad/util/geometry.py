@@ -1,57 +1,6 @@
+from . import theanomath
 import collections
-import functools
 import itertools
-import math
-import theano
-import theano.tensor as T
-import numpy
-
-#TODO: Performance: Parallelization friendly version of reduce? Probably won't help, though.
-
-def is_theano(x):
-    return isinstance(x, theano.Variable)
-
-def maximum(*args):
-    if any(is_theano(x) for x in args):
-        return functools.reduce(T.maximum, args)
-    else:
-        return functools.reduce(numpy.maximum, args)
-
-def minimum(*args):
-    if any(is_theano(x) for x in args):
-        return functools.reduce(T.minimum, args)
-    else:
-        return functools.reduce(numpy.minimum, args)
-
-def sqrt(x):
-    if is_theano(x):
-        return T.sqrt(x)
-    else:
-        return numpy.sqrt(x)
-
-def round(x):
-    if is_theano(x):
-        return T.round(x)
-    else:
-        return numpy.round(x)
-
-def sin(x):
-    if is_theano(x):
-        return T.sin(x)
-    else:
-        return numpy.sin(x)
-
-def asin(x):
-    if is_theano(x):
-        return T.arcsin(x)
-    else:
-        return numpy.arcsin(x)
-
-def switch(cond, true, false):
-    if is_theano(cond) or is_theano(true) or is_theano(false):
-        return T.switch(cond, true, false)
-    else:
-        return numpy.switch(cond, true, false)
 
 class Vector(collections.namedtuple("Vector", "x y z")):
     __slots__ = ()
@@ -75,16 +24,16 @@ class Vector(collections.namedtuple("Vector", "x y z")):
         return self
 
     def __abs__(self):
-        return sqrt(self.dot(self))
+        return theanomath.sqrt(self.dot(self))
 
     def elementwise_abs(self):
         return Vector(abs(self.x), abs(self.y), abs(self.z))
 
     def max(self, other=None):
-        return self._minmax(other, maximum)
+        return self._minmax(other, theanomath.maximum)
 
     def min(self, other=None):
-        return self._minmax(other, minimum)
+        return self._minmax(other, theanomath.minimum)
 
     def dot(self, other):
         return self.x * other.x + self.y * other.y + self.z * other.z
@@ -129,6 +78,17 @@ class BoundingBox(collections.namedtuple("BoundingBox", "a b")):
 
     def union(self, other):
         return BoundingBox(self.a.min(other.a), self.b.max(other.b))
+
+    def expanded(self, expansion_factor):
+        """ Expand the bounding box by a given factor on each side """
+        box_size = self.b - self.a
+        expansion_vector = box_size * expansion_factor
+        return BoundingBox(self.a - expansion_vector,
+                           self.b + expansion_vector)
+
+    def volume(self):
+        size = self.b - self.a
+        return size.x * size.y * size.z
 
 class Quaternion(collections.namedtuple("Quaternion", "v w")):
     # http://www.cs.ucr.edu/~vbz/resources/quatut.pdf

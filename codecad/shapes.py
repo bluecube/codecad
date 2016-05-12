@@ -134,7 +134,7 @@ class Union(Shape):
     def rmin(a, b, r):
         return util.switch(abs(a - b) >= r,
                            util.minimum(a, b),
-                           b + r * util.sin(math.pi / 4 + util.asin((a - b) / (r * math.sqrt(2)))) - r)
+                           b + r * util.sin(math.pi / 4 + util.arcsin((a - b) / (r * math.sqrt(2)))) - r)
 
     def distance(self, point):
         if self.r == 0:
