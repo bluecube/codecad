@@ -17,6 +17,8 @@ Main sources so far:
 - [ ] Figure out converting objects given by parametric equations to implicit functions (should be easy, right? :-D)
 - [ ] Use the whole thing to model the _mystery project_.
 - [ ] Function for successive approximation of the geometry
-  - [ ] Use it to calculate model volume
+  - [ ] Use it to calculate model volume and centroid
   - [ ] Use it to improve STL export
 - [ ] Better geometry representation in IPython using three.js
+  - [ ] Use this to make a documentation notebook
+- [ ] Add setup.py
