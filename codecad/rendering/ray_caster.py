@@ -36,7 +36,7 @@ class RayCaster:
             epsilon = self.resolution
 
         focal_length = self.size[0] / math.tan(self.view_angle / 2)
-        distance = 1.2 * max(box_size.x * focal_length / self.size[0],
+        distance = 1.0 * max(box_size.x * focal_length / self.size[0],
                              box_size.z * focal_length / self.size[1])
 
         origin = (box.a + box.b) / 2 - util.Vector(0, distance + box_size.y / 2, 0)
@@ -107,7 +107,7 @@ class RayCaster:
                               obj.distance(intersections + util.Vector(0, 0, epsilon)) - final_values)
         normals = normals.normalized()
 
-        return T.switch(final_values < epsilon, -255 * normals.dot(directions), 0)
+        return T.switch(final_values < epsilon, -255 * normals.dot(directions), 128)
 
     @staticmethod
     def distance(obj, distances, final_values, epsilon, origins, directions):
