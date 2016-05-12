@@ -47,6 +47,12 @@ class Shape:
     def __sub__(self, second):
         return Subtraction(self, second)
 
+    def __neg__(self):
+        return Inversion(self)
+
+    def __inv__(self):
+        return Inversion(self)
+
     def translated(self, x, y = None, z = None):
         """ Returns current shape translated by a given offset """
         if isinstance(x, util.Vector):
@@ -220,6 +226,16 @@ class Scaling(Shape):
         b = self.s.bounding_box()
         return util.BoundingBox(b.a * self.scale, b.b * self.scale)
 
+class Inversion(Shape):
+    def __init__(self, s):
+        self.s = s
+
+    def distance(self, point):
+        return -self.s.distance(point)
+
+    def bounding_box(self):
+        inf = util.Vector(float("inf"), float("inf"), float("inf"))
+        return util.BoundingBox(-inf, inf)
 
 class Extrude(Shape):
     pass
