@@ -78,25 +78,23 @@ class RayCaster:
                            util.Vector(dx, dy, dz))
 
 
-        print("compiling...")
-        f = theano.function([ox, oy, oz, dx, dy, dz],
-                            colors,
-                            givens=[(shapes.Shape.Epsilon, epsilon)],
-                            on_unused_input = 'ignore') # Epsilon might not be used
-        print("running...")
+        with util.status_block("compiling"):
+            f = theano.function([ox, oy, oz, dx, dy, dz],
+                                colors,
+                                givens=[(shapes.Shape.Epsilon, epsilon)],
+                                on_unused_input = 'ignore') # Epsilon might not be used
+        with util.status_block("running"):
+            pixels = f(numpy.full_like(directions.x, origin.x),
+                       numpy.full_like(directions.y, origin.y),
+                       numpy.full_like(directions.z, origin.z),
+                       directions.x,
+                       numpy.full_like(directions.x, directions.y),
+                       directions.z)
 
-        pixels = f(numpy.full_like(directions.x, origin.x),
-                   numpy.full_like(directions.y, origin.y),
-                   numpy.full_like(directions.z, origin.z),
-                   directions.x,
-                   numpy.full_like(directions.x, directions.y),
-                   directions.z)
-
-        print("saving...")
-
-        img = PIL.Image.new("L", self.size)
-        img.putdata(pixels)
-        img.save(self.filename)
+        with util.status_block("saving"):
+            img = PIL.Image.new("L", self.size)
+            img.putdata(pixels)
+            img.save(self.filename)
 
     @staticmethod
     def dot(obj, distances, final_values, epsilon, origins, directions):
