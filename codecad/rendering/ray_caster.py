@@ -39,9 +39,9 @@ class RayCaster:
 
         origin = (box.a + box.b) / 2 - util.Vector(0, distance + box_size.y / 2, 0)
 
-        directions = util.Vector(self.size[0] / 2 - xs,
+        directions = util.Vector(xs - self.size[0] / 2,
                                  focal_length,
-                                 ys - self.size[1] / 2)
+                                 self.size[1] / 2 - ys)
         directions = directions.normalized()
 
         ox = T.matrix("ox")
