@@ -9,12 +9,13 @@ from .. import shapes
 
 class RayCaster:
     def __init__(self, filename, size = (800, 600),
+                 antialiasing_samples = 4,
                  view_angle = math.radians(90),
                  mode=None,
                  resolution=None):
         self.filename = filename
         self.size = size
-        self.view_angle = 90
+        self.view_angle = view_angle
         if mode is None:
             self.mode = self.nice
         else:
