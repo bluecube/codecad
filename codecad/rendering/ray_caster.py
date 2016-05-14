@@ -104,14 +104,10 @@ class RayCaster:
 
         intersections = origins + directions * distances
 
-        normals = util.Vector(obj.distance(intersections + util.Vector(epsilon, 0, 0)) - final_values,
-                              obj.distance(intersections + util.Vector(0, epsilon, 0)) - final_values,
-                              obj.distance(intersections + util.Vector(0, 0, epsilon)) - final_values)
-        normals = normals.normalized()
+        dot = (obj.distance(intersections + light * epsilon) - final_values) / epsilon
+        intensities = T.clip(-dot, 0, 1)
 
-        dot = T.clip(-normals.dot(light), 0, 1)
-
-        return [T.switch(final_values < epsilon, surface * dot, bg)
+        return [T.switch(final_values < epsilon, surface * intensities, bg)
                 for surface, bg in zip(surface_color, bg_color)]
 
     @staticmethod
