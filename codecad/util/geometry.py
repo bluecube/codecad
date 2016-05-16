@@ -69,7 +69,7 @@ class BoundingBox(collections.namedtuple("BoundingBox", "a b")):
 
         for v in vector_iterable:
             a = a.min(v)
-            b = b.min(v)
+            b = b.max(v)
 
         return cls(a, b)
 
