@@ -14,3 +14,6 @@ def status_block(title):
     finally:
         elapsed = time.perf_counter() - start
         print(" {:0.2f} s".format(elapsed))
+
+def check_close(a, b, closeness):
+    return abs(a - b) < closeness
