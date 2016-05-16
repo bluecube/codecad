@@ -21,10 +21,8 @@ class StlRenderer:
         z = T.tensor3("z")
 
         print("compiling...")
-        f = theano.function([x, y, z],
-                            shape.distance(util.Vector(x, y, z)),
-                            givens=[(shapes.Shape.Epsilon, self.resolution)],
-                            on_unused_input = 'ignore') # Epsilon might not be used
+        f = theano.function([x, y, z], shape.distance(util.Vector(x, y, z)))
+
         print("running...")
 
         resolution = util.Vector(self.resolution, self.resolution, self.resolution)

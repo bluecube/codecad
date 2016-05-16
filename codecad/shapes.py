@@ -9,17 +9,9 @@ from . import util
 class Shape:
     """ A base 3D or 2D shape. """
 
-    # This is a constant, to be set as given when creating the function
-    Epsilon = T.fscalar("Epsilon")
-
-    Outside = Epsilon
-    Inside = -Epsilon
-
     def distance(point):
-        """ Returns lower bound on distance between the given point and surface
-        of the shape as a Theano expression.
-        Must be overridden in subclasses.
-        If distance cannot be determined, return Shape.Inside or Shape.Outside. """
+        """ Returns distance between the given point and surface of the shape as
+        a Theano tensor. Must be overridden in subclasses. """
         raise NotImplementedError()
 
     def bounding_box(point):

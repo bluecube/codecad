@@ -19,9 +19,7 @@ def volume_and_centroid(shape, resolution):
     centroid_z = (inside * z).sum() / inside_count
 
     with util.status_block("compiling"):
-        f = theano.function([x, y, z],
-                            (volume, centroid_x, centroid_y, centroid_z),
-                            on_unused_input = 'ignore') # Epsilon might not be used
+        f = theano.function([x, y, z], (volume, centroid_x, centroid_y, centroid_z))
 
     box = shape.bounding_box()
     box_a = box.a + util.Vector(resolution, resolution, resolution) / 2

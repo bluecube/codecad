@@ -79,10 +79,7 @@ class RayCaster:
         colors = T.stack((r, g, b), 2).astype("uint8")
 
         with util.status_block("compiling"):
-            f = theano.function([ox, oy, oz, dx, dy, dz],
-                                colors,
-                                givens=[(shapes.Shape.Epsilon, epsilon)],
-                                on_unused_input = 'ignore') # Epsilon might not be used
+            f = theano.function([ox, oy, oz, dx, dy, dz], colors)
 
         with util.status_block("running"):
             pixels = f(numpy.full_like(directions.x, origin.x),
