@@ -2,14 +2,14 @@ import codecad
 import math
 
 def check_close(a, b):
-    return abs(a - b) < 0.001
+    return abs(a - b) < 0.005
 
 def check_shape(shape, volume, centroid):
     print(repr(shape))
     result = codecad.volume_and_centroid(shape, 0.01)
 
     assert check_close(result.volume, volume)
-    #assert all(check_close(x, y) for x, y in zip(result.centroid, centroid))
+    assert check_close(result.centroid, codecad.util.Vector(*centroid))
 
 def test_shapes():
     cube = codecad.Box()

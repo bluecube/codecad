@@ -12,11 +12,15 @@ def volume_and_centroid(shape, resolution):
     z = T.tensor3("z")
 
     inside = shape.distance(util.Vector(x, y, z)) < 0
-    cell_count = inside.sum()
+    inside_count = inside.sum()
+    volume = inside_count * (resolution * resolution * resolution)
+    centroid_x = (inside * x).sum() / inside_count
+    centroid_y = (inside * y).sum() / inside_count
+    centroid_z = (inside * z).sum() / inside_count
 
     with util.status_block("compiling"):
         f = theano.function([x, y, z],
-                            cell_count,
+                            (volume, centroid_x, centroid_y, centroid_z),
                             on_unused_input = 'ignore') # Epsilon might not be used
 
     box = shape.bounding_box()
@@ -27,8 +31,7 @@ def volume_and_centroid(shape, resolution):
     zs = numpy.arange(box_a.z, box.b.z, resolution)
 
     with util.status_block("running"):
-        cell_count = f(*numpy.meshgrid(xs, ys, zs))
+        result = [float(x) for x in f(*numpy.meshgrid(xs, ys, zs))]
 
-    return VolumeAndCentroid(cell_count * resolution * resolution * resolution,
-                             float("nan"))
+    return VolumeAndCentroid(result[0], util.Vector(*result[1:]))
 
