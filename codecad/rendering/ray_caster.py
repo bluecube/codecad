@@ -6,6 +6,7 @@ import math
 
 from .. import util
 from .. import shapes
+from . import render_params
 
 class RayCaster:
     def __init__(self, filename, size = (800, 600),
@@ -76,7 +77,7 @@ class RayCaster:
                             util.Vector(ox, oy, oz),
                             util.Vector(dx, dy, dz))
 
-        colors = T.stack((r, g, b), 2).astype("uint8")
+        colors = T.clip(T.stack((r, g, b), 2), 0, 255).astype("uint8")
 
         with util.status_block("compiling"):
             f = theano.function([ox, oy, oz, dx, dy, dz], colors)
@@ -95,18 +96,13 @@ class RayCaster:
 
     @staticmethod
     def nice(obj, distances, final_values, epsilon, origins, directions):
-        # Render parameters:
-        light = util.Vector(1, 1, -1).normalized() # Light direction and intensity
-        surface_color = util.Vector(0x89, 0x9a, 0x00) # Color of the shape
-        bg_color = util.Vector(0x89, 0x9a, 0xae) # Color of the background
-
         intersections = origins + directions * distances
 
-        dot = (obj.distance(intersections + light * epsilon) - final_values) / epsilon
+        dot = (obj.distance(intersections + render_params.light * epsilon) - final_values) / epsilon
         intensities = T.clip(-dot, 0, 1)
 
-        return [T.switch(final_values < epsilon, surface * intensities, bg)
-                for surface, bg in zip(surface_color, bg_color)]
+        return [T.switch(final_values < epsilon, surface * intensities + ambient, bg)
+                for surface, bg, ambient in zip(render_params.surface, render_params.background, render_params.ambient)]
 
     @staticmethod
     def dot(obj, distances, final_values, epsilon, origins, directions):
