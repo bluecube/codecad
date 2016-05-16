@@ -10,15 +10,15 @@ Main sources so far:
 
 ## To do
 - [X] Get ray caster working properly (not just black on white) (dot product shading works)
-  - [ ] Try to avoid calculating the normals explicitly, instead take them from neighboring pixel distances
+  - <strike>[ ] Try to avoid calculating the normals explicitly, instead take them from neighboring pixel distances</strike> (That probably wouldn't have worked. Now we're calculating a dot product between a normal at a point and a vector directly using just a single extra evaluation and this looks good enough.)
 - [X] Matrix transformations (no matrices, but translation, rotation and uniform scaling work now)
 - [ ] Extrusions
 - [X] Marching cubes & STL output (initial version is done)
 - [ ] Figure out converting objects given by parametric equations to implicit functions (should be easy, right? :-D)
 - [ ] Use the whole thing to model the _mystery project_.
-- [ ] Function for successive approximation of the geometry
-  - [ ] Use it to calculate model volume and centroid
-  - [ ] Use it to improve STL export
+- <strike>[ ] Function for successive approximation of the geometry</strike> (it was super slow, maybe later)
+  - [X] Use it to calculate model volume and centroid (done using a much simpler algorithm)
+  - <strike>[ ] Use it to improve STL export</strike>
 - [ ] Better geometry representation in IPython using three.js
   - [ ] Use this to make a documentation notebook
 - [ ] Add setup.py
