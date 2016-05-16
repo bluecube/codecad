@@ -240,3 +240,6 @@ class Inversion(Shape):
 class Extrude(Shape):
     pass
     #TODO
+
+def bounding_box_to_shape(box):
+    return Box(*box.size()).translated(box.midpoint())

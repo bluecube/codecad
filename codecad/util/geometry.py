@@ -88,6 +88,9 @@ class BoundingBox(collections.namedtuple("BoundingBox", "a b")):
     def size(self):
         return self.b - self.a
 
+    def midpoint(self):
+        return (self.a + self.b) / 2
+
     def volume(self):
         size = self.size()
         return size.x * size.y * size.z
