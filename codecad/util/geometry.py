@@ -95,9 +95,6 @@ class BoundingBox(collections.namedtuple("BoundingBox", "a b")):
         size = self.size()
         return size.x * size.y * size.z
 
-    def centroid(self):
-        return (self.b + self.a) / 2
-
 class Quaternion(collections.namedtuple("Quaternion", "v w")):
     # http://www.cs.ucr.edu/~vbz/resources/quatut.pdf
     __slots__ = ()
