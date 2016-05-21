@@ -119,7 +119,7 @@ class Cylinder(Shape):
 
 class Union(Shape):
     def __init__(self, shapes, r = 0):
-        self.shapes = shapes
+        self.shapes = list(shapes)
         self.r = r
 
     @staticmethod
@@ -142,7 +142,7 @@ class Union(Shape):
 
 class Intersection(Shape):
     def __init__(self, shapes, r = 0):
-        self.shapes = shapes
+        self.shapes = list(shapes)
         self.r = r
         if r != 0:
             raise NotImplementedError("Rounded intersections are not supported yet") #TODO
