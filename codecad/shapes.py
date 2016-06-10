@@ -203,7 +203,8 @@ class Rotation(Shape):
             inf = util.Vector(float("inf"), float("inf"), float("inf"))
             return util.BoundingBox(-inf, inf)
         else:
-            return util.BoundingBox.containing(self.quat.rotate_vector(v) for v in b.vertices())
+            inv_quat = self.quat.conjugate()
+            return util.BoundingBox.containing(inv_quat.rotate_vector(v) for v in b.vertices())
 
 
 class Scaling(Shape):
