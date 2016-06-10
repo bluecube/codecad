@@ -1,7 +1,7 @@
 import codecad
 import math
 
-def check_shape(shape, volume, centroid):
+def check_shape(shape, volume, centroid = None):
     print(repr(shape))
     result = codecad.volume_and_centroid(shape, 0.01)
 
@@ -27,3 +27,7 @@ def test_shapes():
     union_volume = cube_volume + sphere_volume
     union_centroid = translation * sphere_volume / union_volume
     check_shape(union, union_volume, union_centroid)
+
+    rotation = union.rotated((0, 1, 1), 30)
+    print(rotation.bounding_box())
+    check_shape(rotation, union_volume)
