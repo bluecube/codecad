@@ -36,10 +36,10 @@ class RayCaster:
             epsilon = self.resolution
 
         focal_length = self.size[0] / math.tan(self.view_angle / 2)
-        distance = 1.0 * max(box_size.x * focal_length / self.size[0],
-                             box_size.z * focal_length / self.size[1])
+        distance = focal_length * max(box_size.x / self.size[0],
+                                      box_size.z / self.size[1])
 
-        origin = (box.a + box.b) / 2 - util.Vector(0, distance + box_size.y / 2, 0)
+        origin = box.midpoint() - util.Vector(0, distance + box_size.y / 2, 0)
 
         directions = util.Vector(xs - self.size[0] / 2,
                                  focal_length,
