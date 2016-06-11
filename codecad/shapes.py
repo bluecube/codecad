@@ -63,6 +63,10 @@ class Shape:
         """ Returns current shape scaled by given ratio """
         return Scaling(self, s)
 
+    def shell(self, inside, outside):
+        """ Returns a shell of the current shape"""
+        return Shell(self, inside, outside)
+
 
 class Box(Shape):
     def __init__(self, x = 1, y = None, z = None):
@@ -233,6 +237,19 @@ class Inversion(Shape):
 class Extrude(Shape):
     pass
     #TODO
+
+class Shell(Shape):
+    def __init__(self, s, inside, outside):
+        self.s = s
+        self.inside = inside
+        self.outside = outside
+
+    def distance(self, point):
+        return abs(self.s.distance(point) - (self.inside - self.outside) / 2) - \
+               (self.inside + self.outside) / 2
+
+    def bounding_box(self):
+        return self.s.bounding_box().expanded_additive(self.outside)
 
 def bounding_box_to_shape(box):
     return Box(*box.size()).translated(box.midpoint())
