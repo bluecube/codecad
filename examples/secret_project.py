@@ -42,18 +42,18 @@ def mesh(outline, spacing, diameter, rounding = None):
     return outline & grids
 
 
-limit = codecad.Box(float("inf"), float("inf"), 100e-3)
-#airfoil = codecad.naca_airfoil.NacaAirfoil("0024").scaled(100e-3)
-airfoil = codecad.Cylinder(float("inf"), 100e-3)
+limit = codecad.Box(float("inf"), float("inf"), 100)
+#airfoil = codecad.naca_airfoil.NacaAirfoil("0024").scaled(100)
+airfoil = codecad.Cylinder(float("inf"), 100)
 
-shell = (airfoil.shell(0.5e-3, 0.5e-3) & limit).rotated((1, 0, 0), 90)
+shell = (airfoil.shell(0.5, 0.5) & limit).rotated((1, 0, 0), 90)
 
 m = mesh((airfoil & limit).rotated((1, 0, 0), 90),
-         spacing  = 15e-3,
-         diameter = 1e-3)
+         spacing  = 15,
+         diameter = 1)
 
-o = codecad.Union([m, shell], 2e-3)
+o = codecad.Union([m, shell], 2)
 
-o.render(codecad.rendering.RayCaster(os.path.splitext(__file__)[0] + ".png",
-         resolution=0.1e-3))
-#o.render(codecad.rendering.StlRenderer(os.path.splitext(__file__)[0] + ".stl", 0.5e-3))
+#o.render(codecad.rendering.RayCaster(os.path.splitext(__file__)[0] + ".png",
+#         resolution=0.1))
+o.render(codecad.rendering.StlRenderer(os.path.splitext(__file__)[0] + ".stl", 0.3))
