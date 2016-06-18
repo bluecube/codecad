@@ -122,22 +122,34 @@ class Cylinder(Shape):
 
 
 class Union(Shape):
-    def __init__(self, shapes, r = 0):
+    def __init__(self, shapes, r = None):
         self.shapes = list(shapes)
         self.r = r
 
     @staticmethod
-    def rmin(a, b, r):
-        return util.switch(abs(a - b) >= r,
-                           util.minimum(a, b),
-                           b + r * util.sin(math.pi / 4 + util.arcsin((a - b) / (r * math.sqrt(2)))) - r)
+    def distance2(r, s1, s2, point):
+        g1 = util.derivatives.gradient(s1.distance(point), point)
+        g2 = util.derivatives.gradient(s2.distance(point), point)
+        cos_alpha = -g1.dot(g2)
+
+        d1 = s1.distance(point)
+        d2 = s2.distance(point)
+        x1 = r - d1
+        x2 = r - d2
+
+        dist_to_rounding = r - util.sqrt((2 * cos_alpha * x1 * x2 + x1 * x1 + x2 * x2) / (1 - cos_alpha * cos_alpha))
+
+        cond1 = (cos_alpha * x1 + x2 <= 0)
+        cond2 = (cos_alpha * x2 + x1 <= 0)
+
+        return util.switch(cond1 | cond2, util.minimum(d1, d2), dist_to_rounding)
 
     def distance(self, point):
-        if self.r == 0:
+        if self.r is None:
             return util.minimum(*(s.distance(point) for s in self.shapes))
         else:
-            return functools.reduce(lambda a, b: self.rmin(a, b, self.r),
-                                    (s.distance(point) for s in self.shapes))
+            return functools.reduce(lambda a, b: self.distance2(self.r, a, b, point),
+                                    self.shapes)
 
     def bounding_box(self):
         return functools.reduce(lambda a, b: a.union(b),
