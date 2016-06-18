@@ -14,11 +14,14 @@ Main sources so far:
 - [X] Matrix transformations (no matrices, but translation, rotation and uniform scaling work now)
 - [ ] Extrusions
 - [X] Marching cubes & STL output (initial version is done)
-- [ ] Figure out converting objects given by parametric equations to implicit functions (should be easy, right? :-D)
-- [ ] Use the whole thing to model the _mystery project_.
+- [ ] <strike>Figure out converting objects given by parametric equations to implicit functions (should be easy, right? :-D)</strike> NACA airfoils
 - <strike>[ ] Function for successive approximation of the geometry</strike> (it was super slow, maybe later)
   - [X] Use it to calculate model volume and centroid (done using a much simpler algorithm)
   - <strike>[ ] Use it to improve STL export</strike>
 - [ ] Better geometry representation in IPython using three.js
   - [ ] Use this to make a documentation notebook
 - [ ] Add setup.py
+- Things to model with it:
+  - [ ] _mystery project_ (NACA airfoils, bezier curve based extrusions, meshed internal structure)
+  - [ ] Box generator
+  - [ ] Involute gears
