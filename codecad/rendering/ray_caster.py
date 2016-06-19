@@ -70,9 +70,6 @@ def render_picture(obj, filename, size = (800, 600),
 
     colors = T.clip(T.stack((r, g, b), 2), 0, 255).astype("uint8")
 
-    theano.config.openmp = True
-    theano.config.openmp_elemwise_minsize = 1
-
     with util.status_block("compiling"):
         f = theano.function([ox, oy, oz, dx, dy, dz], colors)
 
