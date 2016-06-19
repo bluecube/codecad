@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import codecad
-import os
 
 sphere = codecad.Sphere(1.3)
 cube = codecad.Box()
@@ -13,5 +12,5 @@ holes = cylinder.scaled(1.5) + \
 
 o = sphere & cube - holes
 
-#o.render(codecad.rendering.RayCaster(os.path.splitext(__file__)[0] + ".png"))
-o.render(codecad.rendering.StlRenderer(os.path.splitext(__file__)[0] + ".stl", 0.05))
+if __name__ == "__main__":
+    codecad.commandline_render(o, 0.05)

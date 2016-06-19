@@ -20,10 +20,6 @@ class Shape:
         The closer the wrapping, the faster the render. """
         raise NotImplementedError()
 
-    def render(self, renderer):
-        """ Render the shape using the given renderer. """
-        renderer.render(self)
-
     def __or__(self, second):
         """ Returns union of the two shapes """
         return Union([self, second])
