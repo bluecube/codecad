@@ -24,9 +24,6 @@ def render_stl(obj, filename, resolution):
         box_a = box.a - resolution_vector
         box_b = box.b + resolution_vector * 2
 
-        xx = numpy.arange(box_a.x, box_b.x, resolution)
-        yy = numpy.arange(box_a.y, box_b.y, resolution)
-        zz = numpy.arange(box_a.z, box_b.z, resolution)
         xs, ys, zs = numpy.meshgrid(numpy.arange(box_a.x, box_b.x, resolution),
                                     numpy.arange(box_a.y, box_b.y, resolution),
                                     numpy.arange(box_a.z, box_b.z, resolution))
