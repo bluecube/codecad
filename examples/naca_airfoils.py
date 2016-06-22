@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 
 import codecad
-import os
-import itertools
 
 airfoil_codes = [
     #2412,
@@ -21,5 +19,5 @@ airfoil_shapes = codecad.Union(airfoil.translated(0, i, 0)
 
 o = ((airfoil_shapes & limit)).rotated((1, 0, 0), 90)
 
-o.render(codecad.rendering.RayCaster(os.path.splitext(__file__)[0] + ".png"))
-#o.render(codecad.rendering.StlRenderer(os.path.splitext(__file__)[0] + ".stl", 0.02))
+if __name__ == "__main__":
+    codecad.commandline_render(o, 0.05)
