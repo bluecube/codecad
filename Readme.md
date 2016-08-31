@@ -12,7 +12,10 @@ Main sources so far:
 - [X] Get ray caster working properly (not just black on white) (dot product shading works)
   - <strike>[ ] Try to avoid calculating the normals explicitly, instead take them from neighboring pixel distances</strike> (That probably wouldn't have worked. Now we're calculating a dot product between a normal at a point and a vector directly using just a single extra evaluation and this looks good enough.)
 - [X] Matrix transformations (no matrices, but translation, rotation and uniform scaling work now)
-- [ ] Extrusions
+-  Extrusions
+  - [X] Revolve
+  - [ ] Twisted extrusion
+  - [ ] Along a general curve
 - [X] Marching cubes & STL output (initial version is done)
 - [ ] NACA airfoils
 - [ ] Involute gears
