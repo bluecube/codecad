@@ -126,7 +126,7 @@ class Union(Shape):
     def distance2(r, s1, s2, point):
         g1 = util.derivatives.gradient(s1.distance(point), point)
         g2 = util.derivatives.gradient(s2.distance(point), point)
-        cos_alpha = -g1.dot(g2)
+        cos_alpha = -abs(g1.dot(g2))
 
         d1 = s1.distance(point)
         d2 = s2.distance(point)

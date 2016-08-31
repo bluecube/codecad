@@ -10,4 +10,4 @@ o2 = codecad.Union([b1, b2], 20)
 o = o1.translated(-50, 0, 0) + o2.translated(50, 0, 0)
 
 if __name__ == "__main__":
-    codecad.commandline_render(o, 1, default_renderer="slice")
+    codecad.commandline_render(o, 0.5, default_renderer="slice")
