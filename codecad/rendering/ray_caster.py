@@ -16,7 +16,8 @@ def render_picture(obj, filename, size = (800, 600),
                  "dot": dot_mode,
                  "distance": distance_mode}[mode]
 
-    box = obj.bounding_box()
+    with util.status_block("calculating bounding box"):
+        box = obj.bounding_box()
     box_size = box.b - box.a
 
     xs, ys = numpy.meshgrid(numpy.arange(size[0]), numpy.arange(size[1]))
@@ -63,12 +64,13 @@ def render_picture(obj, filename, size = (800, 600),
     distance = distance[-1]
     final_value = final_value[-1]
 
-    r, g, b = mode_func(obj,
-                        distance, final_value, epsilon,
-                        util.Vector(ox, oy, oz),
-                        util.Vector(dx, dy, dz))
+    with util.status_block("building expression"):
+        r, g, b = mode_func(obj,
+                            distance, final_value, epsilon,
+                            util.Vector(ox, oy, oz),
+                            util.Vector(dx, dy, dz))
 
-    colors = T.clip(T.stack((r, g, b), 2), 0, 255).astype("uint8")
+        colors = T.clip(T.stack((r, g, b), 2), 0, 255).astype("uint8")
 
     with util.status_block("compiling"):
         f = theano.function([ox, oy, oz, dx, dy, dz], colors)
