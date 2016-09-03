@@ -126,19 +126,19 @@ class Union(Shape):
     def distance2(r, s1, s2, point):
         g1 = util.derivatives.gradient(s1.distance(point), point)
         g2 = util.derivatives.gradient(s2.distance(point), point)
-        cos_alpha = -abs(g1.dot(g2))
+        cos_alpha = abs(g1.dot(g2))
 
         d1 = s1.distance(point)
         d2 = s2.distance(point)
         x1 = r - d1
         x2 = r - d2
 
-        dist_to_rounding = r - util.sqrt((2 * cos_alpha * x1 * x2 + x1 * x1 + x2 * x2) / (1 - cos_alpha * cos_alpha))
+        dist_to_rounding = r - util.sqrt((x1 * x1 + x2 * x2 - 2 * cos_alpha * x1 * x2) / (1 - cos_alpha * cos_alpha))
 
-        cond1 = (cos_alpha * x1 + x2 <= 0)
-        cond2 = (cos_alpha * x2 + x1 <= 0)
+        cond1 = (cos_alpha * x1 < x2)
+        cond2 = (cos_alpha * x2 < x1)
 
-        return util.switch(cond1 | cond2, util.minimum(d1, d2), dist_to_rounding)
+        return util.switch(cond1 & cond2, dist_to_rounding, util.minimum(d1, d2))
 
     def distance(self, point):
         if self.r is None:
