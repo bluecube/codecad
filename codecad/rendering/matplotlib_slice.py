@@ -9,14 +9,18 @@ def render_slice(obj,
                  resolution,
                  filename=None # For interface compatibility with other renderers
                  ):
-    box = obj.bounding_box().expanded(0.1)
+    with util.status_block("calculating bounding box"):
+        box = obj.bounding_box().expanded(0.1)
+
     box_size = box.b - box.a
 
     x = T.matrix("x")
     y = T.matrix("y")
     z = T.zeros_like(x)
 
-    distances = obj.distance(util.Vector(x, y, z))
+    with util.status_block("building expression"):
+        distances = obj.distance(util.Vector(x, y, z))
+
     dist_range = T.max(abs(distances))
 
     with util.status_block("compiling"):

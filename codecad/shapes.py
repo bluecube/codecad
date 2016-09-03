@@ -63,6 +63,9 @@ class Shape:
         """ Returns a shell of the current shape"""
         return Shell(self, inside, outside)
 
+    def revolved(self):
+        """ Returns current shape taken as 2D in xy plane and revolved around y axis """
+        return Revolution(self)
 
 class Box(Shape):
     def __init__(self, x = 1, y = None, z = None):
@@ -261,3 +264,19 @@ class Shell(Shape):
 
 def bounding_box_to_shape(box):
     return Box(*box.size()).translated(box.midpoint())
+
+class Revolution(Shape):
+    def __init__(self, s):
+        self.s = s
+
+    def distance(self, point):
+        new_point = util.Vector(util.sqrt(point.x * point.x + point.z * point.z),
+                                    point.y,
+                                    0)
+        return self.s.distance(new_point)
+
+    def bounding_box(self):
+        box = self.s.bounding_box()
+        radius = util.maximum(-box.a.x, box.b.x)
+        return util.BoundingBox(util.Vector(-radius, box.a.y, -radius),
+                                util.Vector(radius, box.b.y, radius))

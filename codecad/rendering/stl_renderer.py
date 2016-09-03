@@ -8,15 +8,19 @@ from .. import util
 from .. import shapes
 
 def render_stl(obj, filename, resolution):
-    box = obj.bounding_box()
+    with util.status_block("calculating bounding box"):
+        box = obj.bounding_box()
     box_size = box.b - box.a
 
     x = T.tensor3("x")
     y = T.tensor3("y")
     z = T.tensor3("z")
 
+    with util.status_block("building expression"):
+        distances = obj.distance(util.Vector(x, y, z))
+
     with util.status_block("compiling"):
-        f = theano.function([x, y, z], obj.distance(util.Vector(x, y, z)))
+        f = theano.function([x, y, z], distances)
 
     with util.status_block("running"):
         resolution_vector = util.Vector(resolution, resolution, resolution)
