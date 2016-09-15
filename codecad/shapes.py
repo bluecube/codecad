@@ -127,14 +127,20 @@ class Union(Shape):
 
     @staticmethod
     def distance2(r, s1, s2, point):
-        g1 = util.derivatives.gradient(s1.distance(point), point)
-        g2 = util.derivatives.gradient(s2.distance(point), point)
-        cos_alpha = abs(g1.dot(g2))
+        epsilon = min(s1.bounding_box().size().min(),
+                      s2.bounding_box().size().min()) / 10000;
 
         d1 = s1.distance(point)
         d2 = s2.distance(point)
         x1 = r - d1
         x2 = r - d2
+
+        # epsilon * gradient(s1)(point)
+        g1 = util.Vector(s1.distance(point + util.Vector(epsilon, 0, 0)) - d1,
+                         s1.distance(point + util.Vector(0, epsilon, 0)) - d1,
+                         s1.distance(point + util.Vector(0, 0, epsilon)) - d1)
+
+        cos_alpha = abs((s2.distance(point + g1) - d2) / epsilon)
 
         dist_to_rounding = r - util.sqrt((x1 * x1 + x2 * x2 - 2 * cos_alpha * x1 * x2) / (1 - cos_alpha * cos_alpha))
 
