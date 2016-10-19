@@ -24,6 +24,7 @@ Main sources so far:
 - Animations
   - [ ] Interface
   - [ ] Rendering
+- [ ] Show axes in raytraced image
 - <strike>[ ] Function for successive approximation of the geometry</strike> (it was super slow, maybe later)
   - [X] Use it to calculate model volume and centroid (done using a much simpler algorithm)
   - <strike>[ ] Use it to improve STL export</strike>
