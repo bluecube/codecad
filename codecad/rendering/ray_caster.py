@@ -6,48 +6,55 @@ import math
 
 from .. import util
 from .. import shapes
+from .. import animation
 from . import render_params
 
-def render_picture(obj, filename, size = (800, 600),
-                   view_angle = math.radians(90),
-                   mode="nice",
-                   resolution=None):
-    mode_func = {"nice": nice_mode,
-                 "dot": dot_mode,
-                 "distance": distance_mode}[mode]
-
-    with util.status_block("calculating bounding box"):
-        box = obj.bounding_box()
-    box_size = box.b - box.a
-
-    xs, ys = numpy.meshgrid(numpy.arange(size[0]), numpy.arange(size[1]))
-
-    if resolution is None:
-        epsilon = min(box_size.x, box_size.y, box_size.z) / 1000;
-    else:
-        epsilon = resolution
-
-    focal_length = size[0] / math.tan(view_angle / 2)
-    distance = focal_length * max(box_size.x / size[0],
-                                  box_size.z / size[1])
-
-    origin = box.midpoint() - util.Vector(0, distance + box_size.y / 2, 0)
-
-    directions = util.Vector(xs - size[0] / 2,
-                             focal_length,
-                             size[1] / 2 - ys)
-    directions = directions.normalized()
-
+def make_func(obj, size, epsilon):
     with util.status_block("building expression"):
-        ox = T.matrix("ox")
-        oy = T.matrix("oy")
-        oz = T.matrix("oz")
+        # Variables used as function parameters
+        ox = T.scalar("ox")
+        oy = T.scalar("oy")
+        oz = T.scalar("oz")
 
-        dx = T.matrix("dx")
-        dy = T.matrix("dy")
-        dz = T.matrix("dz")
+        dx = T.scalar("dx")
+        dy = T.scalar("dy")
+        dz = T.scalar("dz")
 
-        def _trace_func(previous, _, ox, oy, oz, dx, dy, dz):
+        upx = T.scalar("upx")
+        upy = T.scalar("upy")
+        upz = T.scalar("upz")
+
+        fl = T.scalar("fl")
+
+        tau = animation.tau
+
+        # Preparing ray vectors for tracing
+        size = (size[1], size[0])
+            # We need to swap size components to be compatible with the
+            # height * width convention of numpy matrices
+
+        direction = util.Vector(dx, dy, dz).normalized()
+
+        up = util.Vector(upx, upy, upz)
+        up = up - direction * up.dot(direction)
+        up = up.normalized()
+
+        right = direction.cross(up)
+
+        film_x = T.tile(T.arange(size[1]), (size[0], 1)) - (size[1] - 1) / 2
+        film_y = T.tile(T.arange(size[0]), (size[1], 1)).T - (size[0] - 1) / 2
+
+        print("film_x", film_x.shape.eval({}))
+        print("film_y", film_y.shape.eval({}))
+
+        rays = direction * fl + (right * film_x - up * film_y)
+        rays = rays.normalized()
+
+        origins = util.Vector(T.tile(ox, size), T.tile(oy, size), T.tile(oz, size))
+        print("origins", origins.x.shape.eval({ox: 0}))
+
+        # Actual tracing
+        def trace_func(previous, _, ox, oy, oz, dx, dy, dz):
             o = util.Vector(ox, oy, oz)
             d = util.Vector(dx, dy, dz)
 
@@ -57,57 +64,76 @@ def render_picture(obj, filename, size = (800, 600),
                    theano.scan_module.until(T.all(T.or_(distance < epsilon / 2,
                                                         T.isinf(distance))))
 
-        distance, final_value = theano.scan(_trace_func,
-                                            outputs_info=[T.zeros_like(dx),T.zeros_like(dx)],
-                                            non_sequences=[ox, oy, oz, dx, dy, dz],
-                                            n_steps = 100)[0]
+        distances, final_values = theano.scan(trace_func,
+                                              outputs_info=[T.zeros(size), T.zeros(size)],
+                                              non_sequences=[origins.x, origins.y, origins.z,
+                                                             rays.x, rays.y, rays.z],
+                                              n_steps = 100)[0]
 
-        distance = distance[-1]
-        final_value = final_value[-1]
+        distances = distances[-1]
+        final_values = final_values[-1]
 
-        r, g, b = mode_func(obj,
-                            distance, final_value, epsilon,
-                            util.Vector(ox, oy, oz),
-                            util.Vector(dx, dy, dz))
+        # Shading
+        intersections = origins + rays * distances
 
-        colors = T.clip(T.stack((r, g, b), 2), 0, 255).astype("uint8")
+        dot = (obj.distance(intersections + render_params.light * epsilon) - final_values) / epsilon
+            # Dot product of a gradient and a vector is the same as a directional
+            # derivative along the vector
+
+        intensities = T.clip(-dot, 0, 1)
+
+        rgb = [T.switch(final_values < epsilon, surface * intensities + ambient, bg)
+               for surface, bg, ambient in zip(render_params.surface,
+                                               render_params.background,
+                                               render_params.ambient)]
+
+        colors = T.clip(T.stack(rgb, 2), 0, 255).astype("uint8")
 
     with util.status_block("compiling"):
-        f = theano.function([ox, oy, oz, dx, dy, dz], colors)
+        f = theano.function([ox, oy, oz,
+                             dx, dy, dz,
+                             upx, upy, upz,
+                             fl,
+                             tau],
+                            colors,
+                            on_unused_input = 'ignore')
+
+    def render_frame(origin, direction, up, focal_length, tau = 0):
+        return f(origin.x, origin.y, origin.z,
+                 direction.x, direction.y, direction.z,
+                 up.x, up.y, up.z,
+                 focal_length,
+                 tau)
+
+    return render_frame
+
+
+def render_picture(obj, filename, size = (800, 600),
+                   view_angle = 90,
+                   resolution=None):
+
+    with util.status_block("calculating bounding box"):
+        box = obj.bounding_box()
+    box_size = box.size()
+
+    if resolution is None:
+        epsilon = min(box_size.x, box_size.y, box_size.z) / 1000;
+    else:
+        epsilon = resolution
+
+    focal_length = size[0] / math.tan(math.radians(view_angle) / 2)
+    distance = focal_length * max(box_size.x / size[0],
+                                  box_size.z / size[1])
+
+    origin = box.midpoint() - util.Vector(0, distance + box_size.y / 2, 0)
+    direction = util.Vector(0, 1, 0)
+    up = util.Vector(0, 0, 1)
+
+    f = make_func(obj, size, epsilon)
 
     with util.status_block("running"):
-        pixels = f(numpy.full_like(directions.x, origin.x),
-                   numpy.full_like(directions.y, origin.y),
-                   numpy.full_like(directions.z, origin.z),
-                   directions.x,
-                   numpy.full_like(directions.x, directions.y),
-                   directions.z)
+        pixels = f(origin, direction, up, focal_length)
 
     with util.status_block("saving"):
         img = PIL.Image.fromarray(pixels)
         img.save(filename)
-
-def nice_mode(obj, distances, final_values, epsilon, origins, directions):
-    intersections = origins + directions * distances
-
-    dot = (obj.distance(intersections + render_params.light * epsilon) - final_values) / epsilon
-    intensities = T.clip(-dot, 0, 1)
-
-    return [T.switch(final_values < epsilon, surface * intensities + ambient, bg)
-            for surface, bg, ambient in zip(render_params.surface, render_params.background, render_params.ambient)]
-
-def dot_mode(obj, distances, final_values, epsilon, origins, directions):
-    intersections = origins + directions * distances
-
-    normals = util.Vector(obj.distance(intersections + util.Vector(epsilon, 0, 0)) - final_values,
-                          obj.distance(intersections + util.Vector(0, epsilon, 0)) - final_values,
-                          obj.distance(intersections + util.Vector(0, 0, epsilon)) - final_values)
-    normals = normals.normalized()
-
-    return [T.switch(final_values < epsilon, -255 * normals.dot(directions), 128)] * 3
-
-def distance_mode(obj, distances, final_values, epsilon, origins, directions):
-    min_distances = T.min(distances)
-    max_distances = T.max(T.switch(final_values < epsilon, distances, 0.0))
-    return [255 * T.clip(1 - 0.8 * (distances - min_distances) / (max_distances - min_distances),
-                        0.0, 1.0)] * 3
