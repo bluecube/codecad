@@ -1,10 +1,7 @@
 import sys
 import os
 import argparse
-
-from .ray_caster import render_picture
-from .stl_renderer import render_stl
-from .matplotlib_slice import render_slice
+import importlib
 
 def commandline_render(shape, resolution, default_renderer="guess"):
     """ Reads commandline arguments, chooses a renderer and passes the parameters to it. """
@@ -33,8 +30,19 @@ def _guess(shape, filename, resolution):
                   filename=filename,
                   resolution=resolution)
 
-_renderers = {"guess": _guess,
-             "picture": render_picture,
-             "stl": render_stl,
-             "slice": render_slice}
+_modules = {"picture": "ray_caster",
+            "stl": "stl_renderer",
+            "slice": "matplotlib_slice"}
+
+_renderers = {"guess": _guess}
+
+for name, module_name in _modules.items():
+    try:
+        module = importlib.import_module("." + module_name, __name__)
+    except ImportError as e:
+        print("Renderer {} is unavailable due to import error: {}".format(name, str(e)))
+        continue
+
+    setattr(sys.modules[__name__], module_name, module)
+    _renderers[name] = getattr(module, "render_" + name)
 
