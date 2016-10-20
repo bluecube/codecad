@@ -32,7 +32,8 @@ def _guess(shape, filename, resolution):
 
 _modules = {"picture": "ray_caster",
             "stl": "stl_renderer",
-            "slice": "matplotlib_slice"}
+            "slice": "matplotlib_slice",
+            "gif": "ray_caster"}
 
 _renderers = {"guess": _guess}
 

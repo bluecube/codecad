@@ -22,8 +22,8 @@ Main sources so far:
 - [ ] Shape wrappers
 - [ ] Assemblies (operations on combined shapes that propagate back to components)
 - Animations
-  - [ ] Interface
-  - [ ] Rendering
+  - [X] Interface
+  - [X] Rendering
 - [ ] Show axes in raytraced image
 - <strike>[ ] Function for successive approximation of the geometry</strike> (it was super slow, maybe later)
   - [X] Use it to calculate model volume and centroid (done using a much simpler algorithm)

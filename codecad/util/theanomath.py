@@ -3,6 +3,7 @@ import functools
 import theano
 import theano.tensor as T
 import numpy
+import math
 
 class _TheanoMath:
     @staticmethod
@@ -20,6 +21,14 @@ class _TheanoMath:
     @classmethod
     def minimum(cls, *args):
         if cls.is_theano(*args):
+            return functools.reduce(T.minimum, args)
+        else:
+            return functools.reduce(numpy.minimum, args)
+
+    @classmethod
+    def radians(cls, arg):
+        return arg * (math.pi / 180)
+        if cls.is_theano(arg):
             return functools.reduce(T.minimum, args)
         else:
             return functools.reduce(numpy.minimum, args)

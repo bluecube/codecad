@@ -1,7 +1,6 @@
 import PIL
 import theano
 import theano.tensor as T
-import numpy
 import math
 
 from .. import util
@@ -26,7 +25,7 @@ def make_func(obj, size, epsilon):
 
         fl = T.scalar("fl")
 
-        tau = animation.tau
+        time = animation.time
 
         # Preparing ray vectors for tracing
         size = (size[1], size[0])
@@ -90,32 +89,24 @@ def make_func(obj, size, epsilon):
                              dx, dy, dz,
                              upx, upy, upz,
                              fl,
-                             tau],
+                             time],
                             colors,
                             on_unused_input = 'ignore')
 
-    def render_frame(origin, direction, up, focal_length, tau = 0):
+    def render_frame(origin, direction, up, focal_length, time = 0):
         return f(origin.x, origin.y, origin.z,
                  direction.x, direction.y, direction.z,
                  up.x, up.y, up.z,
                  focal_length,
-                 tau)
+                 time)
 
     return render_frame
 
-
-def render_picture(obj, filename, size = (800, 600),
-                   view_angle = 90,
-                   resolution=None):
-
-    with util.status_block("calculating bounding box"):
-        box = obj.bounding_box()
+def get_camera_params(box, size, view_angle):
     box_size = box.size()
 
-    if resolution is None:
-        epsilon = min(box_size.x, box_size.y, box_size.z) / 1000;
-    else:
-        epsilon = resolution
+    if view_angle is None:
+        view_angle = 90
 
     focal_length = size[0] / math.tan(math.radians(view_angle) / 2)
     distance = focal_length * max(box_size.x / size[0],
@@ -125,11 +116,68 @@ def render_picture(obj, filename, size = (800, 600),
     direction = util.Vector(0, 1, 0)
     up = util.Vector(0, 0, 1)
 
+    return (origin, direction, up, focal_length)
+
+def render_picture(obj, filename, size = (800, 600),
+                   view_angle = None,
+                   resolution=None):
+
+    with util.status_block("calculating bounding box"):
+        box = obj.bounding_box()
+
+    if resolution is None:
+        epsilon = min(box_size.x, box_size.y, box_size.z) / 1000;
+    else:
+        epsilon = resolution
+
     f = make_func(obj, size, epsilon)
 
-    with util.status_block("running"):
-        pixels = f(origin, direction, up, focal_length)
+    camera_params = get_camera_params(box, size, view_angle)
+
+    with util.status_block("rendering"):
+        pixels = f(*camera_params)
 
     with util.status_block("saving"):
         img = PIL.Image.fromarray(pixels)
         img.save(filename)
+
+def render_gif(obj, filename, size = (640, 480),
+               view_angle = None,
+               duration = 5,
+               fps = 20,
+               loop = True,
+               resolution=None):
+
+    with util.status_block("calculating bounding box"):
+        box = obj.bounding_box().eval({animation.time: 0})
+
+    if resolution is None:
+        epsilon = min(box_size.x, box_size.y, box_size.z) / 1000;
+    else:
+        epsilon = resolution
+
+    f = make_func(obj, size, epsilon)
+
+    camera_params = get_camera_params(box, size, view_angle)
+
+    frame_duration = int(1000 / fps) # Frame duration in milliseconds
+    count = round(1000 * duration / frame_duration)
+
+    frames = []
+    for i in range(count):
+        time = (i * frame_duration) / 1000
+        with util.status_block("rendering frame {}/{}".format(i + 1, count)):
+            pixels = f(*camera_params, time = time)
+            frame = PIL.Image.fromarray(pixels)
+            frames.append(frame)
+
+    with util.status_block("saving"):
+        argv = {}
+        if loop:
+            argv["loop"] = 0
+
+        frames[0].save(filename,
+                       append_images = frames[1:],
+                       save_all = True,
+                       duration = frame_duration,
+                       **argv)

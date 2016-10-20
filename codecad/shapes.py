@@ -191,8 +191,8 @@ class Translation(Shape):
 class Rotation(Shape):
     def __init__(self, s, axis, angle):
         self.s = s
-        phi = math.radians(angle) / 2
-        self.quat = util.Quaternion(axis.normalized() * math.sin(phi), math.cos(phi))
+        phi = util.radians(angle) / 2
+        self.quat = util.Quaternion(axis.normalized() * util.sin(phi), util.cos(phi))
 
     def distance(self, point):
         return self.s.distance(self.quat.rotate_vector(point))
