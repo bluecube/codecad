@@ -105,12 +105,16 @@ def make_func(obj, size, epsilon):
 def get_camera_params(box, size, view_angle):
     box_size = box.size()
 
-    if view_angle is None:
-        view_angle = 90
+    size_diagonal = math.hypot(*size)
 
-    focal_length = size[0] / math.tan(math.radians(view_angle) / 2)
+    if view_angle is None:
+        focal_length = size_diagonal # Normal lens by default
+    else:
+        focal_length = size_diagonal / (2 * math.tan(math.radians(view_angle) / 2))
+
     distance = focal_length * max(box_size.x / size[0],
                                   box_size.z / size[1])
+    distance *= 1.2 # 20% margin around the object
 
     origin = box.midpoint() - util.Vector(0, distance + box_size.y / 2, 0)
     direction = util.Vector(0, 1, 0)
