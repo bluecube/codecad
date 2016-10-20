@@ -44,14 +44,10 @@ def make_func(obj, size, epsilon):
         film_x = T.tile(T.arange(size[1]), (size[0], 1)) - (size[1] - 1) / 2
         film_y = T.tile(T.arange(size[0]), (size[1], 1)).T - (size[0] - 1) / 2
 
-        print("film_x", film_x.shape.eval({}))
-        print("film_y", film_y.shape.eval({}))
-
         rays = direction * fl + (right * film_x - up * film_y)
         rays = rays.normalized()
 
         origins = util.Vector(T.tile(ox, size), T.tile(oy, size), T.tile(oz, size))
-        print("origins", origins.x.shape.eval({ox: 0}))
 
         # Actual tracing
         def trace_func(previous, _, ox, oy, oz, dx, dy, dz):
