@@ -15,8 +15,11 @@ Main sources so far:
 -  Extrusions
   - [X] Revolve
   - [ ] Twisted extrusion
+  - [ ] Helix
   - [ ] Along a general curve
+  - [ ] With scaling
 - [X] Marching cubes & STL output (initial version is done)
+- [ ] Ellipsoid
 - [ ] NACA airfoils
 - [ ] Involute gears
 - [ ] Shape wrappers
@@ -24,6 +27,7 @@ Main sources so far:
 - Animations
   - [X] Interface
   - [X] Rendering
+  - [ ] Try calculating frames in parallel, each in single core
 - [ ] Show axes in raytraced image
 - <strike>[ ] Function for successive approximation of the geometry</strike> (it was super slow, maybe later)
   - [X] Use it to calculate model volume and centroid (done using a much simpler algorithm)
