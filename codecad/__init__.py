@@ -5,8 +5,3 @@ from . import util
 from . import unsafe
 from . import naca_airfoil
 from .animation import time
-
-import theano
-
-theano.config.openmp = True
-theano.config.openmp_elemwise_minsize = 1000
