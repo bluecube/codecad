@@ -5,6 +5,10 @@ import itertools
 class Vector(collections.namedtuple("Vector", "x y z")):
     __slots__ = ()
 
+    @classmethod
+    def splat(cls, value):
+        return cls(value, value, value)
+
     def __add__(self, other):
         return Vector(self.x + other.x, self.y + other.y, self.z + other.z)
 
@@ -24,10 +28,19 @@ class Vector(collections.namedtuple("Vector", "x y z")):
         return self
 
     def __abs__(self):
-        return theanomath.sqrt(self.dot(self))
+        return theanomath.sqrt(self.abs_squared())
+
+    def abs_squared(self):
+        return self.dot(self)
 
     def elementwise_abs(self):
         return Vector(abs(self.x), abs(self.y), abs(self.z))
+
+    def elementwise_mul(self, other):
+        return Vector(self.x * other.x, self.y * other.y, self.z * other.z)
+
+    def elementwise_div(self, other):
+        return Vector(self.x / other.x, self.y / other.y, self.z / other.z)
 
     def max(self, other=None):
         return self._minmax(other, theanomath.maximum)
@@ -57,6 +70,9 @@ class Vector(collections.namedtuple("Vector", "x y z")):
             return Vector(op(self.x, other.x),
                           op(self.y, other.y),
                           op(self.z, other.z))
+
+    def applyfunc(self, f):
+        return Vector(f(self.x), f(self.y), f(self.z))
 
 
 class BoundingBox(collections.namedtuple("BoundingBox", "a b")):
