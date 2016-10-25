@@ -12,28 +12,25 @@ def render_slice(obj,
     with util.status_block("calculating bounding box"):
         box = obj.bounding_box().expanded(0.1)
 
-    box_size = box.b - box.a
+    box = box.expanded(1.1)
 
-    x = T.matrix("x")
-    y = T.matrix("y")
-    z = T.zeros_like(x)
+    # Flatten the box in the Z axis
+    box = util.BoundingBox(util.Vector(box.a.x, box.a.y, 0),
+                           util.Vector(box.b.x, box.b.y, 0))
 
     with util.status_block("building expression"):
-        distances = obj.distance(util.Vector(x, y, z))
+        coords = util.theano_box_grid(box, resolution)
+        distances = obj.distance(coords)[:,:,0]
 
     dist_range = T.max(abs(distances))
 
     with util.status_block("compiling"):
-        f = theano.function([x, y], (distances, dist_range))
+        f = theano.function([], (distances, dist_range))
 
     with util.status_block("running"):
-        resolution_vector = util.Vector(resolution, resolution, resolution)
+        values, values_range = f()
 
-        box_a = box.a - resolution_vector
-        box_b = box.b + resolution_vector * 2
-
-        values, values_range = f(*numpy.meshgrid(numpy.arange(box_a.x, box_b.x, resolution),
-                                                 numpy.arange(box_a.y, box_b.y, resolution)))
+    print(values.shape)
 
     print("plotting")
     plt.imshow(values,
@@ -44,5 +41,5 @@ def render_slice(obj,
                origin="lower",
                interpolation="none",
                aspect="equal",
-               extent=(box_a.x, box_b.x, box_a.y, box_b.y))
+               extent=(box.a.x, box.b.x, box.a.y, box.b.y))
     plt.show()

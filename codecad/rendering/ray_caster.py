@@ -40,8 +40,9 @@ def make_func(obj, size, epsilon):
 
         right = direction.cross(up)
 
-        film_x = T.tile(T.arange(size[1]), (size[0], 1)) - (size[1] - 1) / 2
-        film_y = T.tile(T.arange(size[0]), (size[1], 1)).T - (size[0] - 1) / 2
+        film_y, film_x = util.theano_meshgrid(*size)
+        film_y -= (size[0] - 1) / 2
+        film_x -= (size[1] - 1) / 2
 
         rays = direction * fl + (right * film_x - up * film_y)
         rays = rays.normalized()

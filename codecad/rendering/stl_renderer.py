@@ -10,8 +10,10 @@ from .. import shapes
 def render_stl(obj, filename, resolution):
     with util.status_block("calculating bounding box"):
         box = obj.bounding_box()
-    box_size = box.b - box.a
 
+    size = box.size().applyfunc(lambda x: x // resolution + 1)
+
+    x, y, z = util.theano_meshgrid(*size)
     x = T.tensor3("x")
     y = T.tensor3("y")
     z = T.tensor3("z")
