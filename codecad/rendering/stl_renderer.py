@@ -5,9 +5,9 @@ import mcubes
 import stl.mesh
 
 from .. import util
-from .. import shapes
 
 def render_stl(obj, filename, resolution):
+    obj.check_dimension(required = 3)
     with util.status_block("calculating bounding box"):
         box = obj.bounding_box()
 

@@ -2,7 +2,7 @@
 Formulas were adapted from https://en.wikipedia.org/wiki/NACA_airfoil """
 
 from . import util
-from . import shapes
+from . import shape2d
 
 def _naca_center(x, p):
     """ Y coordinate of camber line.
@@ -37,7 +37,7 @@ def _naca_airfoil_half(t, bottom, max_camber, max_camber_position, thickness):
                 sign * util.cos(phi) * tt + center)
 
 
-class NacaAirfoil(shapes.Shape):
+class NacaAirfoil(shape2d.Shape2D):
     def __init__(self, thickness_or_code, max_camber = None, max_camber_position = None):
         if max_camber is None:
             # It's a 4 digit code
@@ -62,8 +62,8 @@ class NacaAirfoil(shapes.Shape):
 
         no_camber_expr = abs(point.y) - self.thickness * _naca_thickness(point.x)
 
-        #return no_camber_expr
-        return util.derivatives.fixup_derivatives(no_camber_expr, point)
+        return no_camber_expr
+        #return util.derivatives.fixup_derivatives(no_camber_expr, point)
 
     def bounding_box(self):
         return util.BoundingBox(util.Vector(0, -self.thickness / 2, -float("inf")),

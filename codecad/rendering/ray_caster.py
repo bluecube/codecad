@@ -4,11 +4,11 @@ import theano.tensor as T
 import math
 
 from .. import util
-from .. import shapes
 from .. import animation
 from . import render_params
 
 def make_func(obj, size, epsilon):
+    obj.check_dimension(required = 3)
     with util.status_block("building expression"):
         # Variables used as function parameters
         ox = T.scalar("ox")

@@ -5,6 +5,9 @@ import itertools
 class Vector(collections.namedtuple("Vector", "x y z")):
     __slots__ = ()
 
+    def __new__(cls, x, y, z = 0):
+        return super().__new__(cls, x, y, z)
+
     @classmethod
     def splat(cls, value):
         return cls(value, value, value)
@@ -73,6 +76,9 @@ class Vector(collections.namedtuple("Vector", "x y z")):
 
     def applyfunc(self, f):
         return Vector(f(self.x), f(self.y), f(self.z))
+
+    def flattened(self):
+        return Vector(self.x, self.y, 0)
 
 
 class BoundingBox(collections.namedtuple("BoundingBox", "a b")):

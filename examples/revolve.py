@@ -2,11 +2,11 @@
 
 import codecad
 
-rectangle = codecad.Box(5, 100, float("inf")).translated(50, 0, 0)
-circle = codecad.Cylinder(r = 20, h = float("inf")).translated(50, 50, 0)
+rectangle = codecad.Rectangle(5, 100).translated(50, 0)
+circle = codecad.Circle(r = 20).translated(50, 50)
 
-hole = codecad.Box(20, 20, float("inf")).translated(50, 50, 0)
-notch = codecad.Box(15, 10, float("inf")).translated(55, 0, 0)
+hole = codecad.Rectangle(20).translated(50, 50)
+notch = codecad.Rectangle(15, 10).translated(55, 0)
 
 shape = (rectangle + circle + notch) - hole
 
