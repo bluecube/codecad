@@ -5,9 +5,9 @@ https://en.wikipedia.org/wiki/Constructive_solid_geometry#/media/File:Csg_tree.p
 
 import codecad
 
-sphere = codecad.Sphere(1.3)
-cube = codecad.Box()
-cylinder = codecad.Cylinder(d = 0.4, h=2)
+sphere = codecad.Sphere(130)
+cube = codecad.Box(100)
+cylinder = codecad.Cylinder(d = 40, h=200)
 
 holes = cylinder + \
         cylinder.rotated((1, 0, 0), 90) + \
@@ -16,4 +16,4 @@ holes = cylinder + \
 o = sphere & cube - holes
 
 if __name__ == "__main__":
-    codecad.commandline_render(o, 0.05)
+    codecad.commandline_render(o, 1)
