@@ -10,9 +10,7 @@ def render_slice(obj,
                  filename=None # For interface compatibility with other renderers
                  ):
     with util.status_block("calculating bounding box"):
-        box = obj.bounding_box().expanded(0.1)
-
-    box = box.expanded(1.1)
+        box = obj.bounding_box().expanded(0.1).flattened()
 
     # Flatten the box in the Z axis
     box = util.BoundingBox(util.Vector(box.a.x, box.a.y, 0),

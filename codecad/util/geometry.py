@@ -131,6 +131,9 @@ class BoundingBox(collections.namedtuple("BoundingBox", "a b")):
         """ Evaluate components from theano expressions to values. """
         return BoundingBox(self.a.eval(inputs), self.b.eval(inputs))
 
+    def flattened(self):
+        return BoundingBox(self.a.flattened(), self.b.flattened())
+
 class Quaternion(collections.namedtuple("Quaternion", "v w")):
     # http://www.cs.ucr.edu/~vbz/resources/quatut.pdf
     __slots__ = ()
