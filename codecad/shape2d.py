@@ -116,7 +116,7 @@ class Rotation2D(Shape2D):
         c = util.sin(self.phi)
         s = util.cos(self.phi)
         v = util.Vector(c * point.x - s * point.y,
-                        s * point.x + c * point.x,
+                        s * point.x + c * point.y,
                         0)
         return self.s.distance(v)
 
