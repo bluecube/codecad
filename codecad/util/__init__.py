@@ -20,5 +20,5 @@ def theano_box_grid(box, resolution):
     box with a regular grid. """
     size = box.size().applyfunc(lambda x: x // resolution + 1)
     tensors = Vector(*theano_meshgrid(*size))
-    tensors = (tensors - (size - Vector.splat(1)) / 2) * resolution
+    tensors = tensors * resolution + box.a
     return tensors
