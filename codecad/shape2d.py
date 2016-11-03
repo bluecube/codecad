@@ -31,6 +31,7 @@ class Shape2D(shape.ShapeBase):
             if y is None:
                 raise ValueError("Y coordinate can only be missing if first parameter is a Vector.")
             offset = util.Vector(x, y)
+        print(offset)
         return Translation2D(self, offset)
 
     def rotated(self, angle):
@@ -113,8 +114,8 @@ class Rotation2D(Shape2D):
         self.phi = util.radians(angle)
 
     def distance(self, point):
-        c = util.sin(self.phi)
-        s = util.cos(self.phi)
+        c = util.cos(self.phi)
+        s = util.sin(self.phi)
         v = util.Vector(c * point.x - s * point.y,
                         s * point.x + c * point.y,
                         0)
@@ -129,10 +130,10 @@ class Rotation2D(Shape2D):
             inf = util.Vector(float("inf"), float("inf"), float("inf"))
             return util.BoundingBox(-inf, inf)
         else:
-            c = util.sin(-self.phi)
-            s = util.cos(-self.phi)
+            c = util.cos(-self.phi)
+            s = util.sin(-self.phi)
             def rotate(point):
                 return util.Vector(c * point.x - s * point.y,
-                                   s * point.x + c * point.x,
+                                   s * point.x + c * point.y,
                                    0)
             return util.BoundingBox.containing(rotate(v) for v in b.vertices())
