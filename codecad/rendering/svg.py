@@ -143,12 +143,12 @@ def render_svg(obj, resolution, filename):
                 # r: 2 3 4 5         10 11 12 13
                 # b:     4 5 6 7 8 9 10 11
                 if c <= 5 or c >= 10:
-                    r = (i + 1,
-                         j + _interp(values[j, i + 1], values[j + 1, i + 1]))
+                    r = (j + _interp(values[j, i + 1], values[j + 1, i + 1]),
+                         i + 1)
 
                 if c >= 4 and c <= 11:
-                    b = (i + _interp(values[j + 1, i], values[j + 1, i + 1]),
-                         j + 1)
+                    b = (j + 1,
+                         i + _interp(values[j + 1, i], values[j + 1, i + 1]))
 
                 if c == 1:
                     if left_polygon.join(top_polygons[i]):
@@ -222,7 +222,7 @@ def render_svg(obj, resolution, filename):
 
         fp.write('<svg xmlns="http://www.w3.org/2000/svg" ')
         fp.write('width="{}mm" height="{}mm" '.format(box_size.x, box_size.y))
-        fp.write('viewBox="{} {} {} {}">'.format(0, -values.shape[0], values.shape[1], values.shape[0]))
+        fp.write('viewBox="{} {} {} {}">'.format(0, -values.shape[1], values.shape[0], values.shape[1]))
 
         color = _html_color(render_params.surface + render_params.ambient)
 
