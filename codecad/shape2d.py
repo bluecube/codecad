@@ -31,7 +31,6 @@ class Shape2D(shape.ShapeBase):
             if y is None:
                 raise ValueError("Y coordinate can only be missing if first parameter is a Vector.")
             offset = util.Vector(x, y)
-        print(offset)
         return Translation2D(self, offset)
 
     def rotated(self, angle):
@@ -111,29 +110,27 @@ class Rotation2D(Shape2D):
     def __init__(self, s, angle):
         self.check_dimension(s)
         self.s = s
-        self.phi = util.radians(angle)
+        phi = -util.radians(angle)
+        self.cos = util.cos(phi)
+        self.sin = util.sin(phi)
 
     def distance(self, point):
-        c = util.cos(self.phi)
-        s = util.sin(self.phi)
-        v = util.Vector(c * point.x - s * point.y,
-                        s * point.x + c * point.y,
+        v = util.Vector(point.x * self.cos - point.y * self.sin,
+                        point.x * self.sin + point.y * self.cos,
                         0)
         return self.s.distance(v)
 
     def bounding_box(self):
         b = self.s.bounding_box()
-        if any(math.isinf(x) for x in b.a) or any(math.isinf(x) for x in b.b):
+        if any(math.isinf(x) for x in [b.a.x, b.a.y, b.b.x, b.b.y]):
             # Special case for rotating infinite objects.
             # TODO: Make even more special cases for axis aligned rotations and 90 degree
             # rotations.
             inf = util.Vector(float("inf"), float("inf"), float("inf"))
             return util.BoundingBox(-inf, inf)
         else:
-            c = util.cos(-self.phi)
-            s = util.sin(-self.phi)
             def rotate(point):
-                return util.Vector(c * point.x - s * point.y,
-                                   s * point.x + c * point.y,
+                return util.Vector(point.x * self.cos + point.y * self.sin,
+                                   -point.x * self.sin + point.y * self.cos,
                                    0)
             return util.BoundingBox.containing(rotate(v) for v in b.vertices())
