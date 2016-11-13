@@ -1,7 +1,10 @@
 A toy programming CAD based on signed distance functions
 ========================================================
 
-Inspired by OpenSCAD and ImplicitCad, implemented in Python and using the awesomeness of Theano for performance (we'll see about that).
+Inspired by OpenSCAD and ImplicitCad, implemented in Python <strike>and using the awesomeness of Theano for performance (we'll see about that)</strike>.
+
+This branch is an attempt to get rid of Theano's slow compilation times and
+work directly with OpenCL instead.
 
 Main sources so far:
 - https://christopherolah.wordpress.com/2011/11/06/manipulation-of-implicit-functions-with-an-eye-on-cad/
