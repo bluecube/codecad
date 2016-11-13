@@ -124,8 +124,7 @@ class Rotation(Shape3D):
     def __init__(self, s, axis, angle):
         self.check_dimension(s)
         self.s = s
-        phi = -util.radians(angle) / 2
-        self.quat = util.Quaternion(axis.normalized() * util.sin(phi), util.cos(phi))
+        self.quat = util.Quaternion.from_degrees(axis, -angle)
 
     def distance(self, point):
         return self.s.distance(self.quat.rotate_vector(point))

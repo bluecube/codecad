@@ -138,6 +138,11 @@ class Quaternion(collections.namedtuple("Quaternion", "v w")):
     # http://www.cs.ucr.edu/~vbz/resources/quatut.pdf
     __slots__ = ()
 
+    @classmethod
+    def from_degrees(cls, axis, angle):
+        phi = theanomath.radians(angle) / 2
+        return cls(axis.normalized() * theanomath.sin(phi), theanomath.cos(phi))
+
     def __mul__(self, other):
         return Quaternion(self.v * other.w + other.v * self.w + self.v.cross(other.v),
                           self.w * other.w - self.v.dot(other.v))
