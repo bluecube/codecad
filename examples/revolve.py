@@ -14,7 +14,7 @@ cutout = codecad.shapes.box(200, float("inf"), 200).translated(100, 0, 100).rota
 
 o = shape.revolved() - cutout
 
-o_display = o.rotated((-1, 1, 1), 60)
+o_display = o.rotated((0, 1, 0), 30).rotated((1, 0, 0), 45)
 
 if __name__ == "__main__":
     codecad.commandline_render(o_display, 0.5)
