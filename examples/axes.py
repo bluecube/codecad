@@ -10,7 +10,7 @@ def line(x0, y0, x1, y1, t):
     midy = (y0 + y1) / 2
     l = math.hypot(dx, dy)
     a = math.degrees(math.atan2(dy, dx))
-    return codecad.Rectangle(l, t).rotated(a).translated(midx, midy)
+    return codecad.shapes.rectangle(l, t).rotated(a).translated(midx, midy)
 
 t = 2
 l = 40
@@ -35,7 +35,7 @@ def cut(sym1, sym2):
     return extruded
 
 
-cube = codecad.Box(a)
+cube = codecad.shapes.box(a)
 
 o = cube - (cut(plus, z) +
             cut(minus, y).rotated((1, 0, 0), 90) +

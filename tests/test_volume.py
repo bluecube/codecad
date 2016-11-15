@@ -11,11 +11,11 @@ def check_shape(shape, volume, centroid = None):
         assert codecad.util.check_close(result.centroid, codecad.util.Vector(*centroid), 0.005)
 
 def test_shapes():
-    cube = codecad.Box()
+    cube = codecad.shapes.box()
     cube_volume = cube.bounding_box().volume()
     check_shape(cube, cube_volume, (0, 0, 0))
 
-    sphere = codecad.Sphere()
+    sphere = codecad.shapes.sphere()
     sphere_volume = sphere.bounding_box().volume() * math.pi / 6
     check_shape(sphere, sphere_volume, (0, 0, 0))
 

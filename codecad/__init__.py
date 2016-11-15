@@ -1,5 +1,5 @@
-from .shape2d import *
-from .shape3d import *
+from . import shapes
+
 from .rendering import *
 from .volume import *
 from . import util

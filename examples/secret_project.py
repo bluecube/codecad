@@ -7,7 +7,7 @@ def mesh(outline, spacing, diameter, rounding = None):
     if rounding is None:
         rounding = 2 * diameter
 
-    cylinder = codecad.Cylinder(d=diameter, h=float("inf"))
+    cylinder = codecad.shapes.cylinder(d=diameter, h=float("inf"))
 
     grid_list = []
 
@@ -32,18 +32,18 @@ def mesh(outline, spacing, diameter, rounding = None):
     grid_list.append(yz_grid.rotated((1, 0, 0), 90))
 
 
-    grids = codecad.Union(grid_list)
+    grids = codecad.shapes.union(grid_list)
 
     if rounding > 0:
-        spheres = codecad.unsafe.Repetition(codecad.Sphere(rounding), (spacing, spacing, spacing))
-        grids = codecad.Union([grids, spheres], rounding)
+        spheres = codecad.unsafe.Repetition(codecad.shapes.sphere(rounding), (spacing, spacing, spacing))
+        grids = codecad.shapes.union([grids, spheres], rounding)
 
     return outline & grids
 
 
-limit = codecad.Box(float("inf"), float("inf"), 100)
+limit = codecad.shapes.box(float("inf"), float("inf"), 100)
 #airfoil = codecad.naca_airfoil.NacaAirfoil("0024").scaled(100)
-airfoil = codecad.Cylinder(float("inf"), 100)
+airfoil = codecad.shapes.cylinder(float("inf"), 100)
 
 shell = (airfoil.shell(0.5, 0.5) & limit).rotated((1, 0, 0), 90)
 
@@ -51,7 +51,7 @@ m = mesh((airfoil & limit).rotated((1, 0, 0), 90),
          spacing  = 15,
          diameter = 1)
 
-o = codecad.Union([m, shell], 2)
+o = codecad.shapes.union([m, shell], 2)
 
 if __name__ == "__main__":
     codecad.commandline_render(o, 0.3)
