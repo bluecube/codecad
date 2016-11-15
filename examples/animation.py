@@ -2,7 +2,7 @@
 
 import codecad
 
-cube = codecad.Box(100)
+cube = codecad.shapes.box(100)
 
 rotating = cube.rotated((0, 0, 1), 36 * codecad.animation.time)
 bouncing = rotating.translated(0,
