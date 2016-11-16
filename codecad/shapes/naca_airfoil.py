@@ -1,8 +1,8 @@
 """ Modelling NACA 4 digit airfoils as signed distance functions.
 Formulas were adapted from https://en.wikipedia.org/wiki/NACA_airfoil """
 
-from . import util
-from . import shape2d
+from .. import util
+from . import simple2d
 
 def _naca_center(x, p):
     """ Y coordinate of camber line.
@@ -37,7 +37,7 @@ def _naca_airfoil_half(t, bottom, max_camber, max_camber_position, thickness):
                 sign * util.cos(phi) * tt + center)
 
 
-class NacaAirfoil(shape2d.Shape2D):
+class NacaAirfoil(simple2d.Shape2D):
     def __init__(self, thickness_or_code, max_camber = None, max_camber_position = None):
         if max_camber is None:
             # It's a 4 digit code

@@ -5,8 +5,11 @@ Names from this module may optionally be imported as "from codecad.shapes import
 Basic shape interface is composed of functions defined here and of methods on
 Shape objects (transformations, shell, extrude ...)"""
 
-from . import shape2d as _s2
-from . import shape3d as _s3
+from . import simple2d as _s2
+from . import simple3d as _s3
+
+from . import unsafe
+from . import naca_airfoil
 
 def rectangle(x = 1, y = None):
     if y is None:

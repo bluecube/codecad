@@ -5,9 +5,9 @@ import math
 
 from theano import tensor as T
 
-from . import shape2d
-from . import shape3d
-from . import util
+from . import simple2d
+from . import simple3d
+from .. import util
 
 class _Repetition:
     """ Infinite repetition of an object along X, Y and Z axis.
@@ -43,9 +43,9 @@ class _Repetition:
                                 util.Vector(*(x if s is None else s for x, s in zip(b.b, self.spacing))))
 
 
-class Repetition2D(_Repetition, shape2d.Shape2D):
+class Repetition2D(_Repetition, simple2d.Shape2D):
     pass
 
 
-class Repetition(_Repetition, shape3d.Shape3D):
+class Repetition(_Repetition, simple3d.Shape3D):
     pass

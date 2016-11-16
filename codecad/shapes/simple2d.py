@@ -1,11 +1,10 @@
 import math
 
-from . import util
-from . import shape
-from . import shape3d
-from . import common
+from .. import util
+from . import base
+from . import simple3d
 
-class Shape2D(shape.ShapeBase):
+class Shape2D(base.ShapeBase):
     """ A base 2D shape. """
 
     @staticmethod
@@ -46,11 +45,11 @@ class Shape2D(shape.ShapeBase):
         return Shell2D(self, inside, outside)
 
     def extruded(self, height):
-        return shape3d.Extrusion(self, height)
+        return simple3d.Extrusion(self, height)
 
     def revolved(self):
         """ Returns current shape taken as 2D in xy plane and revolved around y axis """
-        return shape3d.Revolution(self)
+        return simple3d.Revolution(self)
 
 
 class Rectangle(Shape2D):
@@ -82,27 +81,27 @@ class Circle(Shape2D):
         return util.BoundingBox(-v, v)
 
 
-class Union2D(common.Union, Shape2D):
+class Union2D(base.Union, Shape2D):
     pass
 
 
-class Intersection2D(common.Intersection, Shape2D):
+class Intersection2D(base.Intersection, Shape2D):
     pass
 
 
-class Subtraction2D(common.Subtraction, Shape2D):
+class Subtraction2D(base.Subtraction, Shape2D):
     pass
 
 
-class Translation2D(common.Translation, Shape2D):
+class Translation2D(base.Translation, Shape2D):
     pass
 
 
-class Scaling2D(common.Scaling, Shape2D):
+class Scaling2D(base.Scaling, Shape2D):
     pass
 
 
-class Shell2D(common.Shell, Shape2D):
+class Shell2D(base.Shell, Shape2D):
     pass
 
 
