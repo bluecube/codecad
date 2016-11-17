@@ -1,10 +1,9 @@
 import math
 
-from . import util
-from . import shape
-from . import common
+from . import base
+from .. import util
 
-class Shape3D(shape.ShapeBase):
+class Shape3D(base.ShapeBase):
     """ A base 3D shape. """
 
     @staticmethod
@@ -96,27 +95,27 @@ class Cylinder(Shape3D):
         return util.BoundingBox(-v, v)
 
 
-class Union(common.Union, Shape3D):
+class Union(base.Union, Shape3D):
     pass
 
 
-class Intersection(common.Intersection, Shape3D):
+class Intersection(base.Intersection, Shape3D):
     pass
 
 
-class Subtraction(common.Subtraction, Shape3D):
+class Subtraction(base.Subtraction, Shape3D):
     pass
 
 
-class Translation(common.Translation, Shape3D):
+class Translation(base.Translation, Shape3D):
     pass
 
 
-class Scaling(common.Scaling, Shape3D):
+class Scaling(base.Scaling, Shape3D):
     pass
 
 
-class Shell(common.Shell, Shape3D):
+class Shell(base.Shell, Shape3D):
     pass
 
 

@@ -11,7 +11,7 @@ airfoil_codes = [
     #2520
     ]
 
-airfoils = [codecad.naca_airfoil.NacaAirfoil(code) for code in airfoil_codes]
+airfoils = [codecad.shapes.naca_airfoil.NacaAirfoil(code) for code in airfoil_codes]
 airfoil_shapes = codecad.shapes.union(airfoil.translated(0, i)
                                       for i, airfoil in enumerate(airfoils))
 

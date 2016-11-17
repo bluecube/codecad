@@ -11,14 +11,14 @@ def mesh(outline, spacing, diameter, rounding = None):
 
     grid_list = []
 
-    z_grid = codecad.unsafe.Repetition(cylinder, (spacing, spacing, None))
+    z_grid = codecad.shapes.unsafe.Repetition(cylinder, (spacing, spacing, None))
     grid_list.append(z_grid)
     grid_list.append(z_grid.rotated((0, 1, 0), 90))
     grid_list.append(z_grid.rotated((1, 0, 0), 90))
 
-    xz_grid1 = codecad.unsafe.Repetition(cylinder,
-                                         (math.sqrt(2) * spacing, 2 * spacing, None)
-                                         ).rotated((0, 1, 0), 45)
+    xz_grid1 = codecad.shapes.unsafe.Repetition(cylinder,
+                                                (math.sqrt(2) * spacing, 2 * spacing, None)
+                                                ).rotated((0, 1, 0), 45)
     xz_grid = xz_grid1 + xz_grid1.translated(spacing, spacing, 0)
     grid_list.append(xz_grid)
     grid_list.append(xz_grid.rotated((0, 1, 0), 90))
@@ -35,7 +35,7 @@ def mesh(outline, spacing, diameter, rounding = None):
     grids = codecad.shapes.union(grid_list)
 
     if rounding > 0:
-        spheres = codecad.unsafe.Repetition(codecad.shapes.sphere(rounding), (spacing, spacing, spacing))
+        spheres = codecad.shapes.unsafe.Repetition(codecad.shapes.sphere(rounding), (spacing, spacing, spacing))
         grids = codecad.shapes.union([grids, spheres], rounding)
 
     return outline & grids
