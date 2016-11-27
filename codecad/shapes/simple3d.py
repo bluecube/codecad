@@ -57,6 +57,9 @@ class Box(Shape3D):
     def bounding_box(self):
         return util.BoundingBox(-self.half_size, self.half_size)
 
+    def get_node(self, point, cache):
+        return cache.make_node("box", self.half_size, [point])
+
 
 class Sphere(Shape3D):
     def __init__(self, d = 1, r = None):
@@ -72,6 +75,8 @@ class Sphere(Shape3D):
         v = util.Vector(self.r, self.r, self.r)
         return util.BoundingBox(-v, v)
 
+    def get_node(self, point, cache):
+        return cache.make_node("sphere", [self.r], [point])
 
 class Cylinder(Shape3D):
     def __init__(self, h = 1, d = 1, r = None):
@@ -93,6 +98,9 @@ class Cylinder(Shape3D):
     def bounding_box(self):
         v = util.Vector(self.r, self.r, self.h)
         return util.BoundingBox(-v, v)
+
+    def get_node(self, point, cache):
+        return cache.make_node("cylinder", [self.r, self.h], [point])
 
 
 class Union(base.Union, Shape3D):
@@ -140,6 +148,11 @@ class Rotation(Shape3D):
             inv_quat = self.quat.conjugate()
             return util.BoundingBox.containing(inv_quat.rotate_vector(v) for v in b.vertices())
 
+    def get_node(self, point, cache):
+        return self.s.get_node(cache.make_node("rotation3d",
+                                               list(self.quat.v) + [self.quat.w],
+                                               [point]),
+                               cache)
 
 class Extrusion(Shape3D):
     def __init__(self, s, height):
@@ -154,6 +167,11 @@ class Extrusion(Shape3D):
         box = self.s.bounding_box()
         return util.BoundingBox(util.Vector(box.a.x, box.a.y, -self.h / 2),
                                 util.Vector(box.b.x, box.b.y, self.h / 2))
+
+    def get_node(self, point, cache):
+        return cache.make_node("extrusion",
+                               [self.h],
+                               [self.s.get_node(point, cache)])
 
 class Revolution(Shape3D):
     def __init__(self, s):
@@ -171,3 +189,8 @@ class Revolution(Shape3D):
         radius = util.maximum(-box.a.x, box.b.x)
         return util.BoundingBox(util.Vector(-radius, box.a.y, -radius),
                                 util.Vector(radius, box.b.y, radius))
+
+    def get_node(self, point, cache):
+        return cache.make_node("extrusion",
+                               [],
+                               [self.s.get_node(point, cache)])

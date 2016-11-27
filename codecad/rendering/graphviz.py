@@ -1,0 +1,28 @@
+from ..compute import nodes
+
+def render_nodes_graph(shape, resolution, filename):
+    cache = nodes.NodeCache()
+    point_node = cache.make_node("point", (), ())
+    shape_node = shape.get_node(point_node, cache)
+
+    visited_ids = set()
+
+    with open(filename, "w") as fp:
+        fp.write("digraph Nodes {\n");
+        stack = [shape_node]
+
+        while len(stack):
+            node = stack.pop()
+
+            if id(node) in visited_ids:
+                continue
+            else:
+                visited_ids.add(id(node))
+
+            fp.write('  node{} [label="{}({})"];\n'.format(id(node),
+                                                           node.name,
+                                                           ", ".join(str(p) for p in node.params)))
+            for dep in node.dependencies:
+                stack.append(dep)
+                fp.write('  node{} -> node{};\n'.format(id(dep), id(node)))
+        fp.write("}")

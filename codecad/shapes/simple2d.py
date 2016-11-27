@@ -65,6 +65,8 @@ class Rectangle(Shape2D):
     def bounding_box(self):
         return util.BoundingBox(-self.half_size, self.half_size)
 
+    def get_node(self, point, cache):
+        return cache.make_node("rectangle", self.half_size, [point])
 
 class Circle(Shape2D):
     def __init__(self, d = 1, r = None):
@@ -79,6 +81,9 @@ class Circle(Shape2D):
     def bounding_box(self):
         v = util.Vector(self.r, self.r, float("inf"))
         return util.BoundingBox(-v, v)
+
+    def get_node(self, point, cache):
+        return cache.make_node("rectangle", [self.r], [point])
 
 
 class Union2D(base.Union, Shape2D):
@@ -133,3 +138,9 @@ class Rotation2D(Shape2D):
                                    -point.x * self.sin + point.y * self.cos,
                                    0)
             return util.BoundingBox.containing(rotate(v) for v in b.vertices())
+
+    def get_node(self, point, cache):
+        return self.s.get_node(cache.make_node("rotation2d",
+                                               [self.cos, self.sin],
+                                               [point]),
+                               cache)

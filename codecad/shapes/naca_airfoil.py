@@ -68,3 +68,8 @@ class NacaAirfoil(simple2d.Shape2D):
     def bounding_box(self):
         return util.BoundingBox(util.Vector(0, -self.thickness / 2, -float("inf")),
                                 util.Vector(1, self.thickness / 2, float("inf")))
+
+    def get_node(self, point, cache):
+        return cache.make_node("naca_airfoil",
+                               [self.thickness, self.max_camber, self.max_camber_position],
+                               [point])

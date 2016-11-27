@@ -47,6 +47,11 @@ class ShapeBase(metaclass=abc.ABCMeta):
             if shape.dimension() != required:
                 raise TypeError("Shape must be of dimension {}, but is {}".format(required, shape.dimension()))
 
+    @abc.abstractmethod
+    def get_node(self, point, cache):
+        """ Return a computation node for this shape. The node should be created
+        using cache.make_node to give CSE a chance to work """
+
 
 class Union:
     def __init__(self, shapes, r = 0):
@@ -71,6 +76,11 @@ class Union:
         return functools.reduce(lambda a, b: a.union(b),
                                 (s.bounding_box() for s in self.shapes))
 
+    def get_node(self, point, cache):
+        return cache.make_node("union",
+                               [self.r],
+                               (shape.get_node(point, cache) for shape in self.shapes))
+
 
 class Intersection:
     def __init__(self, shapes, r = 0):
@@ -91,6 +101,11 @@ class Intersection:
         return functools.reduce(lambda a, b: a.intersection(b),
                                 (s.bounding_box() for s in self.shapes))
 
+    def get_node(self, point, cache):
+        return cache.make_node("intersection",
+                               [self.r],
+                               (shape.get_node(point, cache) for shape in self.shapes))
+
 
 class Subtraction:
     def __init__(self, s1, s2):
@@ -105,6 +120,11 @@ class Subtraction:
     def bounding_box(self):
         return self.s1.bounding_box()
 
+    def get_node(self, point, cache):
+        return cache.make_node("subtraction",
+                               [],
+                               [self.s1.get_node(point, cache), self.s2.get_node(point, cache)])
+
 class Translation:
     def __init__(self, s, offset):
         self.check_dimension(s)
@@ -117,6 +137,12 @@ class Translation:
     def bounding_box(self):
         b = self.s.bounding_box()
         return util.BoundingBox(b.a + self.offset, b.b + self.offset)
+
+    def get_node(self, point, cache):
+        return self.s.get_node(cache.make_node("translation",
+                                               self.offset,
+                                               [point]),
+                               cache)
 
 
 class Scaling:
@@ -132,6 +158,12 @@ class Scaling:
         b = self.s.bounding_box()
         return util.BoundingBox(b.a * self.scale, b.b * self.scale)
 
+    def get_node(self, point, cache):
+        return self.s.get_node(cache.make_node("scaling",
+                                               [self.scale],
+                                               [point]),
+                               cache)
+
 
 class Shell:
     def __init__(self, s, inside, outside):
@@ -146,3 +178,8 @@ class Shell:
 
     def bounding_box(self):
         return self.s.bounding_box().expanded_additive(self.outside)
+
+    def get_node(self, point, cache):
+        return cache.make_node("subtraction",
+                               [self.inside, self.outside],
+                               [self.s.get_node(point, cache)])

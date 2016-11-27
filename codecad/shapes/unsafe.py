@@ -42,6 +42,12 @@ class _Repetition:
         return util.BoundingBox(util.Vector(*(x if s is None else s for x, s in zip(b.a, self.spacing))),
                                 util.Vector(*(x if s is None else s for x, s in zip(b.b, self.spacing))))
 
+    def get_node(self, point, cache):
+        return self.s.get_node(cache.make_node("repetition",
+                                               self.spacing,
+                                               [point]),
+                               cache)
+
 
 class Repetition2D(_Repetition, simple2d.Shape2D):
     pass
