@@ -24,18 +24,34 @@ class Shape3D(base.ShapeBase):
         if isinstance(x, util.Vector):
             if y is not None or z is not None:
                 raise TypeError("If first parameter is Vector, the others must be left unspecified.")
-            offset = x
+            o = x
         else:
-            offset = util.Vector(x, y, z)
-        return Translation(self, offset)
+            o = util.Vector(x, y, z)
+        return Transformation.make_merged(self,
+                                          [[1, 0, 0, o.x],
+                                           [0, 1, 0, o.y],
+                                           [0, 0, 1, o.z],
+                                           [0, 0, 0, 1]])
 
     def rotated(self, vector, angle):
         """ Returns current shape rotated by an angle around the vector """
-        return Rotation(self, util.Vector(*vector), angle)
+        v = util.Vector(*vector).normalized()
+        c = math.cos(math.radians(angle))
+        s = math.sin(math.radians(angle))
+        cc = 1 - c
+        return Transformation.make_merged(self,
+                                          [[c + v.x * v.x * cc,       v.x * v.y * cc - v.z * s, v.x * v.z * cc + v.y * s, 0],
+                                           [v.y * v.x * cc + v.z * s, c + v.y * v.y * cc,       v.y * v.z * cc - v.x * s, 0],
+                                           [v.z * v.x * cc - v.y * s, v.z * v.y * cc + v.x * s, c + v.z * v.z * cc,       0],
+                                           [0, 0, 0, 1]])
 
     def scaled(self, s):
         """ Returns current shape scaled by given ratio """
-        return Scaling(self, s)
+        return Transformation.make_merged(self,
+                                          [[s, 0, 0, 0],
+                                           [0, s, 0, 0],
+                                           [0, 0, s, 0],
+                                           [0, 0, 0, 1]])
 
     def shell(self, inside, outside):
         """ Returns a shell of the current shape"""
@@ -107,38 +123,20 @@ class Subtraction(base.Subtraction, Shape3D):
     pass
 
 
-class Translation(base.Translation, Shape3D):
-    pass
-
-
-class Scaling(base.Scaling, Shape3D):
-    pass
-
-
 class Shell(base.Shell, Shape3D):
     pass
 
 
-class Rotation(Shape3D):
-    def __init__(self, s, axis, angle):
-        self.check_dimension(s)
-        self.s = s
-        self.quat = util.Quaternion.from_degrees(axis, -angle)
-
-    def distance(self, point):
-        return self.s.distance(self.quat.rotate_vector(point))
-
+class Transformation(base.Transformation, Shape3D):
     def bounding_box(self):
         b = self.s.bounding_box()
+
         if any(math.isinf(x) for x in b.a) or any(math.isinf(x) for x in b.b):
             # Special case for rotating infinite objects.
-            # TODO: Make even more special cases for axis aligned rotations and 90 degree
-            # rotations.
             inf = util.Vector(float("inf"), float("inf"), float("inf"))
             return util.BoundingBox(-inf, inf)
         else:
-            inv_quat = self.quat.conjugate()
-            return util.BoundingBox.containing(inv_quat.rotate_vector(v) for v in b.vertices())
+            return util.BoundingBox.containing(self.transform_vector(v) for v in b.vertices())
 
 
 class Extrusion(Shape3D):

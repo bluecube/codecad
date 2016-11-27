@@ -1,6 +1,7 @@
 import abc
 import functools
 import math
+import numpy
 
 from .. import util
 
@@ -105,33 +106,33 @@ class Subtraction:
     def bounding_box(self):
         return self.s1.bounding_box()
 
-class Translation:
-    def __init__(self, s, offset):
+class Transformation:
+    def __init__(self, s, matrix):
         self.check_dimension(s)
         self.s = s
-        self.offset = offset
+        self.matrix = numpy.matrix(matrix)
+
+    @classmethod
+    def make_merged(cls, s, matrix):
+        t = cls(s, matrix)
+        if isinstance(s, cls):
+            t.matrix = t.matrix * s.matrix
+            t.s = s.s
+
+        return t
 
     def distance(self, point):
-        return self.s.distance(point - self.offset)
+        m = self.matrix.I
+        new_point = util.Vector(util.Vector(*m[0, :-1].A1).dot(point),
+                                util.Vector(*m[1, :-1].A1).dot(point),
+                                util.Vector(*m[2, :-1].A1).dot(point)) + \
+                    util.Vector(*m[:-1,-1].A1)
+        return self.s.distance(new_point)
 
-    def bounding_box(self):
-        b = self.s.bounding_box()
-        return util.BoundingBox(b.a + self.offset, b.b + self.offset)
-
-
-class Scaling:
-    def __init__(self, s, scale):
-        self.check_dimension(s)
-        self.s = s
-        self.scale = scale
-
-    def distance(self, point):
-        return self.s.distance(point / self.scale) * self.scale
-
-    def bounding_box(self):
-        b = self.s.bounding_box()
-        return util.BoundingBox(b.a * self.scale, b.b * self.scale)
-
+    def transform_vector(self, v):
+        v = numpy.matrix(tuple(v) + (1,)).T
+        transformed = self.matrix * v
+        return util.Vector(*transformed[:-1].A1)
 
 class Shell:
     def __init__(self, s, inside, outside):
