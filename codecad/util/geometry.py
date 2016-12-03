@@ -151,6 +151,5 @@ class Quaternion(collections.namedtuple("Quaternion", "v w")):
         return Quaternion(-self.v, self.w)
 
     def rotate_vector(self, vector):
-        q = Quaternion(vector, 0)
-        rotated = self * q * self.conjugate()
-        return rotated.v
+        return (self.v * self.v.dot(vector) + self.v.cross(vector) * self.w) * 2 + \
+                vector * (self.w * self.w - self.v.abs_squared())
