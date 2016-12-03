@@ -31,28 +31,20 @@ class Shape2D(base.ShapeBase):
                 raise ValueError("Y coordinate can only be missing if first parameter is a Vector.")
             o = util.Vector(x, y)
         return Transformation2D.make_merged(self,
-                                            [[1, 0, 0, o.x],
-                                             [0, 1, 0, o.y],
-                                             [0, 0, 1, 0],
-                                             [0, 0, 0, 1]])
+                                            util.Quaternion.from_degrees(util.Vector(0, 0, 1), 0),
+                                            o)
 
     def rotated(self, angle):
         """ Returns current shape rotated by given angle """
-        c = math.cos(math.radians(angle))
-        s = math.sin(math.radians(angle))
         return Transformation2D.make_merged(self,
-                                            [[c, -s, 0, 0],
-                                             [s,  c, 0, 0],
-                                             [0,  0, 1, 0],
-                                             [0,  0, 0, 1]])
+                                            util.Quaternion.from_degrees(util.Vector(0, 0, 1), angle),
+                                            util.Vector(0, 0, 0))
 
     def scaled(self, s):
         """ Returns current shape scaled by given ratio """
         return Transformation2D.make_merged(self,
-                                            [[s, 0, 0, 0],
-                                             [0, s, 0, 0],
-                                             [0, 0, 1, 0],
-                                             [0, 0, 0, 1]])
+                                            util.Quaternion.from_degrees(util.Vector(0, 0, 1), 0, s),
+                                            util.Vector(0, 0, 0))
 
     def shell(self, inside, outside):
         """ Returns a shell of the current shape"""

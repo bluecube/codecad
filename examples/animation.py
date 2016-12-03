@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 
-raise Exception("This example is currently broken")
-
 import codecad
 
 cube = codecad.shapes.box(100)

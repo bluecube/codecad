@@ -28,30 +28,20 @@ class Shape3D(base.ShapeBase):
         else:
             o = util.Vector(x, y, z)
         return Transformation.make_merged(self,
-                                          [[1, 0, 0, o.x],
-                                           [0, 1, 0, o.y],
-                                           [0, 0, 1, o.z],
-                                           [0, 0, 0, 1]])
+                                          util.Quaternion.from_degrees(util.Vector(0, 0, 1), 0),
+                                          o)
 
     def rotated(self, vector, angle):
         """ Returns current shape rotated by an angle around the vector """
-        v = util.Vector(*vector).normalized()
-        c = math.cos(math.radians(angle))
-        s = math.sin(math.radians(angle))
-        cc = 1 - c
         return Transformation.make_merged(self,
-                                          [[c + v.x * v.x * cc,       v.x * v.y * cc - v.z * s, v.x * v.z * cc + v.y * s, 0],
-                                           [v.y * v.x * cc + v.z * s, c + v.y * v.y * cc,       v.y * v.z * cc - v.x * s, 0],
-                                           [v.z * v.x * cc - v.y * s, v.z * v.y * cc + v.x * s, c + v.z * v.z * cc,       0],
-                                           [0, 0, 0, 1]])
+                                          util.Quaternion.from_degrees(util.Vector(*vector), angle),
+                                          util.Vector(0, 0, 0))
 
     def scaled(self, s):
         """ Returns current shape scaled by given ratio """
         return Transformation.make_merged(self,
-                                          [[s, 0, 0, 0],
-                                           [0, s, 0, 0],
-                                           [0, 0, s, 0],
-                                           [0, 0, 0, 1]])
+                                          util.Quaternion.from_degrees(util.Vector(0, 0, 1), 0, s),
+                                          util.Vector(0, 0, 0))
 
     def shell(self, inside, outside):
         """ Returns a shell of the current shape"""

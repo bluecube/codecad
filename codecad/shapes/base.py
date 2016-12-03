@@ -107,32 +107,30 @@ class Subtraction:
         return self.s1.bounding_box()
 
 class Transformation:
-    def __init__(self, s, matrix):
+    """ Rotation and scaling followed by translation. """
+    def __init__(self, s, quaternion, translation):
         self.check_dimension(s)
         self.s = s
-        self.matrix = numpy.matrix(matrix)
+        self.quaternion = quaternion
+        self.translation = translation
 
     @classmethod
-    def make_merged(cls, s, matrix):
-        t = cls(s, matrix)
+    def make_merged(cls, s, quaternion, translation):
+        t = cls(s, quaternion, translation)
         if isinstance(s, cls):
-            t.matrix = t.matrix * s.matrix
             t.s = s.s
+            t.quaternion = quaternion * s.quaternion
+            t.translation = translation + quaternion.rotate_vector(s.translation)
 
         return t
 
     def distance(self, point):
-        m = self.matrix.I
-        new_point = util.Vector(util.Vector(*m[0, :-1].A1).dot(point),
-                                util.Vector(*m[1, :-1].A1).dot(point),
-                                util.Vector(*m[2, :-1].A1).dot(point)) + \
-                    util.Vector(*m[:-1,-1].A1)
-        return self.s.distance(new_point)
+        new_point = self.quaternion.conjugate().rotate_vector(point - self.translation)
+        scale = self.quaternion.v.abs_squared() + self.quaternion.w**2
+        return self.s.distance(new_point) * scale
 
     def transform_vector(self, v):
-        v = numpy.matrix(tuple(v) + (1,)).T
-        transformed = self.matrix * v
-        return util.Vector(*transformed[:-1].A1)
+        return self.quaternion.rotate_vector(v) + self.translation;
 
 class Shell:
     def __init__(self, s, inside, outside):
