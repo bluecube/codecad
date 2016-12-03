@@ -5,7 +5,7 @@ import importlib
 
 import PIL.Image
 
-def commandline_render(shape, resolution, default_renderer=None):
+def commandline_render(shape, resolution, default_renderer=None, **kwargs):
     """ Reads commandline arguments, chooses a renderer and passes the parameters to it. """
 
     parser = argparse.ArgumentParser(description='Render an object')
@@ -36,7 +36,7 @@ def commandline_render(shape, resolution, default_renderer=None):
     else:
         print("Rendering with renderer {}".format(renderer))
 
-    _renderers[renderer][0](shape, filename=output, resolution=resolution)
+    _renderers[renderer][0](shape, filename=output, resolution=resolution, **kwargs)
 
 def _register(name, module_name, extensions, default_extension = None):
     try:
