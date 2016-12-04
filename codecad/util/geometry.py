@@ -155,3 +155,7 @@ class Quaternion(collections.namedtuple("Quaternion", "v w")):
     def rotate_vector(self, vector):
         return (self.v * self.v.dot(vector) + self.v.cross(vector) * self.w) * 2 + \
                 vector * (self.w * self.w - self.v.abs_squared())
+
+    def as_list(self):
+        """ Return parameters as a list of floats (for nodes) """
+        return list(self.v) + [self.w]

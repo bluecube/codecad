@@ -136,11 +136,6 @@ class Transformation(base.Transformation, Shape3D):
         else:
             return util.BoundingBox.containing(self.transform_vector(v) for v in b.vertices())
 
-    def get_node(self, point, cache):
-        return self.s.get_node(cache.make_node("rotation3d",
-                                               list(self.quat.v) + [self.quat.w],
-                                               [point]),
-                               cache)
 
 class Extrusion(Shape3D):
     def __init__(self, s, height):

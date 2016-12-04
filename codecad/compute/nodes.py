@@ -2,8 +2,8 @@ class NodeCache:
     def __init__(self):
         self._cache = {}
 
-    def make_node(self, name, params, dependencies):
-        node = Node(name, params, dependencies)
+    def make_node(self, name, params, dependencies, extra_data = None):
+        node = Node(name, params, dependencies, extra_data)
         try:
             return self._cache[node]
         except KeyError:
@@ -12,10 +12,11 @@ class NodeCache:
         return node
 
 class Node:
-    def __init__(self, name, params, dependencies):
+    def __init__(self, name, params, dependencies, extra_data = None):
         self.name = name
         self.params = tuple(params)
         self.dependencies = tuple(dependencies)
+        self.extra_data = extra_data
         self._hash = hash((name, self.params, self.dependencies))
 
     def __hash__(self):

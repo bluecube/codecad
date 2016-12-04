@@ -153,10 +153,17 @@ class Transformation:
         return self.quaternion.rotate_vector(v) + self.translation;
 
     def get_node(self, point, cache):
-        return self.s.get_node(cache.make_node("rotation2d",
-                                               [self.cos, self.sin],
-                                               [point]),
-                               cache)
+        new_point = cache.make_node("transformation",
+                                    self.quaternion.as_list() + list(self.translation),
+                                    [point], (self.quaternion,
+                                    self.translation))
+        distance = self.s.get_node(new_point, cache)
+        reverse_quaternion = self.quaternion.conjugate()
+        return cache.make_node("reverse_transformation",
+                               reverse_quaternion.as_list(),
+                               [distance],
+                               reverse_quaternion)
+
 
 class Shell:
     def __init__(self, s, inside, outside):
@@ -173,6 +180,6 @@ class Shell:
         return self.s.bounding_box().expanded_additive(self.outside)
 
     def get_node(self, point, cache):
-        return cache.make_node("subtraction",
+        return cache.make_node("shell",
                                [self.inside, self.outside],
                                [self.s.get_node(point, cache)])
