@@ -152,16 +152,17 @@ class Transformation:
         return self.quaternion.rotate_vector(v) + self.translation;
 
     def get_node(self, point, cache):
+        #TODO: Merge transformation nodes
+        inverse_quaternion = self.quaternion.inverse()
         new_point = cache.make_node("transformation",
-                                    self.quaternion.as_list() + list(self.translation),
-                                    [point], (self.quaternion,
-                                    self.translation))
+                                    inverse_quaternion.as_list() + list(self.translation),
+                                    [point],
+                                    (inverse_quaternion, self.translation))
         distance = self.s.get_node(new_point, cache)
-        reverse_quaternion = self.quaternion.conjugate()
         return cache.make_node("reverse_transformation",
-                               reverse_quaternion.as_list(),
+                               self.quaternion.as_list(),
                                [distance],
-                               reverse_quaternion)
+                               self.quaternion)
 
 
 class Shell:
