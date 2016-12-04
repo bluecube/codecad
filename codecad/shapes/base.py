@@ -125,9 +125,8 @@ class Transformation:
         return t
 
     def distance(self, point):
-        new_point = self.quaternion.conjugate().rotate_vector(point - self.translation)
-        scale = self.quaternion.v.abs_squared() + self.quaternion.w**2
-        return self.s.distance(new_point) * scale
+        new_point = self.quaternion.inverse().rotate_vector(point - self.translation)
+        return self.s.distance(new_point) * self.quaternion.abs_squared()
 
     def transform_vector(self, v):
         return self.quaternion.rotate_vector(v) + self.translation;

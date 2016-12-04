@@ -149,6 +149,13 @@ class Quaternion(collections.namedtuple("Quaternion", "v w")):
         return Quaternion(self.v * other.w + other.v * self.w + self.v.cross(other.v),
                           self.w * other.w - self.v.dot(other.v))
 
+    def abs_squared(self):
+        return self.w * self.w + self.v.abs_squared()
+
+    def inverse(self):
+        abs_squared = self.abs_squared()
+        return Quaternion(-self.v / abs_squared, self.w / abs_squared)
+
     def conjugate(self):
         return Quaternion(-self.v, self.w)
 
