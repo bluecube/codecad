@@ -139,9 +139,11 @@ class Quaternion(collections.namedtuple("Quaternion", "v w")):
     __slots__ = ()
 
     @classmethod
-    def from_degrees(cls, axis, angle):
+    def from_degrees(cls, axis, angle, scale = 1):
         phi = theanomath.radians(angle) / 2
-        return cls(axis.normalized() * theanomath.sin(phi), theanomath.cos(phi))
+        mul = theanomath.sqrt(scale)
+        return cls(axis.normalized() * theanomath.sin(phi) * mul,
+                   theanomath.cos(phi) * mul)
 
     def __mul__(self, other):
         return Quaternion(self.v * other.w + other.v * self.w + self.v.cross(other.v),
@@ -151,6 +153,5 @@ class Quaternion(collections.namedtuple("Quaternion", "v w")):
         return Quaternion(-self.v, self.w)
 
     def rotate_vector(self, vector):
-        q = Quaternion(vector, 0)
-        rotated = self * q * self.conjugate()
-        return rotated.v
+        return (self.v * self.v.dot(vector) + self.v.cross(vector) * self.w) * 2 + \
+                vector * (self.w * self.w - self.v.abs_squared())

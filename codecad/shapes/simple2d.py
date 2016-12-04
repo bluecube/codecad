@@ -25,20 +25,26 @@ class Shape2D(base.ShapeBase):
         if isinstance(x, util.Vector):
             if y is not None:
                 raise TypeError("If first parameter is Vector, the others must be left unspecified.")
-            offset = x.flattened()
+            o = x
         else:
             if y is None:
                 raise ValueError("Y coordinate can only be missing if first parameter is a Vector.")
-            offset = util.Vector(x, y)
-        return Translation2D(self, offset)
+            o = util.Vector(x, y)
+        return Transformation2D.make_merged(self,
+                                            util.Quaternion.from_degrees(util.Vector(0, 0, 1), 0),
+                                            o)
 
     def rotated(self, angle):
-        """ Returns current shape rotated by given angles """
-        return Rotation2D(self, angle)
+        """ Returns current shape rotated by given angle """
+        return Transformation2D.make_merged(self,
+                                            util.Quaternion.from_degrees(util.Vector(0, 0, 1), angle),
+                                            util.Vector(0, 0, 0))
 
     def scaled(self, s):
         """ Returns current shape scaled by given ratio """
-        return Scaling2D(self, s)
+        return Transformation2D.make_merged(self,
+                                            util.Quaternion.from_degrees(util.Vector(0, 0, 1), 0, s),
+                                            util.Vector(0, 0, 0))
 
     def shell(self, inside, outside):
         """ Returns a shell of the current shape"""
@@ -98,49 +104,20 @@ class Subtraction2D(base.Subtraction, Shape2D):
     pass
 
 
-class Translation2D(base.Translation, Shape2D):
-    pass
-
-
-class Scaling2D(base.Scaling, Shape2D):
-    pass
-
-
 class Shell2D(base.Shell, Shape2D):
     pass
 
 
-class Rotation2D(Shape2D):
-    def __init__(self, s, angle):
-        self.check_dimension(s)
-        self.s = s
-        phi = -util.radians(angle)
-        self.cos = util.cos(phi)
-        self.sin = util.sin(phi)
-
-    def distance(self, point):
-        v = util.Vector(point.x * self.cos - point.y * self.sin,
-                        point.x * self.sin + point.y * self.cos,
-                        0)
-        return self.s.distance(v)
-
+class Transformation2D(base.Transformation, Shape2D):
     def bounding_box(self):
-        b = self.s.bounding_box()
-        if any(math.isinf(x) for x in [b.a.x, b.a.y, b.b.x, b.b.y]):
+        b = self.s.bounding_box().flattened()
+
+        if any(math.isinf(x) for x in b.a) or any(math.isinf(x) for x in b.b):
             # Special case for rotating infinite objects.
-            # TODO: Make even more special cases for axis aligned rotations and 90 degree
-            # rotations.
             inf = util.Vector(float("inf"), float("inf"), float("inf"))
             return util.BoundingBox(-inf, inf)
         else:
-            def rotate(point):
-                return util.Vector(point.x * self.cos + point.y * self.sin,
-                                   -point.x * self.sin + point.y * self.cos,
-                                   0)
-            return util.BoundingBox.containing(rotate(v) for v in b.vertices())
-
-    def get_node(self, point, cache):
-        return self.s.get_node(cache.make_node("rotation2d",
-                                               [self.cos, self.sin],
-                                               [point]),
-                               cache)
+            inf = float("inf")
+            ret = util.BoundingBox.containing(self.transform_vector(v) for v in b.vertices())
+            return util.BoundingBox(util.Vector(ret.a.x, ret.a.y, -inf),
+                                    util.Vector(ret.b.x, ret.b.y, inf))

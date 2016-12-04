@@ -37,13 +37,13 @@ def cut(sym1, sym2):
 
 cube = codecad.shapes.box(a)
 
-o = cube - (cut(plus, z) +
-            cut(minus, y).rotated((1, 0, 0), 90) +
-            cut(plus, x).rotated((1, 0, 0), 90).rotated((0, 0, 1), 90) +
-            cut(plus, y).rotated((1, 0, 0), 90).rotated((0, 0, 1), 180) +
-            cut(minus, x).rotated((1, 0, 0), 90).rotated((0, 0, 1), 270) +
-            cut(minus, z).rotated((0, 1, 0), 180))
+axes_cube = cube - (cut(plus, z) +
+                    cut(minus, y).rotated((1, 0, 0), 90) +
+                    cut(plus, x).rotated((1, 0, 0), 90).rotated((0, 0, 1), 90) +
+                    cut(plus, y).rotated((1, 0, 0), 90).rotated((0, 0, 1), 180) +
+                    cut(minus, x).rotated((1, 0, 0), 90).rotated((0, 0, 1), 270) +
+                    cut(minus, z).rotated((0, 1, 0), 180))
 
 
 if __name__ == "__main__":
-    codecad.commandline_render(o, 0.25)
+    codecad.commandline_render(axes_cube, 0.25)

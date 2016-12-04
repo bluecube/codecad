@@ -1,6 +1,7 @@
 import abc
 import functools
 import math
+import numpy
 
 from .. import util
 
@@ -125,45 +126,37 @@ class Subtraction:
                                [],
                                [self.s1.get_node(point, cache), self.s2.get_node(point, cache)])
 
-class Translation:
-    def __init__(self, s, offset):
+class Transformation:
+    """ Rotation and scaling followed by translation. """
+    def __init__(self, s, quaternion, translation):
         self.check_dimension(s)
         self.s = s
-        self.offset = offset
+        self.quaternion = quaternion
+        self.translation = translation
+
+    @classmethod
+    def make_merged(cls, s, quaternion, translation):
+        t = cls(s, quaternion, translation)
+        if isinstance(s, cls):
+            t.s = s.s
+            t.quaternion = quaternion * s.quaternion
+            t.translation = translation + quaternion.rotate_vector(s.translation)
+
+        return t
 
     def distance(self, point):
-        return self.s.distance(point - self.offset)
+        new_point = self.quaternion.conjugate().rotate_vector(point - self.translation)
+        scale = self.quaternion.v.abs_squared() + self.quaternion.w**2
+        return self.s.distance(new_point) * scale
 
-    def bounding_box(self):
-        b = self.s.bounding_box()
-        return util.BoundingBox(b.a + self.offset, b.b + self.offset)
-
-    def get_node(self, point, cache):
-        return self.s.get_node(cache.make_node("translation",
-                                               self.offset,
-                                               [point]),
-                               cache)
-
-
-class Scaling:
-    def __init__(self, s, scale):
-        self.check_dimension(s)
-        self.s = s
-        self.scale = scale
-
-    def distance(self, point):
-        return self.s.distance(point / self.scale) * self.scale
-
-    def bounding_box(self):
-        b = self.s.bounding_box()
-        return util.BoundingBox(b.a * self.scale, b.b * self.scale)
+    def transform_vector(self, v):
+        return self.quaternion.rotate_vector(v) + self.translation;
 
     def get_node(self, point, cache):
-        return self.s.get_node(cache.make_node("scaling",
-                                               [self.scale],
+        return self.s.get_node(cache.make_node("rotation2d",
+                                               [self.cos, self.sin],
                                                [point]),
                                cache)
-
 
 class Shell:
     def __init__(self, s, inside, outside):
