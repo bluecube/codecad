@@ -154,8 +154,10 @@ class Transformation:
     def get_node(self, point, cache):
         #TODO: Merge transformation nodes
         inverse_quaternion = self.quaternion.inverse()
+        inverse_translation = -self.translation
+        #TODO: Is the inverse transformation correct?
         new_point = cache.make_node("transformation",
-                                    inverse_quaternion.as_list() + list(self.translation),
+                                    inverse_quaternion.as_list() + list(inverse_translation),
                                     [point],
                                     (inverse_quaternion, self.translation))
         distance = self.s.get_node(new_point, cache)
