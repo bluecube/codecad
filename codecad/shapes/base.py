@@ -50,23 +50,41 @@ class ShapeBase(metaclass=abc.ABCMeta):
 
 
 class Union:
-    def __init__(self, shapes, r = 0):
+    def __init__(self, shapes, r = None):
         self.shapes = list(shapes)
         self.check_dimension(*self.shapes)
         self.r = r
 
     @staticmethod
-    def rmin(a, b, r):
-        return util.switch(abs(a - b) >= r,
-                           util.minimum(a, b),
-                           b + r * util.sin(math.pi / 4 + util.arcsin((a - b) / (r * math.sqrt(2)))) - r)
+    def distance2(r, s1, s2, point):
+        epsilon = min(s1.bounding_box().size().min(),
+                      s2.bounding_box().size().min()) / 10000;
+
+        d1 = s1.distance(point)
+        d2 = s2.distance(point)
+        x1 = r - d1
+        x2 = r - d2
+
+        # epsilon * gradient(s1)(point)
+        g1 = util.Vector(s1.distance(point + util.Vector(epsilon, 0, 0)) - d1,
+                         s1.distance(point + util.Vector(0, epsilon, 0)) - d1,
+                         s1.distance(point + util.Vector(0, 0, epsilon)) - d1)
+
+        cos_alpha = abs((s2.distance(point + g1) - d2) / epsilon)
+
+        dist_to_rounding = r - util.sqrt((x1 * x1 + x2 * x2 - 2 * cos_alpha * x1 * x2) / (1 - cos_alpha * cos_alpha))
+
+        cond1 = (cos_alpha * x1 < x2)
+        cond2 = (cos_alpha * x2 < x1)
+
+        return util.switch(cond1 & cond2, dist_to_rounding, util.minimum(d1, d2))
 
     def distance(self, point):
-        if self.r == 0:
+        if self.r is None:
             return util.minimum(*[s.distance(point) for s in self.shapes])
         else:
-            return functools.reduce(lambda a, b: self.rmin(a, b, self.r),
-                                    (s.distance(point) for s in self.shapes))
+            return functools.reduce(lambda a, b: self.distance2(self.r, a, b, point),
+                                    self.shapes)
 
     def bounding_box(self):
         return functools.reduce(lambda a, b: a.union(b),
