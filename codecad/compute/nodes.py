@@ -19,6 +19,10 @@ class Node:
         self.extra_data = extra_data
         self._hash = hash((name, self.params, self.dependencies))
 
+        self.refcount = 0 # How many times is this node referenced by other node
+        for dep in self.dependencies:
+            dep.refcount += 1
+
     def __hash__(self):
         return self._hash
 

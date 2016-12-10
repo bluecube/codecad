@@ -1,26 +1,22 @@
-from ..compute import nodes
+from ..compute import nodes, scheduler
 
 def render_nodes_graph(shape, resolution, filename):
     shape_node = nodes.get_shape_nodes(shape)
 
-    visited_ids = set()
+    _, registers, ordered = scheduler.randomized_scheduler(shape_node)
 
     with open(filename, "w") as fp:
         fp.write("digraph Nodes {\n");
+        fp.write("  graph[concentrate=true];\n");
         stack = [shape_node]
 
-        while len(stack):
-            node = stack.pop()
-
-            if id(node) in visited_ids:
-                continue
-            else:
-                visited_ids.add(id(node))
-
-            fp.write('  node{} [label="{}({})"];\n'.format(id(node),
-                                                           node.name,
-                                                           ", ".join(str(p) for p in node.params)))
+        for i, node in enumerate(ordered):
+            fp.write('  node{} [label="{}\\n{}({})\\n->r{}"];\n'.format(id(node),
+                                                                          i,
+                                                                          node.name,
+                                                                          ", ".join(str(p) for p in node.params),
+                                                                          registers[node]))
             for dep in node.dependencies:
-                stack.append(dep)
                 fp.write('  node{} -> node{};\n'.format(id(dep), id(node)))
+
         fp.write("}")
