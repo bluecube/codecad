@@ -1,9 +1,7 @@
 from ..compute import nodes
 
 def render_nodes_graph(shape, resolution, filename):
-    cache = nodes.NodeCache()
-    point_node = cache.make_node("point", (), ())
-    shape_node = shape.get_node(point_node, cache)
+    shape_node = nodes.get_shape_nodes(shape)
 
     visited_ids = set()
 

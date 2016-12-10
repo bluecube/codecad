@@ -26,3 +26,8 @@ class Node:
         return self.name == other.name and \
                self.params == other.params and \
                self.dependencies == other.dependencies
+
+def get_shape_nodes(shape):
+    cache = NodeCache() # TODO: Figure out how to share cache between shapes?
+    point = cache.make_node("point", (), ())
+    return shape.get_node(point, cache)
