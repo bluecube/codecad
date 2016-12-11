@@ -1,6 +1,9 @@
 import itertools
 import random
 import operator
+import copy
+
+from . import nodes
 
 class _RegisterAllocator:
     def __init__(self):
@@ -21,26 +24,41 @@ class _RegisterAllocator:
             del self._allocations[reg]
 
 
-def _contiguous_schedule_recursive(node, ordering_selector, allocator, mapping):
+def _contiguous_schedule_recursive(node, ordering_selector, allocator):
     order = []
 
     dependencies = list(ordering_selector(node.dependencies))
 
+    # Breaking up n-ary node to binary
+    if len(dependencies) > 2:
+        name = node.name
+        params = node.params
+        extra_data = node.extra_data
+
+        node.disconnect()
+
+        n = nodes.Node(name, params, dependencies[:2], extra_data)
+        for dep in dependencies[2:-1]:
+            n = nodes.Node(name, params, (n, dep), extra_data)
+
+        dependencies = (n, dependencies[-1])
+
+        node.connect(dependencies)
+
+
     # Calculate all dependencies first
     for dep in dependencies:
-        if dep in mapping:
+        if dep.register is not None:
             continue # This node has already been processed
 
-        order.extend(_contiguous_schedule_recursive(dep, ordering_selector,
-                                                    allocator, mapping))
+        order.extend(_contiguous_schedule_recursive(dep, ordering_selector, allocator))
 
     # Decref dependency registers before selecting a register for output,
     # because we want to reuse input registers for output when possible
     for dep in dependencies:
-        allocator.decref(mapping[dep])
+        allocator.decref(dep.register)
 
-    reg = allocator.allocate(node.refcount)
-    mapping[node] = reg
+    node.register = allocator.allocate(node.refcount)
 
     # Finally output the schedule entry for this node
     order.append(node)
@@ -49,15 +67,13 @@ def _contiguous_schedule_recursive(node, ordering_selector, allocator, mapping):
 
 def _contiguous_schedule(node, ordering_selector):
     allocator = _RegisterAllocator()
-    mapping = {}
-    order = _contiguous_schedule_recursive(node,
+    order = _contiguous_schedule_recursive(copy.deepcopy(node),
                                            ordering_selector,
-                                           allocator,
-                                           mapping)
+                                           allocator)
 
     #print("needs {} registers with selector {}".format(allocator.registers_needed, str(ordering_selector)))
 
-    return allocator.registers_needed, mapping, order
+    return allocator.registers_needed, order
 
 def _identity(x):
     return x

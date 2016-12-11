@@ -3,7 +3,7 @@ from ..compute import nodes, scheduler
 def render_nodes_graph(shape, resolution, filename):
     shape_node = nodes.get_shape_nodes(shape)
 
-    _, registers, ordered = scheduler.randomized_scheduler(shape_node)
+    _, ordered = scheduler.randomized_scheduler(shape_node)
 
     with open(filename, "w") as fp:
         fp.write("digraph Nodes {\n");
@@ -16,7 +16,7 @@ def render_nodes_graph(shape, resolution, filename):
                                                                                       node.name,
                                                                                       ", ".join(str(p) for p in node.params),
                                                                                       node.refcount,
-                                                                                      registers[node]))
+                                                                                      node.register))
             for dep in node.dependencies:
                 fp.write('  node{} -> node{};\n'.format(id(dep), id(node)))
 

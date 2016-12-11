@@ -4,6 +4,8 @@ class NodeCache:
 
     def make_node(self, name, params, dependencies, extra_data = None):
         node = Node(name, params, dependencies, extra_data)
+
+        #TODO: Maybe try caching subsets of dependencies of >2-ary nodes?
         try:
             cached = self._cache[node]
             assert cached is not Node
@@ -17,20 +19,30 @@ class NodeCache:
 
 class Node:
     def __init__(self, name, params, dependencies, extra_data = None):
+        # Note: If dependency count > 2, then we assume that the node is  both
+        # associative and commutative and that it can be safely broken binary
+        # nodes of the same type in any order
         self.name = name
         self.params = tuple(params)
-        self.dependencies = tuple(dependencies)
+        self.dependencies = ()
         self.extra_data = extra_data
         self._hash = hash((name, self.params, self.dependencies))
 
         self.refcount = 0 # How many times is this node referenced by other node
-        for dep in self.dependencies:
-            dep.refcount += 1
+        self.connect(dependencies)
+
+        self.register = None # Register allocated for output of this node
 
     def disconnect(self):
         for dep in self.dependencies:
             dep.refcount -= 1
         self.dependencies = ()
+
+    def connect(self, dependencies):
+        assert len(self.dependencies) == 0
+        self.dependencies = tuple(dependencies)
+        for dep in self.dependencies:
+            dep.refcount += 1
 
     def __hash__(self):
         return self._hash
