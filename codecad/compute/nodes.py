@@ -5,7 +5,11 @@ class NodeCache:
     def make_node(self, name, params, dependencies, extra_data = None):
         node = Node(name, params, dependencies, extra_data)
         try:
-            return self._cache[node]
+            cached = self._cache[node]
+            assert cached is not Node
+            node.disconnect() # Don't let node increase dependencies' refcount
+                              # when we're not using it
+            return cached
         except KeyError:
             pass
         self._cache[node] = node
@@ -22,6 +26,11 @@ class Node:
         self.refcount = 0 # How many times is this node referenced by other node
         for dep in self.dependencies:
             dep.refcount += 1
+
+    def disconnect(self):
+        for dep in self.dependencies:
+            dep.refcount -= 1
+        self.dependencies = ()
 
     def __hash__(self):
         return self._hash
