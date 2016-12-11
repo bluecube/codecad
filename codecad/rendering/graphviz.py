@@ -11,11 +11,12 @@ def render_nodes_graph(shape, resolution, filename):
         stack = [shape_node]
 
         for i, node in enumerate(ordered):
-            fp.write('  node{} [label="{}\\n{}({})\\n->r{}"];\n'.format(id(node),
-                                                                          i,
-                                                                          node.name,
-                                                                          ", ".join(str(p) for p in node.params),
-                                                                          registers[node]))
+            fp.write('  node{} [label="{}\\n{}({})\\nrefcount {}\\n->r{}"];\n'.format(id(node),
+                                                                                      i,
+                                                                                      node.name,
+                                                                                      ", ".join(str(p) for p in node.params),
+                                                                                      node.refcount,
+                                                                                      registers[node]))
             for dep in node.dependencies:
                 fp.write('  node{} -> node{};\n'.format(id(dep), id(node)))
 
