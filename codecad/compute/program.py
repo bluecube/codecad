@@ -26,7 +26,7 @@ def _collect_files():
     sources.sort()
 
     for source in sources:
-        yield '#line 1 "{}"'.format(source)
+        yield '\n#line 1 "{}"\n'.format(source)
         with open(source, "r") as fp:
             yield fp.read()
 
@@ -38,9 +38,9 @@ union Word {
     float f;
     struct {
         uchar instruction;
+        uchar output;
         uchar input1;
         uchar input2;
-        uchar output;
     };
 };
 
@@ -50,13 +50,15 @@ float4 evaluate(constant Word* program);
     yield from _collect_files()
 
     yield _('''
-float4 evaluate(constant Word* program) {{
+float4 evaluate(constant Word* program, float4 point) {{
     float4 registers[{}];
+    registers[0] = point;
+
     while (true) {{
         uchar instruction = program->instruction;
+        float4 *output = &registers[program->output];
         float4 input1 = registers[program->input1];
         float4 input2 = registers[program->input2];
-        float4 *output = &registers[program->output];
         ++program;
 
         switch (instruction) {{
@@ -67,7 +69,7 @@ float4 evaluate(constant Word* program) {{
     for name, i in node_types_map.items():
         yield _('''
             case {}:
-                program += {}(input1, input2, output);
+                program += {}(program, output, input1, input2);
                 break;
 '''.format(i, name))
 

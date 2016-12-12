@@ -23,11 +23,10 @@ class Node:
     # Mapping of node names to instruction codes
     # These also need to be implemented in opencl.
     _type_map = collections.OrderedDict((name, i + 1) for i, name in enumerate([
-        "point",
-        "rectangle", "circle", "box",
-        "sphere", "cylinder", "extrusion", "revolution",
+        "rectangle", "circle",
+        "box", "sphere", "cylinder", "extrusion", "revolution",
         "union", "intersection", "subtraction",
-        "transformation", "reverse_transformation"]))
+        "transformation_to", "transformation_from"]))
 
     def __init__(self, name, params, dependencies, extra_data = None):
         # Note: If dependency count > 2, then we assume that the node is  both
@@ -66,5 +65,5 @@ class Node:
 
 def get_shape_nodes(shape):
     cache = NodeCache() # TODO: Figure out how to share cache between shapes?
-    point = cache.make_node("point", (), ())
+    point = cache.make_node("_point", (), ())
     return shape.get_node(point, cache)
