@@ -50,7 +50,7 @@ float4 evaluate(constant Word* program);
     yield from _collect_files()
 
     yield _('''
-float4 evaluate(constant Word* program, float4 point) {{
+float4 evaluate(constant Word* program, float3 point) {{
     float4 registers[{}];
     registers[0] = point;
 
