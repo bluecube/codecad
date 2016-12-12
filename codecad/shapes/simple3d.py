@@ -174,6 +174,6 @@ class Revolution(Shape3D):
                                 util.Vector(radius, box.b.y, radius))
 
     def get_node(self, point, cache):
-        return cache.make_node("extrusion",
+        return cache.make_node("revolution",
                                [],
                                [self.s.get_node(point, cache)])

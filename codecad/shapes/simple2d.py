@@ -89,7 +89,7 @@ class Circle(Shape2D):
         return util.BoundingBox(-v, v)
 
     def get_node(self, point, cache):
-        return cache.make_node("rectangle", [self.r], [point])
+        return cache.make_node("circle", [self.r], [point])
 
 
 class Union2D(base.Union, Shape2D):
