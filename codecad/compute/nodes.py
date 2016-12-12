@@ -1,3 +1,5 @@
+import collections
+
 class NodeCache:
     def __init__(self):
         self._cache = {}
@@ -18,10 +20,20 @@ class NodeCache:
         return node
 
 class Node:
+    # Mapping of node names to instruction codes
+    # These also need to be implemented in opencl.
+    _type_map = collections.OrderedDict((name, i + 1) for i, name in enumerate([
+        "point",
+        "rectangle", "circle", "box",
+        "sphere", "cylinder", "extrusion", "revolution",
+        "union", "intersection", "subtraction",
+        "transformation", "reverse_transformation"]))
+
     def __init__(self, name, params, dependencies, extra_data = None):
         # Note: If dependency count > 2, then we assume that the node is  both
         # associative and commutative and that it can be safely broken binary
         # nodes of the same type in any order
+        assert name in self._type_map
         self.name = name
         self.params = tuple(params)
         self.dependencies = ()
