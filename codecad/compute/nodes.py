@@ -22,7 +22,7 @@ class NodeCache:
 class Node:
     # Mapping of node names to instruction codes
     # These also need to be implemented in opencl.
-    _type_map = collections.OrderedDict((name, i + 1) for i, name in enumerate([
+    _type_map = collections.OrderedDict((name, i + 2) for i, name in enumerate([
         "rectangle", "circle",
         "box", "sphere", "cylinder", "extrusion", "revolution",
         "union", "intersection", "subtraction", "shell",
