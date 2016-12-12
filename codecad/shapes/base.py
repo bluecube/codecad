@@ -97,7 +97,7 @@ class Union:
 
     def get_node(self, point, cache):
         return cache.make_node("union",
-                               [self.r],
+                               [self.r if self.r is not None else -1],
                                (shape.get_node(point, cache) for shape in self.shapes))
 
 

@@ -192,4 +192,4 @@ class Transformation(collections.namedtuple("Transformation", "quaternion offset
 
     def as_list(self):
         """ Return parameters as a list of floats (for nodes) """
-        return self.quaternion.as_list() + list(self.translation)
+        return self.quaternion.as_list() + list(self.offset)

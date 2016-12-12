@@ -25,14 +25,15 @@ class Node:
     _type_map = collections.OrderedDict((name, i + 1) for i, name in enumerate([
         "rectangle", "circle",
         "box", "sphere", "cylinder", "extrusion", "revolution",
-        "union", "intersection", "subtraction",
-        "transformation_to", "transformation_from"]))
+        "union", "intersection", "subtraction", "shell",
+        "transformation_to", "transformation_from",
+        "repetition"]))
 
     def __init__(self, name, params, dependencies, extra_data = None):
         # Note: If dependency count > 2, then we assume that the node is  both
         # associative and commutative and that it can be safely broken binary
         # nodes of the same type in any order
-        assert name in self._type_map
+        assert name in self._type_map or name.startswith("_")
         self.name = name
         self.params = tuple(params)
         self.dependencies = ()
