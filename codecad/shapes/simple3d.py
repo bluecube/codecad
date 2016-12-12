@@ -134,7 +134,7 @@ class Transformation(base.Transformation, Shape3D):
             inf = util.Vector(float("inf"), float("inf"), float("inf"))
             return util.BoundingBox(-inf, inf)
         else:
-            return util.BoundingBox.containing(self.transform_vector(v) for v in b.vertices())
+            return util.BoundingBox.containing(self.transformation.transform_vector(v) for v in b.vertices())
 
 
 class Extrusion(Shape3D):

@@ -55,23 +55,41 @@ class ShapeBase(metaclass=abc.ABCMeta):
 
 
 class Union:
-    def __init__(self, shapes, r = 0):
+    def __init__(self, shapes, r = None):
         self.shapes = list(shapes)
         self.check_dimension(*self.shapes)
         self.r = r
 
     @staticmethod
-    def rmin(a, b, r):
-        return util.switch(abs(a - b) >= r,
-                           util.minimum(a, b),
-                           b + r * util.sin(math.pi / 4 + util.arcsin((a - b) / (r * math.sqrt(2)))) - r)
+    def distance2(r, s1, s2, point):
+        epsilon = min(s1.bounding_box().size().min(),
+                      s2.bounding_box().size().min()) / 10000;
+
+        d1 = s1.distance(point)
+        d2 = s2.distance(point)
+        x1 = r - d1
+        x2 = r - d2
+
+        # epsilon * gradient(s1)(point)
+        g1 = util.Vector(s1.distance(point + util.Vector(epsilon, 0, 0)) - d1,
+                         s1.distance(point + util.Vector(0, epsilon, 0)) - d1,
+                         s1.distance(point + util.Vector(0, 0, epsilon)) - d1)
+
+        cos_alpha = abs((s2.distance(point + g1) - d2) / epsilon)
+
+        dist_to_rounding = r - util.sqrt((x1 * x1 + x2 * x2 - 2 * cos_alpha * x1 * x2) / (1 - cos_alpha * cos_alpha))
+
+        cond1 = (cos_alpha * x1 < x2)
+        cond2 = (cos_alpha * x2 < x1)
+
+        return util.switch(cond1 & cond2, dist_to_rounding, util.minimum(d1, d2))
 
     def distance(self, point):
-        if self.r == 0:
+        if self.r is None:
             return util.minimum(*[s.distance(point) for s in self.shapes])
         else:
-            return functools.reduce(lambda a, b: self.rmin(a, b, self.r),
-                                    (s.distance(point) for s in self.shapes))
+            return functools.reduce(lambda a, b: self.distance2(self.r, a, b, point),
+                                    self.shapes)
 
     def bounding_box(self):
         return functools.reduce(lambda a, b: a.union(b),
@@ -131,40 +149,34 @@ class Transformation:
     def __init__(self, s, quaternion, translation):
         self.check_dimension(s)
         self.s = s
-        self.quaternion = quaternion
-        self.translation = translation
+        self.transformation = util.Transformation(quaternion, translation)
 
     @classmethod
     def make_merged(cls, s, quaternion, translation):
         t = cls(s, quaternion, translation)
         if isinstance(s, cls):
             t.s = s.s
-            t.quaternion = quaternion * s.quaternion
-            t.translation = translation + quaternion.rotate_vector(s.translation)
+            t.transformation = t.transformation * s.transformation
 
         return t
 
     def distance(self, point):
-        new_point = self.quaternion.inverse().rotate_vector(point - self.translation)
-        return self.s.distance(new_point) * self.quaternion.abs_squared()
+        new_point = self.transformation.inverse().transform_vector(point)
+        return self.s.distance(new_point) * self.transformation.quaternion.abs_squared()
 
-    def transform_vector(self, v):
-        return self.quaternion.rotate_vector(v) + self.translation;
 
     def get_node(self, point, cache):
         #TODO: Merge transformation nodes
-        inverse_quaternion = self.quaternion.inverse()
-        inverse_translation = -self.translation
-        #TODO: Is the inverse transformation correct?
+        inverse_transformation = self.transformation.inverse()
         new_point = cache.make_node("transformation",
-                                    inverse_quaternion.as_list() + list(inverse_translation),
+                                    inverse_transformation.as_list(),
                                     [point],
-                                    (inverse_quaternion, self.translation))
+                                    inverse_transformation)
         distance = self.s.get_node(new_point, cache)
         return cache.make_node("reverse_transformation",
-                               self.quaternion.as_list(),
+                               self.transformation.quaternion.as_list(),
                                [distance],
-                               self.quaternion)
+                               self.transformation.quaternion)
 
 
 class Shell:

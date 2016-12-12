@@ -30,6 +30,8 @@ def commandline_render(shape, resolution, default_renderer=None, **kwargs):
         ext = _renderers[renderer][1]
         if ext is not None:
             output = "output" + ext
+        else:
+            output = None
 
     if output is not None:
         print("Rendering with renderer {} to file {}".format(renderer, output))

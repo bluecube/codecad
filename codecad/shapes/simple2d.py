@@ -118,6 +118,6 @@ class Transformation2D(base.Transformation, Shape2D):
             return util.BoundingBox(-inf, inf)
         else:
             inf = float("inf")
-            ret = util.BoundingBox.containing(self.transform_vector(v) for v in b.vertices())
+            ret = util.BoundingBox.containing(self.transformation.transform_vector(v) for v in b.vertices())
             return util.BoundingBox(util.Vector(ret.a.x, ret.a.y, -inf),
                                     util.Vector(ret.b.x, ret.b.y, inf))
