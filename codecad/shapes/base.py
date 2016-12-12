@@ -129,25 +129,21 @@ class Transformation:
     def __init__(self, s, quaternion, translation):
         self.check_dimension(s)
         self.s = s
-        self.quaternion = quaternion
-        self.translation = translation
+        self.transformation = util.Transformation(quaternion, translation)
 
     @classmethod
     def make_merged(cls, s, quaternion, translation):
         t = cls(s, quaternion, translation)
         if isinstance(s, cls):
             t.s = s.s
-            t.quaternion = quaternion * s.quaternion
-            t.translation = translation + quaternion.rotate_vector(s.translation)
+            t.transformation = t.transformation * s.transformation
 
         return t
 
     def distance(self, point):
-        new_point = self.quaternion.inverse().rotate_vector(point - self.translation)
-        return self.s.distance(new_point) * self.quaternion.abs_squared()
+        new_point = self.transformation.inverse().transform_vector(point)
+        return self.s.distance(new_point) * self.transformation.quaternion.abs_squared()
 
-    def transform_vector(self, v):
-        return self.quaternion.rotate_vector(v) + self.translation;
 
 class Shell:
     def __init__(self, s, inside, outside):

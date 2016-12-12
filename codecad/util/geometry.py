@@ -142,6 +142,7 @@ class Quaternion(collections.namedtuple("Quaternion", "v w")):
     def from_degrees(cls, axis, angle, scale = 1):
         phi = theanomath.radians(angle) / 2
         mul = theanomath.sqrt(scale)
+        axis = Vector(*axis)
         return cls(axis.normalized() * theanomath.sin(phi) * mul,
                    theanomath.cos(phi) * mul)
 
@@ -159,6 +160,27 @@ class Quaternion(collections.namedtuple("Quaternion", "v w")):
     def conjugate(self):
         return Quaternion(-self.v, self.w)
 
-    def rotate_vector(self, vector):
+    def transform_vector(self, vector):
         return (self.v * self.v.dot(vector) + self.v.cross(vector) * self.w) * 2 + \
                 vector * (self.w * self.w - self.v.abs_squared())
+
+class Transformation(collections.namedtuple("Transformation", "quaternion offset")):
+    """ Quaternion and a vector offset """
+    __slots__ = ()
+
+    @classmethod
+    def from_degrees(cls, axis, angle, scale, offset):
+        return cls(Quaternion.from_degrees(axis, angle, scale),
+                   Vector(*offset))
+
+    def __mul__(self, other):
+        return Transformation(self.quaternion * other.quaternion,
+                              self.offset + self.quaternion.transform_vector(other.offset))
+
+    def inverse(self):
+        inverse_quaternion = self.quaternion.inverse()
+        return Transformation(inverse_quaternion,
+                              -inverse_quaternion.transform_vector(self.offset))
+
+    def transform_vector(self, vector):
+        return self.quaternion.transform_vector(vector) + self.offset
