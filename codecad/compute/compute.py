@@ -1,29 +1,27 @@
 import struct
+import pyopencl
 
-from . import nodes
-from . import scheduler
+from . import codegen
 
-def _make_program_pieces(shape):
-    node = nodes.get_shape_nodes(shape)
-    registers_needed, schedule = scheduler.randomized_scheduler(node)
+ctx = pyopencl.create_some_context()
 
-    assert schedule[0].name == "_point"
-    assert schedule[0].register == 0
+for dev in ctx.devices:
+    print("Device", dev.name)
 
-    parameter_encoder = struct.Struct("f") #TODO Endian
-    instruction_encoder = struct.Struct("BBBB")
+queue = pyopencl.CommandQueue(ctx)
 
-    for n in schedule[1:]:
-        assert len(n.dependencies) > 0
-        assert len(n.dependencies) <= 2
-        yield instruction_encoder.pack(nodes.Node._type_map[n.name],
-                                       n.register,
-                                       n.dependencies[0].register,
-                                       n.dependencies[1].register if len(n.dependencies) > 1 else 0)
-        for param in n.params:
-            yield parameter_encoder.pack(param)
+#mf = cl.mem_flags
+#a_g = cl.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=a_np)
+#b_g = cl.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=b_np)
 
-    yield instruction_encoder.pack(0, 0, 0, 0)
+program = pyopencl.Program(ctx, codegen.collect_program()).build()
 
-def make_program(shape):
-    return b"".join(_make_program_pieces(shape))
+#res_g = cl.Buffer(ctx, mf.WRITE_ONLY, a_np.nbytes)
+#prg.sum(queue, a_np.shape, None, a_g, b_g, res_g)
+
+#res_np = np.empty_like(a_np)
+#cl.enqueue_copy(queue, res_np, res_g)
+
+# Check on CPU with Numpy:
+#print(res_np - (a_np + b_np))
+#print(np.linalg.norm(res_np - (a_np + b_np)))

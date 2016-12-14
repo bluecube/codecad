@@ -44,15 +44,15 @@ union Word {
     };
 };
 
-float4 evaluate(constant Word* program);
+float4 evaluate(constant union Word* program, float3 point);
 ''')
 
     yield from _collect_files()
 
     yield _('''
-float4 evaluate(constant Word* program, float3 point) {{
+float4 evaluate(constant union Word* program, float3 point) {{
     float4 registers[{}];
-    registers[0] = point;
+    registers[0] = as_float4(point);
 
     while (true) {{
         uchar instruction = program->instruction;

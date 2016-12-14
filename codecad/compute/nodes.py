@@ -1,31 +1,12 @@
 import collections
 
-class NodeCache:
-    def __init__(self):
-        self._cache = {}
-
-    def make_node(self, name, params, dependencies, extra_data = None):
-        node = Node(name, params, dependencies, extra_data)
-
-        #TODO: Maybe try caching subsets of dependencies of >2-ary nodes?
-        try:
-            cached = self._cache[node]
-            assert cached is not Node
-            node.disconnect() # Don't let node increase dependencies' refcount
-                              # when we're not using it
-            return cached
-        except KeyError:
-            pass
-        self._cache[node] = node
-        return node
-
 class Node:
     # Mapping of node names to instruction codes
     # These also need to be implemented in opencl.
     _type_map = collections.OrderedDict((name, i + 2) for i, name in enumerate([
         "rectangle", "circle",
         "box", "sphere", "cylinder", "extrusion", "revolution",
-        "union", "intersection", "subtraction", "shell",
+        "union_op", "intersection", "subtraction", "shell",
         "transformation_to", "transformation_from",
         "repetition"]))
 
@@ -63,8 +44,3 @@ class Node:
         return self.name == other.name and \
                self.params == other.params and \
                self.dependencies == other.dependencies
-
-def get_shape_nodes(shape):
-    cache = NodeCache() # TODO: Figure out how to share cache between shapes?
-    point = cache.make_node("_point", (), ())
-    return shape.get_node(point, cache)

@@ -1,7 +1,7 @@
-from ..compute import nodes, scheduler
+from ..compute import program, scheduler
 
 def render_nodes_graph(shape, resolution, filename):
-    shape_node = nodes.get_shape_nodes(shape)
+    shape_node = program.get_shape_nodes(shape)
 
     _, ordered = scheduler.randomized_scheduler(shape_node)
 

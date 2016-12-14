@@ -96,7 +96,7 @@ class Union:
                                 (s.bounding_box() for s in self.shapes))
 
     def get_node(self, point, cache):
-        return cache.make_node("union",
+        return cache.make_node("union_op",
                                [self.r if self.r is not None else -1],
                                (shape.get_node(point, cache) for shape in self.shapes))
 
