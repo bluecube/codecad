@@ -35,13 +35,13 @@ def _collect_program_pieces(register_count, node_types_map):
 
     yield _('''
 
-float4 evaluate(constant float* program, float3 point);
+float4 evaluate(__constant float* program, float3 point);
 ''')
 
     yield from _collect_files()
 
     yield _('''
-float4 evaluate(constant float* program, float3 point) {{
+float4 evaluate(__constant float* program, float3 point) {{
     float4 registers[{}];
     registers[0] = as_float4(point);
 
