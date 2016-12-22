@@ -1,107 +1,47 @@
 import PIL
-import theano
-import theano.tensor as T
 import math
+import pyopencl
+import numpy
 
 from .. import util
 from .. import animation
 from . import render_params
 
-def make_func(obj, size, epsilon):
+from ..compute import compute, program
+
+def render_frame(obj,
+                 origin, direction, up, focal_length,
+                 size, epsilon):
+
     obj.check_dimension(required = 3)
-    with util.status_block("building expression"):
-        # Variables used as function parameters
-        ox = T.scalar("ox")
-        oy = T.scalar("oy")
-        oz = T.scalar("oz")
 
-        dx = T.scalar("dx")
-        dy = T.scalar("dy")
-        dz = T.scalar("dz")
+    direction = direction.normalized()
+    up = up - direction * up.dot(direction)
+    up = up.normalized()
+    right = direction.cross(up)
+    direction = direction * focal_length
 
-        upx = T.scalar("upx")
-        upy = T.scalar("upy")
-        upz = T.scalar("upz")
+    output = numpy.empty([size[1], size[0], 3], dtype=numpy.uint8)
 
-        fl = T.scalar("fl")
+    mf = pyopencl.mem_flags
+    program_buffer = pyopencl.Buffer(compute.ctx,
+                                     mf.READ_ONLY | mf.COPY_HOST_PTR,
+                                     hostbuf=program.make_program(obj))
+    output_buffer = pyopencl.Buffer(compute.ctx,
+                                    mf.WRITE_ONLY,
+                                    output.nbytes)
 
-        time = animation.time
+    compute.program.ray_caster(compute.queue, size, None,
+                               program_buffer,
+                               origin.as_float3(), direction.as_float3(), up.as_float3(), right.as_float3(),
+                               render_params.surface.as_float3(), render_params.background.as_float3(),
+                               render_params.light.as_float3(), numpy.float32(render_params.ambient),
+                               numpy.float32(epsilon), numpy.uint32(100),
+                               output_buffer)
 
-        # Preparing ray vectors for tracing
-        size = (size[1], size[0])
-            # We need to swap size components to be compatible with the
-            # height * width convention of numpy matrices
+    pyopencl.enqueue_copy(compute.queue, output, output_buffer)
 
-        direction = util.Vector(dx, dy, dz).normalized()
-
-        up = util.Vector(upx, upy, upz)
-        up = up - direction * up.dot(direction)
-        up = up.normalized()
-
-        right = direction.cross(up)
-
-        film_y, film_x = util.theano_meshgrid(*size)
-        film_y -= (size[0] - 1) / 2
-        film_x -= (size[1] - 1) / 2
-
-        rays = direction * fl + (right * film_x - up * film_y)
-        rays = rays.normalized()
-
-        origins = util.Vector(T.tile(ox, size), T.tile(oy, size), T.tile(oz, size))
-
-        # Actual tracing
-        def trace_func(previous, _, ox, oy, oz, dx, dy, dz):
-            o = util.Vector(ox, oy, oz)
-            d = util.Vector(dx, dy, dz)
-
-            distance = obj.distance(o + d * previous)
-
-            return [previous + 0.8 * distance, distance], \
-                   theano.scan_module.until(T.all(T.or_(distance < epsilon / 2,
-                                                        T.isinf(distance))))
-
-        distances, final_values = theano.scan(trace_func,
-                                              outputs_info=[T.zeros(size), T.zeros(size)],
-                                              non_sequences=[origins.x, origins.y, origins.z,
-                                                             rays.x, rays.y, rays.z],
-                                              n_steps = 100)[0]
-
-        distances = distances[-1]
-        final_values = final_values[-1]
-
-        # Shading
-        intersections = origins + rays * distances
-
-        dot = (obj.distance(intersections + render_params.light * epsilon) - final_values) / epsilon
-            # Dot product of a gradient and a vector is the same as a directional
-            # derivative along the vector
-
-        intensities = T.clip(-dot, 0, 1)
-
-        rgb = [T.switch(final_values < epsilon, surface * intensities + ambient, bg)
-               for surface, bg, ambient in zip(render_params.surface,
-                                               render_params.background,
-                                               render_params.ambient)]
-
-        colors = T.clip(T.stack(rgb, 2), 0, 255).astype("uint8")
-
-    with util.status_block("compiling"):
-        f = theano.function([ox, oy, oz,
-                             dx, dy, dz,
-                             upx, upy, upz,
-                             fl,
-                             time],
-                            colors,
-                            on_unused_input = 'ignore')
-
-    def render_frame(origin, direction, up, focal_length, time = 0):
-        return f(origin.x, origin.y, origin.z,
-                 direction.x, direction.y, direction.z,
-                 up.x, up.y, up.z,
-                 focal_length,
-                 time)
-
-    return render_frame
+    return output
 
 def get_camera_params(box, size, view_angle):
     box_size = box.size()
@@ -135,12 +75,10 @@ def render_picture(obj, filename, size = (800, 600),
     else:
         epsilon = resolution
 
-    f = make_func(obj, size, epsilon)
-
     camera_params = get_camera_params(box, size, view_angle)
 
     with util.status_block("rendering"):
-        pixels = f(*camera_params)
+        pixels = render_frame(obj, size=size, epsilon=epsilon, *camera_params)
 
     with util.status_block("saving"):
         img = PIL.Image.fromarray(pixels)
@@ -161,8 +99,6 @@ def render_gif(obj, filename, size = (640, 480),
     else:
         epsilon = resolution
 
-    f = make_func(obj, size, epsilon)
-
     camera_params = get_camera_params(box, size, view_angle)
 
     frame_duration = int(1000 / fps) # Frame duration in milliseconds
@@ -172,7 +108,7 @@ def render_gif(obj, filename, size = (640, 480),
     for i in range(count):
         time = (i * frame_duration) / 1000
         with util.status_block("rendering frame {}/{}".format(i + 1, count)):
-            pixels = f(*camera_params, time = time)
+            pixels = render_frame(obj, size=size, epsilon=epsilon, *camera_params)
             frame = PIL.Image.fromarray(pixels)
             frames.append(frame)
 

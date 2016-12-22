@@ -1,6 +1,7 @@
 from . import theanomath
 import collections
 import itertools
+import numpy
 
 class Vector(collections.namedtuple("Vector", "x y z")):
     __slots__ = ()
@@ -79,6 +80,9 @@ class Vector(collections.namedtuple("Vector", "x y z")):
 
     def flattened(self):
         return Vector(self.x, self.y, 0)
+
+    def as_float3(self):
+        return numpy.array((self.x, self.y, self.z, 0), dtype=numpy.float32)
 
 
 class BoundingBox(collections.namedtuple("BoundingBox", "a b")):

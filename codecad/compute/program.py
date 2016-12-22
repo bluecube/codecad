@@ -1,3 +1,4 @@
+import struct
 from . import scheduler, nodes
 
 class NodeCache:
