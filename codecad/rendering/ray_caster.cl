@@ -2,7 +2,7 @@
 // Returns estimated non-occlusion (0 if the ray hit the geometry,
 // 1 if it went directly away from the scene, INFINITY if there never was any scene;
 // this is tan(angle of a maximal cone centered at the ray that doesn't intesect any geometry)
-bool cast_ray(constant union Word* scene,
+bool cast_ray(constant float* scene,
               float3 origin, float3 direction,
               float epsilon, uint maxSteps,
               float4* evalResult, float* distance)
@@ -28,7 +28,7 @@ bool cast_ray(constant union Word* scene,
     //return occlusion;
 }
 
-kernel void ray_caster(constant union Word* scene,
+kernel void ray_caster(constant float* scene,
                        float3 origin, float3 direction, float3 up, float3 right,
                        float3 surfaceColor, float3 backgroundColor,
                        float3 light, float ambient,

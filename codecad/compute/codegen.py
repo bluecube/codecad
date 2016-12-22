@@ -34,42 +34,42 @@ def _collect_program_pieces(register_count, node_types_map):
     assert 0 not in node_types_map.values()
 
     yield _('''
-union Word {
-    float f;
-    struct {
-        uchar instruction;
-        uchar output;
-        uchar input1;
-        uchar input2;
-    };
-};
 
-float4 evaluate(constant union Word* program, float3 point);
+float4 evaluate(constant float* program, float3 point);
 ''')
 
     yield from _collect_files()
 
     yield _('''
-float4 evaluate(constant union Word* program, float3 point) {{
+float4 evaluate(constant float* program, float3 point) {{
     float4 registers[{}];
     registers[0] = as_float4(point);
 
     while (true) {{
-        uchar instruction = program->instruction;
-        float4 *output = &registers[program->output];
-        float4 input1 = registers[program->input1];
-        float4 input2 = registers[program->input2];
-        ++program;
+        union {{
+            float f;
+            struct {{
+                uchar opcode;
+                uchar output;
+                uchar input1;
+                uchar input2;
+            }};
+        }} instruction;
 
-        switch (instruction) {{
+        instruction.f = *program++;
+
+        switch (instruction.opcode) {{
             case 0:
-                return input1;
+                return registers[instruction.input1];
 '''.format(register_count))
 
     for name, i in node_types_map.items():
         yield _('''
             case {}:
-                program += {}_op(program, output, input1, input2);
+                program += {}_op(program,
+                    &registers[instruction.output],
+                    registers[instruction.input1],
+                    registers[instruction.input2]);
                 break;
 '''.format(i, name))
 
