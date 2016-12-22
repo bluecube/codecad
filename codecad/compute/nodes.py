@@ -6,7 +6,7 @@ class Node:
     _type_map = collections.OrderedDict((name, i + 2) for i, name in enumerate([
         "rectangle", "circle",
         "box", "sphere", "cylinder", "extrusion", "revolution",
-        "union_op", "intersection", "subtraction", "shell",
+        "union", "intersection", "subtraction", "shell",
         "transformation_to", "transformation_from",
         "repetition"]))
 

@@ -69,7 +69,7 @@ float4 evaluate(constant union Word* program, float3 point) {{
     for name, i in node_types_map.items():
         yield _('''
             case {}:
-                program += {}(program, output, input1, input2);
+                program += {}_op(program, output, input1, input2);
                 break;
 '''.format(i, name))
 
