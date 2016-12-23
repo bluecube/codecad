@@ -15,11 +15,11 @@ def render_frame(obj,
 
     obj.check_dimension(required = 3)
 
-    direction = direction.normalized()
-    up = up - direction * up.dot(direction)
+    forward = direction.normalized()
+    up = up - forward * up.dot(forward)
     up = up.normalized()
-    right = direction.cross(up)
-    direction = direction * focal_length
+    right = forward.cross(up)
+    forward = forward * focal_length
 
     output = numpy.empty([size[1], size[0], 3], dtype=numpy.uint8)
 
@@ -33,9 +33,9 @@ def render_frame(obj,
 
     compute.program.ray_caster(compute.queue, size, None,
                                program_buffer,
-                               origin.as_float3(), direction.as_float3(), up.as_float3(), right.as_float3(),
-                               render_params.surface.as_float3(), render_params.background.as_float3(),
-                               render_params.light.as_float3(), numpy.float32(render_params.ambient),
+                               origin.as_float4(), forward.as_float4(), up.as_float4(), right.as_float4(),
+                               render_params.surface.as_float4(), render_params.background.as_float4(),
+                               render_params.light.as_float4(), numpy.float32(render_params.ambient),
                                numpy.float32(epsilon), numpy.uint32(100),
                                output_buffer)
 

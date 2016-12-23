@@ -81,7 +81,7 @@ class Vector(collections.namedtuple("Vector", "x y z")):
     def flattened(self):
         return Vector(self.x, self.y, 0)
 
-    def as_float3(self):
+    def as_float4(self):
         return numpy.array((self.x, self.y, self.z, 0), dtype=numpy.float32)
 
 

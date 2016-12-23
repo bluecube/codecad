@@ -29,9 +29,9 @@ bool cast_ray(__constant float* scene,
 }
 
 __kernel void ray_caster(__constant float* scene,
-                         float3 origin, float3 direction, float3 up, float3 right,
-                         float3 surfaceColor, float3 backgroundColor,
-                         float3 light, float ambient,
+                         float4 origin, float4 forward, float4 up, float4 right,
+                         float4 surfaceColor, float4 backgroundColor,
+                         float4 light, float ambient,
                          float epsilon, uint maxSteps,
                          __global uchar* output)
 {
@@ -49,20 +49,22 @@ __kernel void ray_caster(__constant float* scene,
     float filmx = x - (w - 1) / 2.0f;
     float filmy = y - (h - 1) / 2.0f;
 
-    direction = normalize(direction + right * filmx - up * filmy);
+    float3 direction = normalize(as_float3(forward) +
+                                 as_float3(right) * filmx -
+                                 as_float3(up) * filmy);
 
     float4 lastResult;
     float distance;
-    float3 color;
+    float4 color;
 
-    if (cast_ray(scene, origin, direction, epsilon, maxSteps, &lastResult, &distance))
+    if (cast_ray(scene, as_float3(origin), as_float3(direction), epsilon, maxSteps, &lastResult, &distance))
     {
         float lightness = ambient;
         float3 gradient = (float3)(lastResult.x, lastResult.y, lastResult.z);
             // Theoretically the shapes should output unit length gradient in the first
             // place, but we might have approximate ones that don't.
             // TODO: Normalize gradient, if it causes problems
-        lightness += fmax(dot(gradient, light), 0);
+        lightness += fmax(dot(gradient, as_float3(light)), 0);
         color = lightness * surfaceColor;
     }
     else
