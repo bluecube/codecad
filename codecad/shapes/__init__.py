@@ -27,7 +27,7 @@ def box(x = 1, y = None, z = None):
     if y is None:
         y = x
         z = x
-    return _s3.Box(x, y, z)
+    return rectangle(x, y).extruded(z)
 
 def sphere(d = 1, r = None):
     if r is not None:
@@ -35,9 +35,7 @@ def sphere(d = 1, r = None):
     return _s3.Sphere(d)
 
 def cylinder(h = 1, d = 1, r = None):
-    if r is not None:
-        d = 2 * r
-    return _s3.Cylinder(h, d)
+    return circle(d = d, r = r).extruded(h)
 
 def _group_op_helper(shapes, name, op2, op3, r):
     """ Check that shapes is not empty and that dimensions match """

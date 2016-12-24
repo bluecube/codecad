@@ -48,22 +48,6 @@ class Shape3D(base.ShapeBase):
         return Shell(self, inside, outside)
 
 
-class Box(Shape3D):
-    def __init__(self, x = 1, y = None, z = None):
-        if y is None:
-            y = x
-        if z is None:
-            z = x
-        self.half_size = util.Vector(x, y, z) / 2
-
-    def distance(self, point):
-        v = point.elementwise_abs() - self.half_size
-        return v.max()
-
-    def bounding_box(self):
-        return util.BoundingBox(-self.half_size, self.half_size)
-
-
 class Sphere(Shape3D):
     def __init__(self, d = 1, r = None):
         if r is None:
@@ -76,28 +60,6 @@ class Sphere(Shape3D):
 
     def bounding_box(self):
         v = util.Vector(self.r, self.r, self.r)
-        return util.BoundingBox(-v, v)
-
-
-class Cylinder(Shape3D):
-    def __init__(self, h = 1, d = 1, r = None):
-        self.h = h
-        if r is not None:
-            self.r = r
-        else:
-            self.r = d / 2
-
-    def distance(self, point):
-        infinite_cylinder = util.sqrt(point.x * point.x + point.y * point.y) - self.r
-
-        if math.isinf(self.h):
-            return infinite_cylinder
-        else:
-            return util.maximum(infinite_cylinder,
-                                abs(point.z) - self.h / 2)
-
-    def bounding_box(self):
-        v = util.Vector(self.r, self.r, self.h)
         return util.BoundingBox(-v, v)
 
 
