@@ -19,7 +19,8 @@ bool cast_ray(__constant float* scene,
             //return evalResult;
         else if (evalResult->w == INFINITY)
             break;
-        //else
+        else
+            *distance += evalResult->w;
             //occlusion = min(occlusion, evalResult.w / distance);
     }
 
@@ -38,13 +39,8 @@ __kernel void ray_caster(__constant float* scene,
     size_t x = get_global_id(0);
     size_t y = get_global_id(1);
     size_t w = get_global_size(0);
-    size_t h = get_global_size(0);
+    size_t h = get_global_size(1);
     size_t index = (x + y * w) * 3;
-
-    output[index + 0] = 0;
-    output[index + 1] = 127;
-    output[index + 2] = (uchar)(255 * (y / (float)h));
-    return;
 
     float filmx = x - (w - 1) / 2.0f;
     float filmy = y - (h - 1) / 2.0f;
@@ -60,19 +56,19 @@ __kernel void ray_caster(__constant float* scene,
     if (cast_ray(scene, as_float3(origin), as_float3(direction), epsilon, maxSteps, &lastResult, &distance))
     {
         float lightness = ambient;
-        float3 gradient = (float3)(lastResult.x, lastResult.y, lastResult.z);
+        float3 gradient = as_float3(lastResult);
             // Theoretically the shapes should output unit length gradient in the first
             // place, but we might have approximate ones that don't.
             // TODO: Normalize gradient, if it causes problems
-        lightness += fmax(dot(gradient, as_float3(light)), 0);
+        lightness += fmax(-dot(gradient, as_float3(light)), 0);
         color = lightness * surfaceColor;
     }
     else
         color = backgroundColor;
 
-    output[index + 0] = color.x;
-    output[index + 1] = color.y;
-    output[index + 2] = color.z;
+    output[index + 0] = clamp(color.x, 0.0f, 255.0f);
+    output[index + 1] = clamp(color.y, 0.0f, 255.0f);
+    output[index + 2] = clamp(color.z, 0.0f, 255.0f);
 }
 
 // vim: filetype=c

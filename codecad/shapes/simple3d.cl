@@ -1,20 +1,20 @@
-uchar box_op(__constant float* params, float4* output, float4 coords, float4 unused) {
-    return 0;
-}
-
 uchar sphere_op(__constant float* params, float4* output, float4 coords, float4 unused) {
-    return 0;
+    float r = params[0];
+    float absCoords = length(as_float3(coords));
+    *output = coords / absCoords;
+    output->w = absCoords - r;
+    return 1;
 }
 
-uchar cylinder_op(__constant float* params, float4* output, float4 coords, float4 unused) {
-    return 0;
+uchar extrusion_op(__constant float* params, float4* output, float4 coords, float4 input) {
+    float halfH = params[1];
+    *output = perpendicular_intersection(slab_z(halfH, coords),
+                                         input);
+    return 1;
 }
 
-uchar extrusion_op(__constant float* params, float4* output, float4 input, float4 unused) {
-    return 0;
-}
-
-uchar revolution_op(__constant float* params, float4* output, float4 input, float4 unused) {
+uchar revolution_op(__constant float* params, float4* output, float4 coord, float4 unused) {
+    *output = (float4)(hypot(coord.x, coord.z), coord.y, 0, 0);
     return 0;
 }
 

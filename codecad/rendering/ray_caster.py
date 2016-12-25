@@ -9,9 +9,9 @@ from . import render_params
 
 from ..compute import compute, program
 
-def render_frame(obj,
-                 origin, direction, up, focal_length,
-                 size, epsilon):
+def _render_frame(obj,
+                  origin, direction, up, focal_length,
+                  size, epsilon):
 
     obj.check_dimension(required = 3)
 
@@ -78,7 +78,7 @@ def render_picture(obj, filename, size = (800, 600),
     camera_params = get_camera_params(box, size, view_angle)
 
     with util.status_block("rendering"):
-        pixels = render_frame(obj, size=size, epsilon=epsilon, *camera_params)
+        pixels = _render_frame(obj, size=size, epsilon=epsilon, *camera_params)
 
     with util.status_block("saving"):
         img = PIL.Image.fromarray(pixels)
@@ -108,7 +108,7 @@ def render_gif(obj, filename, size = (640, 480),
     for i in range(count):
         time = (i * frame_duration) / 1000
         with util.status_block("rendering frame {}/{}".format(i + 1, count)):
-            pixels = render_frame(obj, size=size, epsilon=epsilon, *camera_params)
+            pixels = _render_frame(obj, size=size, epsilon=epsilon, *camera_params)
             frame = PIL.Image.fromarray(pixels)
             frames.append(frame)
 

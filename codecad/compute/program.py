@@ -31,6 +31,7 @@ def _make_program_pieces(shape):
 
     assert schedule[0].name == "_point"
     assert schedule[0].register == 0
+    assert schedule[-1].register == 0
 
     parameter_encoder = struct.Struct("f") #TODO Endian
     instruction_encoder = struct.Struct("BBBB")

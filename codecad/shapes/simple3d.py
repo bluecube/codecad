@@ -55,9 +55,6 @@ class Sphere(Shape3D):
         else:
             self.r = r
 
-    def distance(self, point):
-        return abs(point) - self.r;
-
     def bounding_box(self):
         v = util.Vector(self.r, self.r, self.r)
         return util.BoundingBox(-v, v)
@@ -100,9 +97,6 @@ class Extrusion(Shape3D):
         self.s = s
         self.h = height
 
-    def distance(self, point):
-        return util.maximum(self.s.distance(point.flattened()), abs(point.z) - self.h / 2)
-
     def bounding_box(self):
         box = self.s.bounding_box()
         return util.BoundingBox(util.Vector(box.a.x, box.a.y, -self.h / 2),
@@ -110,19 +104,13 @@ class Extrusion(Shape3D):
 
     def get_node(self, point, cache):
         return cache.make_node("extrusion",
-                               [self.h],
-                               [self.s.get_node(point, cache)])
+                               [self.h / 2],
+                               [point, self.s.get_node(point, cache)])
 
 class Revolution(Shape3D):
     def __init__(self, s):
         self.check_dimension(s, required=2)
         self.s = s
-
-    def distance(self, point):
-        new_point = util.Vector(util.sqrt(point.x * point.x + point.z * point.z),
-                                    point.y,
-                                    0)
-        return self.s.distance(new_point)
 
     def bounding_box(self):
         box = self.s.bounding_box()
@@ -131,6 +119,4 @@ class Revolution(Shape3D):
                                 util.Vector(radius, box.b.y, radius))
 
     def get_node(self, point, cache):
-        return cache.make_node("revolution",
-                               [],
-                               [self.s.get_node(point, cache)])
+        return self.s.get_node(cache.make_node("revolution", [], [point]), cache)

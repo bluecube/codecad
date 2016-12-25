@@ -64,10 +64,6 @@ class Rectangle(Shape2D):
             y = x
         self.half_size = util.Vector(x, y) / 2
 
-    def distance(self, point):
-        v = point.flattened().elementwise_abs() - self.half_size
-        return util.maximum(v.x, v.y)
-
     def bounding_box(self):
         return util.BoundingBox(-self.half_size, self.half_size)
 
@@ -80,9 +76,6 @@ class Circle(Shape2D):
             self.r = d / 2
         else:
             self.r = r
-
-    def distance(self, point):
-        return abs(point.flattened()) - self.r;
 
     def bounding_box(self):
         v = util.Vector(self.r, self.r, float("inf"))

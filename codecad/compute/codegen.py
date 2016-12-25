@@ -60,7 +60,7 @@ float4 evaluate(__constant float* program, float3 point) {{
 
         switch (instruction.opcode) {{
             case 0:
-                return registers[instruction.input1];
+                return registers[0];
 '''.format(register_count))
 
     for name, i in node_types_map.items():
