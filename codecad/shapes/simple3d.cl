@@ -7,7 +7,7 @@ uchar sphere_op(__constant float* params, float4* output, float4 coords, float4 
 }
 
 uchar extrusion_op(__constant float* params, float4* output, float4 coords, float4 input) {
-    float halfH = params[1];
+    float halfH = params[0];
     *output = perpendicular_intersection(slab_z(halfH, coords),
                                          input);
     return 1;
