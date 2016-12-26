@@ -103,9 +103,11 @@ class Extrusion(Shape3D):
                                 util.Vector(box.b.x, box.b.y, self.h / 2))
 
     def get_node(self, point, cache):
-        return cache.make_node("extrusion",
-                               [self.h / 2],
-                               [point, self.s.get_node(point, cache)])
+        sub_node = self.s.get_node(point, cache)
+        if math.isinf(self.h):
+            return sub_node
+        else:
+            return cache.make_node("extrusion", [self.h / 2], [point, sub_node])
 
 class Revolution(Shape3D):
     def __init__(self, s):
