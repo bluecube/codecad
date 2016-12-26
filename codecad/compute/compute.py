@@ -5,6 +5,7 @@ import pyopencl
 import numpy
 
 from . import codegen
+from .. import util
 
 ctx = pyopencl.create_some_context()
 
@@ -13,7 +14,8 @@ for dev in ctx.devices:
 
 queue = pyopencl.CommandQueue(ctx)
 
-with warnings.catch_warnings():
+with warnings.catch_warnings(), \
+     util.status_block("compiling"):
     # We compile with Werror, so there is no need for python warnings here
     warnings.simplefilter("ignore")
     program = pyopencl.Program(ctx, codegen.collect_program()).build(
