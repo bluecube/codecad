@@ -9,6 +9,12 @@ from . import render_params
 
 from ..compute import compute, program
 
+def _zero_if_inf(x):
+    if math.isinf(x):
+        return 0
+    else:
+        return x
+
 def _render_frame(obj,
                   origin, direction, up, focal_length,
                   size, epsilon):
@@ -53,11 +59,17 @@ def get_camera_params(box, size, view_angle):
     else:
         focal_length = size_diagonal / (2 * math.tan(math.radians(view_angle) / 2))
 
-    distance = focal_length * max(box_size.x / size[0],
-                                  box_size.z / size[1])
+    distance = focal_length * max(_zero_if_inf(box_size.x) / size[0],
+                                  _zero_if_inf(box_size.z) / size[1])
+
+    print(box_size, distance)
+
+    if distance == 0:
+        distance = 1
+
     distance *= 1.2 # 20% margin around the object
 
-    origin = box.midpoint() - util.Vector(0, distance + box_size.y / 2, 0)
+    origin = box.midpoint() - util.Vector(0, distance + _zero_if_inf(box_size.y) / 2, 0)
     direction = util.Vector(0, 1, 0)
     up = util.Vector(0, 0, 1)
 
@@ -70,8 +82,10 @@ def render_picture(obj, filename, size = (800, 600),
     with util.status_block("calculating bounding box"):
         box = obj.bounding_box()
 
+    box_size = box.size()
+
     if resolution is None:
-        epsilon = min(box_size.x, box_size.y, box_size.z) / 1000;
+        epsilon = min(1, box_size.x, box_size.y, box_size.z) / 1000;
     else:
         epsilon = resolution
 
