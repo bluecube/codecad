@@ -79,7 +79,7 @@ class Intersection:
 
     def get_node(self, point, cache):
         return cache.make_node("intersection",
-                               [self.r],
+                               [self.r if self.r is not None else -1],
                                (shape.get_node(point, cache) for shape in self.shapes))
 
 
@@ -98,7 +98,7 @@ class Subtraction:
 
     def get_node(self, point, cache):
         return cache.make_node("subtraction",
-                               [],
+                               [-1],
                                [self.s1.get_node(point, cache), self.s2.get_node(point, cache)])
 
 class Transformation:

@@ -40,7 +40,7 @@ uchar union_op(__constant float* params, float4* output, float4 obj1, float4 obj
         *output = obj1;
     else
         *output = obj2;
-    return 0;
+    return 1; // TODO: Actually use the radius
 
     /*
     @staticmethod
@@ -74,7 +74,7 @@ uchar intersection_op(__constant float* params, float4* output, float4 obj1, flo
         *output = obj1;
     else
         *output = obj2;
-    return 0;
+    return 1; // TODO: Actually use the radius
 }
 
 uchar subtraction_op(__constant float* params, float4* output, float4 obj1, float4 obj2) {

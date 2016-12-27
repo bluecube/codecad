@@ -68,7 +68,7 @@ class Rectangle(Shape2D):
         return util.BoundingBox(-self.half_size, self.half_size)
 
     def get_node(self, point, cache):
-        return cache.make_node("rectangle", self.half_size, [point])
+        return cache.make_node("rectangle", [self.half_size.x, self.half_size.y], [point])
 
 class Circle(Shape2D):
     def __init__(self, d = 1, r = None):
