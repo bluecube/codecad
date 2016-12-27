@@ -100,7 +100,7 @@ uchar transformation_from_op(__constant float* params, float4* output, float4 in
     float3 transformed = quaternion_transform(quaternion, as_float3(input));
 
     *output = as_float4(transformed / scale);
-    output->w *= scale;
+    output->w = input.w * scale;
 
     return 4;
 }
