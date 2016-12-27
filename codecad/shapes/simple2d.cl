@@ -10,7 +10,10 @@ uchar circle_op(__constant float* params, float4* output, float4 coords, float4 
     float r = params[0];
     float2 flat = (float2)(coords.x, coords.y);
     float absFlat = length(flat);
-    flat /= absFlat;
+    if (absFlat == 0) // TODO: Check this
+        flat = (float2)(1, 0);
+    else
+        flat /= absFlat;
     *output = (float4)(flat.x, flat.y, 0, absFlat - r);
     return 1;
 }

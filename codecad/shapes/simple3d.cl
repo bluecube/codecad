@@ -1,7 +1,10 @@
 uchar sphere_op(__constant float* params, float4* output, float4 coords, float4 unused) {
     float r = params[0];
     float absCoords = length(as_float3(coords));
-    *output = coords / absCoords;
+    if (absCoords == 0)
+        *output = (float4)(1, 0, 0, 0);
+    else
+        *output = coords / absCoords;
     output->w = absCoords - r;
     return 1;
 }
