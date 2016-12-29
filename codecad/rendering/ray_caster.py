@@ -85,9 +85,9 @@ def render_picture(obj, filename, size = (800, 600),
     box_size = box.size()
 
     if resolution is None:
-        epsilon = min(1, box_size.x, box_size.y, box_size.z) / 1000;
+        epsilon = min(1, box_size.x, box_size.y, box_size.z) / 10000;
     else:
-        epsilon = resolution
+        epsilon = resolution / 10
 
     camera_params = get_camera_params(box, size, view_angle)
 
@@ -109,9 +109,9 @@ def render_gif(obj, filename, size = (640, 480),
         box = obj.bounding_box().eval({animation.time: 0})
 
     if resolution is None:
-        epsilon = min(box_size.x, box_size.y, box_size.z) / 1000;
+        epsilon = min(box_size.x, box_size.y, box_size.z) / 10000;
     else:
-        epsilon = resolution
+        epsilon = resolution / 10
 
     camera_params = get_camera_params(box, size, view_angle)
 
