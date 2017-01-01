@@ -121,4 +121,10 @@ class Revolution(Shape3D):
                                 util.Vector(radius, box.b.y, radius))
 
     def get_node(self, point, cache):
-        return self.s.get_node(cache.make_node("revolution", [], [point]), cache)
+        new_point = cache.make_node("revolution_to",
+                                    [],
+                                    [point])
+        flat = self.s.get_node(new_point, cache)
+        return cache.make_node("revolution_from",
+                               [],
+                               [flat, point])

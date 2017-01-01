@@ -16,8 +16,23 @@ uchar extrusion_op(__constant float* params, float4* output, float4 coords, floa
     return 1;
 }
 
-uchar revolution_op(__constant float* params, float4* output, float4 coord, float4 unused) {
-    *output = (float4)(hypot(coord.x, coord.z), coord.y, 0, 0);
+uchar revolution_to_op(__constant float* params, float4* output, float4 coord, float4 unused) {
+    float x = hypot(coord.x, coord.z);
+    *output = (float4)(x, coord.y, 0, 0);
+    return 0;
+}
+
+uchar revolution_from_op(__constant float* params, float4* output, float4 coords, float4 flat) {
+    float length = hypot(coords.x, coords.z);
+    float multiplier;
+    if (length == 0) {
+        coords.x = 1;
+        multiplier = flat.x;
+    }
+    else
+        multiplier = flat.x / length;
+
+    *output = (float4)(coords.x * multiplier, flat.y, coords.z * multiplier, flat.w);
     return 0;
 }
 

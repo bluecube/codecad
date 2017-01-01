@@ -5,7 +5,7 @@ class Node:
     # These also need to be implemented in opencl.
     _type_map = collections.OrderedDict((name, i + 2) for i, name in enumerate([
         "rectangle", "circle", # 2D shapes
-        "sphere", "extrusion", "revolution", # 3D shapes
+        "sphere", "extrusion", "revolution_to", "revolution_from", # 3D shapes
         "union", "intersection", "subtraction", "shell", # Common operations
         "transformation_to", "transformation_from", # Transform
         "repetition"])) # Misc
