@@ -12,34 +12,37 @@ Main sources so far:
 - http://iquilezles.org/www/articles/distfunctions/distfunctions.htm
 
 ## To do
-- [X] Get ray caster working properly (not just black on white) (dot product shading works)
-  - <strike>[ ] Try to avoid calculating the normals explicitly, instead take them from neighboring pixel distances</strike> (That probably wouldn't have worked. Now we're calculating a dot product between a normal at a point and a vector directly using just a single extra evaluation and this looks good enough.)
-- [X] Matrix transformations (no matrices, but translation, rotation and uniform scaling work now)
 -  Extrusions
-  - [X] Revolve
+  - [ ] With scaling
   - [ ] Twisted extrusion
   - [ ] Helix
   - [ ] Along a general curve
-  - [ ] With scaling
-- [X] Marching cubes & STL output (initial version is done)
 - [ ] Ellipsoid
 - [ ] NACA airfoils
 - [ ] Involute gears
-- [ ] Shape wrappers
 - [ ] Assemblies (operations on combined shapes that propagate back to components)
-- Animations
-  - [X] Interface
-  - [X] Rendering
-  - [ ] Try calculating frames in parallel, each in single core
-- [ ] Show axes in raytraced image
-- <strike>[ ] Function for successive approximation of the geometry</strike> (it was super slow, maybe later)
-  - [X] Use it to calculate model volume and centroid (done using a much simpler algorithm)
-  - <strike>[ ] Use it to improve STL export</strike>
+- Fancy raycaster effects
+    - [ ] Axes
+    - [ ] Shadows, ambient occlusion
+    - [ ] Experiment with three point lighting
+    - [ ] Transparent PNGs
+- [ ] Successive approximation of the geometry
 - [ ] Better geometry representation in IPython using three.js
   - [ ] Use this to make a documentation notebook
 - [ ] Add setup.py
 - [ ] *Fix rounded unions!*
-- Things to model with it:
-  - [ ] _mystery project_ (NACA airfoils, bezier curve based extrusions, meshed internal structure)
+- Fix problems created by the opencl conversion
+  - [ ] STL export
+  - [ ] Matplotlib slice
+  - [ ] Volume and centroid
+  - [ ] Animations
+- Optimization ideas
+  - [ ] Merge `transformation_to` and `transformation_from` blocks
+  - [ ] Don't output no-op transformations
+  - [ ] Separate translation only and rotation only transformations
+  - [ ] Separate 2d transformations
+  - [ ] Turn sphere and circle rotations into no-ops
+- Things to model with it
+  - [ ] _mystery project_ (NACA airfoils, meshed internal structure)
   - [ ] Box generator (Assemblies)
   - [ ] Involute gears
