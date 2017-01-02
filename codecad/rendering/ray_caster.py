@@ -28,9 +28,6 @@ def _render_frame(obj,
     right = forward.cross(up)
     forward = forward * focal_length
 
-    print("origin", origin)
-    print("forward", forward)
-
     origin_to_midpoint = abs(origin - box.midpoint())
     box_radius = abs(box.size()) / 2
     min_distance = max(0, origin_to_midpoint - box_radius)
@@ -70,8 +67,6 @@ def get_camera_params(box, size, view_angle):
 
     distance = focal_length * max(_zero_if_inf(box_size.x) / size[0],
                                   _zero_if_inf(box_size.z) / size[1])
-
-    print(box_size, distance)
 
     if distance == 0:
         distance = 1

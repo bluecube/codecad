@@ -28,8 +28,6 @@ def render_slice(obj,
     with util.status_block("running"):
         values, values_range = f()
 
-    print(values.shape)
-
     print("plotting")
     plt.imshow(values,
                cmap=plt.get_cmap("seismic"),
