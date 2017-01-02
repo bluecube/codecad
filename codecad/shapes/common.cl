@@ -22,17 +22,17 @@ float4 perpendicular_intersection(float4 input1, float4 input2)
 
 float4 slab_x(float halfSize, float4 point)
 {
-    return (float4)(sign(point.x), 0, 0, fabs(point.x) - halfSize);
+    return (float4)(copysign(1.0f, point.x), 0, 0, fabs(point.x) - halfSize);
 }
 
 float4 slab_y(float halfSize, float4 point)
 {
-    return (float4)(0, sign(point.y), 0, fabs(point.y) - halfSize);
+    return (float4)(0, copysign(1.0f, point.y), 0, fabs(point.y) - halfSize);
 }
 
 float4 slab_z(float halfSize, float4 point)
 {
-    return (float4)(0, 0, sign(point.z), fabs(point.z) - halfSize);
+    return (float4)(0, 0, copysign(1.0f, point.z), fabs(point.z) - halfSize);
 }
 
 uchar union_op(__constant float* params, float4* output, float4 obj1, float4 obj2) {
