@@ -22,9 +22,9 @@ class _Repetition:
         """
         self.check_dimension(s)
         self.s = s
-        self.spacing = util.Vector(*(0 if x is None else x for x in spacing))
+        self.spacing = util.Vector(*(float("inf") if x is None or x == 0 else x for x in spacing))
 
-        if (self.dimension() == 2 and self.spacing[2] != 0):
+        if (self.dimension() == 2 and self.spacing[2] != float("inf")):
             raise ValueError("Attempting repetition along Z axis for 2D shape")
 
     def distance(self, point):
