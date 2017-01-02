@@ -89,10 +89,6 @@ class Subtraction:
         self.s1 = s1
         self.s2 = s2
 
-    def distance(self, point):
-        return util.maximum(self.s1.distance(point),
-                            -self.s2.distance(point))
-
     def bounding_box(self):
         return self.s1.bounding_box()
 
@@ -116,11 +112,6 @@ class Transformation:
             t.transformation = t.transformation * s.transformation
 
         return t
-
-    def distance(self, point):
-        new_point = self.transformation.inverse().transform_vector(point)
-        return self.s.distance(new_point) * self.transformation.quaternion.abs_squared()
-
 
     def get_node(self, point, cache):
         #TODO: Merge transformation nodes

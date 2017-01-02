@@ -27,16 +27,6 @@ class _Repetition:
         if (self.dimension() == 2 and self.spacing[2] != float("inf")):
             raise ValueError("Attempting repetition along Z axis for 2D shape")
 
-    def distance(self, point):
-        def c(x, spacing):
-            if spacing == 0:
-                return x
-            else:
-                return x - util.round(x / spacing) * spacing
-
-        p = util.Vector(*[c(x, s) for x, s in zip(point, self.spacing)])
-        return self.s.distance(p)
-
     def bounding_box(self):
         b = self.s.bounding_box()
         return util.BoundingBox(util.Vector(*(x if s is None else s for x, s in zip(b.a, self.spacing))),
