@@ -19,6 +19,7 @@ def _render_frame(obj,
                   origin, direction, up, focal_length,
                   size, epsilon):
 
+    box = obj.bounding_box()
     obj.check_dimension(required = 3)
 
     forward = direction.normalized()
@@ -26,6 +27,14 @@ def _render_frame(obj,
     up = up.normalized()
     right = forward.cross(up)
     forward = forward * focal_length
+
+    print("origin", origin)
+    print("forward", forward)
+
+    origin_to_midpoint = abs(origin - box.midpoint())
+    box_radius = abs(box.size()) / 2
+    min_distance = max(0, origin_to_midpoint - box_radius)
+    max_distance = origin_to_midpoint + box_radius
 
     output = numpy.empty([size[1], size[0], 3], dtype=numpy.uint8)
 
@@ -42,7 +51,7 @@ def _render_frame(obj,
                                origin.as_float4(), forward.as_float4(), up.as_float4(), right.as_float4(),
                                render_params.surface.as_float4(), render_params.background.as_float4(),
                                render_params.light.as_float4(), numpy.float32(render_params.ambient),
-                               numpy.float32(epsilon), numpy.uint32(100),
+                               numpy.float32(epsilon), numpy.uint32(100), numpy.float32(min_distance), numpy.float32(max_distance),
                                output_buffer)
 
     pyopencl.enqueue_copy(compute.queue, output, output_buffer)
