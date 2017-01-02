@@ -124,7 +124,7 @@ class Revolution(Shape3D):
         new_point = cache.make_node("revolution_to",
                                     [],
                                     [point])
-        flat = self.s.get_node(new_point, cache)
+        sub_node = self.s.get_node(new_point, cache)
         return cache.make_node("revolution_from",
                                [],
-                               [flat, point])
+                               [point, sub_node])
