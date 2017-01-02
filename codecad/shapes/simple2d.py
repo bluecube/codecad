@@ -78,7 +78,7 @@ class Circle(Shape2D):
             self.r = r
 
     def bounding_box(self):
-        v = util.Vector(self.r, self.r, float("inf"))
+        v = util.Vector(self.r, self.r)
         return util.BoundingBox(-v, v)
 
     def get_node(self, point, cache):
