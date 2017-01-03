@@ -116,7 +116,7 @@ class Revolution(Shape3D):
 
     def bounding_box(self):
         box = self.s.bounding_box()
-        radius = util.maximum(-box.a.x, box.b.x)
+        radius = max(-box.a.x, box.b.x)
         return util.BoundingBox(util.Vector(-radius, box.a.y, -radius),
                                 util.Vector(radius, box.b.y, radius))
 

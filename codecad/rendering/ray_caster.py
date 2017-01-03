@@ -4,7 +4,6 @@ import pyopencl
 import numpy
 
 from .. import util
-from .. import animation
 from . import render_params
 
 from ..compute import compute, program

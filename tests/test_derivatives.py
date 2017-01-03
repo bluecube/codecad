@@ -1,6 +1,4 @@
 import codecad
-import theano
-import theano.tensor as T
 
 def test_gradient():
     x = T.matrix("x")

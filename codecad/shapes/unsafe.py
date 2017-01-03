@@ -3,8 +3,6 @@ Read docstrings of the individual objects. """
 
 import math
 
-from theano import tensor as T
-
 from . import simple2d
 from . import simple3d
 from .. import util
