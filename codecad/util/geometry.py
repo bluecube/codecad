@@ -117,7 +117,7 @@ class BoundingBox(collections.namedtuple("BoundingBox", "a b")):
 
     def expanded_additive(self, expansion):
         """ Expand the bounding box by a given factor on each side """
-        expansion_vector = Vector(expansion, expansion, expansion)
+        expansion_vector = Vector.splat(expansion)
         return BoundingBox(self.a - expansion_vector,
                            self.b + expansion_vector)
 
