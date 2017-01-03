@@ -33,7 +33,7 @@ Main sources so far:
 - [ ] *Fix rounded unions!*
 - Fix problems created by the opencl conversion
   - [ ] STL export
-  - [ ] Matplotlib slice
+  - [X] Matplotlib slice
   - [ ] Volume and centroid
   - [ ] Animations
 - Optimization ideas
