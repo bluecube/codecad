@@ -39,6 +39,7 @@ Main sources so far:
 - Optimization ideas
   - [ ] Merge `transformation_to` and `transformation_from` blocks
   - [ ] Don't output no-op transformations
+  - [ ] Pass scaling operations through into the primitives -- combo with previous
   - [ ] Separate translation only and rotation only transformations
   - [ ] Separate 2d transformations
   - [ ] Turn sphere and circle rotations into no-ops
