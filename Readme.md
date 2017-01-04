@@ -17,6 +17,7 @@ Main sources so far:
   - [ ] Twisted extrusion
   - [ ] Helix
   - [ ] Along a general curve
+- [ ] Flip primitive
 - [ ] Ellipsoid
 - [ ] NACA airfoils
 - [ ] Involute gears
@@ -31,11 +32,13 @@ Main sources so far:
   - [ ] Use this to make a documentation notebook
 - [ ] Add setup.py
 - [ ] *Fix rounded unions!*
+- [ ] Parametrization of the model
 - Fix problems created by the opencl conversion
   - [ ] STL export
   - [X] Matplotlib slice
   - [ ] Volume and centroid
   - [ ] Animations
+  - [ ] Tests
 - Optimization ideas
   - [ ] Merge `transformation_to` and `transformation_from` blocks
   - [ ] Don't output no-op transformations
@@ -43,7 +46,9 @@ Main sources so far:
   - [ ] Separate translation only and rotation only transformations
   - [ ] Separate 2d transformations
   - [ ] Turn sphere and circle rotations into no-ops
+  - [ ] Convert 90° rotations to vector component shuffling and negations (related to flip primitive)
 - Things to model with it
   - [ ] _mystery project_ (NACA airfoils, meshed internal structure)
   - [ ] Box generator (Assemblies)
   - [ ] Involute gears
+  - [ ] Mecha generator
