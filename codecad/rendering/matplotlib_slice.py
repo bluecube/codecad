@@ -12,7 +12,7 @@ def render_slice(obj,
     box = obj.bounding_box().expanded(0.1).flattened()
 
     with util.status_block("running"):
-        values = grid_eval.grid_eval(obj, resolution, box)
+        values, corner, step = grid_eval.grid_eval(obj, resolution, box)
 
     values = values.reshape((values.shape[0], values.shape[1]))
 
@@ -27,5 +27,6 @@ def render_slice(obj,
                    origin="lower",
                    interpolation="none",
                    aspect="equal",
-                   extent=(box.a.x, box.b.x, box.a.y, box.b.y))
+                   extent=(corner.x, corner.x + (values.shape[1] - 1) * step,
+                           corner.y, corner.y + (values.shape[0] - 1) * step))
     plt.show()

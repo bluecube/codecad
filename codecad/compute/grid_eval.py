@@ -18,9 +18,6 @@ def grid_eval(shape, resolution, bounding_box = None):
 
     grid_dimensions = [math.ceil(s / resolution) + 1 for s in box_size]
 
-    if shape.dimension() == 2:
-        grid_dimensions[2] = 1;
-
     corner = box.midpoint() - util.Vector(*(resolution * (k - 1) / 2 for k in grid_dimensions))
 
     mf = pyopencl.mem_flags
@@ -39,4 +36,4 @@ def grid_eval(shape, resolution, bounding_box = None):
                               output_buffer)
     pyopencl.enqueue_copy(compute.queue, output, output_buffer)
 
-    return output
+    return output, corner, resolution
