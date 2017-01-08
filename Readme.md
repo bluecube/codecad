@@ -34,7 +34,7 @@ Main sources so far:
 - [ ] *Fix rounded unions!*
 - [ ] Parametrization of the model
 - Fix problems created by the opencl conversion
-  - [ ] STL export
+  - [X] STL export
   - [X] Matplotlib slice
   - [ ] Volume and centroid
   - [ ] Animations

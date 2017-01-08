@@ -10,8 +10,12 @@ __kernel void grid_eval(__constant float* scene,
                          get_global_size(2));
 
     float3 point = as_float3(boxCorner) + boxStep * convert_float3(coords);
+    float value = evaluate(scene, point).w;
 
-    output[coords.z + (coords.x + coords.y * size.x) * size.z] = evaluate(scene, point).w;
+    // We need to flip Y coordinates, because coordinate system weirdness with mcubes
+    size_t index = coords.z + (coords.x + (size.y - coords.y - 1) * size.x) * size.z;
+
+    output[index] = value;
 }
 
 // vim: filetype=c

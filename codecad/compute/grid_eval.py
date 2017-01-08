@@ -10,7 +10,7 @@ def grid_eval(shape, resolution, bounding_box = None):
     assert resolution > 0
 
     if bounding_box is None:
-        box = shape.bounding_box()
+        box = shape.bounding_box().expanded_additive(resolution)
     else:
         box = bounding_box
 
@@ -18,7 +18,9 @@ def grid_eval(shape, resolution, bounding_box = None):
 
     grid_dimensions = [math.ceil(s / resolution) + 1 for s in box_size]
 
-    corner = box.midpoint() - util.Vector(*(resolution * (k - 1) / 2 for k in grid_dimensions))
+    new_box_size = util.Vector(*(resolution * (k - 1) for k in grid_dimensions))
+
+    corner = box.midpoint() - new_box_size / 2
 
     mf = pyopencl.mem_flags
     program_buffer = pyopencl.Buffer(compute.ctx,
