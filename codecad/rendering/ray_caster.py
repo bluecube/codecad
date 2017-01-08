@@ -1,107 +1,58 @@
 import PIL
-import theano
-import theano.tensor as T
 import math
+import pyopencl
+import numpy
 
 from .. import util
-from .. import animation
 from . import render_params
 
-def make_func(obj, size, epsilon):
+from ..compute import compute, program
+
+def _zero_if_inf(x):
+    if math.isinf(x):
+        return 0
+    else:
+        return x
+
+def _render_frame(obj,
+                  origin, direction, up, focal_length,
+                  size, epsilon):
+
+    box = obj.bounding_box()
     obj.check_dimension(required = 3)
-    with util.status_block("building expression"):
-        # Variables used as function parameters
-        ox = T.scalar("ox")
-        oy = T.scalar("oy")
-        oz = T.scalar("oz")
 
-        dx = T.scalar("dx")
-        dy = T.scalar("dy")
-        dz = T.scalar("dz")
+    forward = direction.normalized()
+    up = up - forward * up.dot(forward)
+    up = up.normalized()
+    right = forward.cross(up)
+    forward = forward * focal_length
 
-        upx = T.scalar("upx")
-        upy = T.scalar("upy")
-        upz = T.scalar("upz")
+    origin_to_midpoint = abs(origin - box.midpoint())
+    box_radius = abs(box.size()) / 2
+    min_distance = max(0, origin_to_midpoint - box_radius)
+    max_distance = origin_to_midpoint + box_radius
 
-        fl = T.scalar("fl")
+    output = numpy.empty([size[1], size[0], 3], dtype=numpy.uint8)
 
-        time = animation.time
+    mf = pyopencl.mem_flags
+    program_buffer = pyopencl.Buffer(compute.ctx,
+                                     mf.READ_ONLY | mf.COPY_HOST_PTR,
+                                     hostbuf=program.make_program(obj))
+    output_buffer = pyopencl.Buffer(compute.ctx,
+                                    mf.WRITE_ONLY,
+                                    output.nbytes)
 
-        # Preparing ray vectors for tracing
-        size = (size[1], size[0])
-            # We need to swap size components to be compatible with the
-            # height * width convention of numpy matrices
+    compute.program.ray_caster(compute.queue, size, None,
+                               program_buffer,
+                               origin.as_float4(), forward.as_float4(), up.as_float4(), right.as_float4(),
+                               render_params.surface.as_float4(), render_params.background.as_float4(),
+                               render_params.light.as_float4(), numpy.float32(render_params.ambient),
+                               numpy.float32(epsilon), numpy.uint32(100), numpy.float32(min_distance), numpy.float32(max_distance),
+                               output_buffer)
 
-        direction = util.Vector(dx, dy, dz).normalized()
+    pyopencl.enqueue_copy(compute.queue, output, output_buffer)
 
-        up = util.Vector(upx, upy, upz)
-        up = up - direction * up.dot(direction)
-        up = up.normalized()
-
-        right = direction.cross(up)
-
-        film_y, film_x = util.theano_meshgrid(*size)
-        film_y -= (size[0] - 1) / 2
-        film_x -= (size[1] - 1) / 2
-
-        rays = direction * fl + (right * film_x - up * film_y)
-        rays = rays.normalized()
-
-        origins = util.Vector(T.tile(ox, size), T.tile(oy, size), T.tile(oz, size))
-
-        # Actual tracing
-        def trace_func(previous, _, ox, oy, oz, dx, dy, dz):
-            o = util.Vector(ox, oy, oz)
-            d = util.Vector(dx, dy, dz)
-
-            distance = obj.distance(o + d * previous)
-
-            return [previous + 0.8 * distance, distance], \
-                   theano.scan_module.until(T.all(T.or_(distance < epsilon / 2,
-                                                        T.isinf(distance))))
-
-        distances, final_values = theano.scan(trace_func,
-                                              outputs_info=[T.zeros(size), T.zeros(size)],
-                                              non_sequences=[origins.x, origins.y, origins.z,
-                                                             rays.x, rays.y, rays.z],
-                                              n_steps = 100)[0]
-
-        distances = distances[-1]
-        final_values = final_values[-1]
-
-        # Shading
-        intersections = origins + rays * distances
-
-        dot = (obj.distance(intersections + render_params.light * epsilon) - final_values) / epsilon
-            # Dot product of a gradient and a vector is the same as a directional
-            # derivative along the vector
-
-        intensities = T.clip(-dot, 0, 1)
-
-        rgb = [T.switch(final_values < epsilon, surface * intensities + ambient, bg)
-               for surface, bg, ambient in zip(render_params.surface,
-                                               render_params.background,
-                                               render_params.ambient)]
-
-        colors = T.clip(T.stack(rgb, 2), 0, 255).astype("uint8")
-
-    with util.status_block("compiling"):
-        f = theano.function([ox, oy, oz,
-                             dx, dy, dz,
-                             upx, upy, upz,
-                             fl,
-                             time],
-                            colors,
-                            on_unused_input = 'ignore')
-
-    def render_frame(origin, direction, up, focal_length, time = 0):
-        return f(origin.x, origin.y, origin.z,
-                 direction.x, direction.y, direction.z,
-                 up.x, up.y, up.z,
-                 focal_length,
-                 time)
-
-    return render_frame
+    return output
 
 def get_camera_params(box, size, view_angle):
     box_size = box.size()
@@ -113,11 +64,15 @@ def get_camera_params(box, size, view_angle):
     else:
         focal_length = size_diagonal / (2 * math.tan(math.radians(view_angle) / 2))
 
-    distance = focal_length * max(box_size.x / size[0],
-                                  box_size.z / size[1])
+    distance = focal_length * max(_zero_if_inf(box_size.x) / size[0],
+                                  _zero_if_inf(box_size.z) / size[1])
+
+    if distance == 0:
+        distance = 1
+
     distance *= 1.2 # 20% margin around the object
 
-    origin = box.midpoint() - util.Vector(0, distance + box_size.y / 2, 0)
+    origin = box.midpoint() - util.Vector(0, distance + _zero_if_inf(box_size.y) / 2, 0)
     direction = util.Vector(0, 1, 0)
     up = util.Vector(0, 0, 1)
 
@@ -130,17 +85,17 @@ def render_picture(obj, filename, size = (800, 600),
     with util.status_block("calculating bounding box"):
         box = obj.bounding_box()
 
-    if resolution is None:
-        epsilon = min(box_size.x, box_size.y, box_size.z) / 1000;
-    else:
-        epsilon = resolution
+    box_size = box.size()
 
-    f = make_func(obj, size, epsilon)
+    if resolution is None:
+        epsilon = min(1, box_size.x, box_size.y, box_size.z) / 10000;
+    else:
+        epsilon = resolution / 10
 
     camera_params = get_camera_params(box, size, view_angle)
 
     with util.status_block("rendering"):
-        pixels = f(*camera_params)
+        pixels = _render_frame(obj, size=size, epsilon=epsilon, *camera_params)
 
     with util.status_block("saving"):
         img = PIL.Image.fromarray(pixels)
@@ -157,11 +112,9 @@ def render_gif(obj, filename, size = (640, 480),
         box = obj.bounding_box().eval({animation.time: 0})
 
     if resolution is None:
-        epsilon = min(box_size.x, box_size.y, box_size.z) / 1000;
+        epsilon = min(box_size.x, box_size.y, box_size.z) / 10000;
     else:
-        epsilon = resolution
-
-    f = make_func(obj, size, epsilon)
+        epsilon = resolution / 10
 
     camera_params = get_camera_params(box, size, view_angle)
 
@@ -172,7 +125,7 @@ def render_gif(obj, filename, size = (640, 480),
     for i in range(count):
         time = (i * frame_duration) / 1000
         with util.status_block("rendering frame {}/{}".format(i + 1, count)):
-            pixels = f(*camera_params, time = time)
+            pixels = _render_frame(obj, size=size, epsilon=epsilon, *camera_params)
             frame = PIL.Image.fromarray(pixels)
             frames.append(frame)
 

@@ -1,7 +1,5 @@
 from . import util
 import collections
-import theano
-import theano.tensor as T
 import numpy
 
 VolumeAndCentroid = collections.namedtuple("VolumeAndCentroid", "volume centroid")

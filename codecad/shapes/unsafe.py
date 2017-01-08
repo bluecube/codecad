@@ -3,8 +3,6 @@ Read docstrings of the individual objects. """
 
 import math
 
-from theano import tensor as T
-
 from . import simple2d
 from . import simple3d
 from .. import util
@@ -22,25 +20,21 @@ class _Repetition:
         """
         self.check_dimension(s)
         self.s = s
-        self.spacing = util.Vector(*(0 if x is None else x for x in spacing))
+        self.spacing = util.Vector(*(float("inf") if x is None or x == 0 else x for x in spacing))
 
-        if (self.dimension() == 2 and self.spacing[2] != 0):
+        if (self.dimension() == 2 and self.spacing[2] != float("inf")):
             raise ValueError("Attempting repetition along Z axis for 2D shape")
-
-    def distance(self, point):
-        def c(x, spacing):
-            if spacing == 0:
-                return x
-            else:
-                return x - util.round(x / spacing) * spacing
-
-        p = util.Vector(*[c(x, s) for x, s in zip(point, self.spacing)])
-        return self.s.distance(p)
 
     def bounding_box(self):
         b = self.s.bounding_box()
         return util.BoundingBox(util.Vector(*(x if s is None else s for x, s in zip(b.a, self.spacing))),
                                 util.Vector(*(x if s is None else s for x, s in zip(b.b, self.spacing))))
+
+    def get_node(self, point, cache):
+        return self.s.get_node(cache.make_node("repetition",
+                                               self.spacing,
+                                               [point]),
+                               cache)
 
 
 class Repetition2D(_Repetition, simple2d.Shape2D):

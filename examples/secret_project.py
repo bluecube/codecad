@@ -3,7 +3,7 @@
 import codecad
 import math
 
-def mesh(outline, spacing, diameter, rounding = None):
+def mesh(spacing, diameter, rounding = None):
     if rounding is None:
         rounding = 2 * diameter
 
@@ -38,20 +38,23 @@ def mesh(outline, spacing, diameter, rounding = None):
         spheres = codecad.shapes.unsafe.Repetition(codecad.shapes.sphere(rounding), (spacing, spacing, spacing))
         grids = codecad.shapes.union([grids, spheres], rounding)
 
-    return outline & grids
+    return grids
 
 
-limit = codecad.shapes.box(float("inf"), float("inf"), 100)
-#airfoil = codecad.naca_airfoil.NacaAirfoil("0024").scaled(100)
-airfoil = codecad.shapes.cylinder(float("inf"), 100)
+r = 20
+h = 30
+wall = 0.5
+spacing = 10
+rod_size = 0.8
 
-shell = (airfoil.shell(0.5, 0.5) & limit).rotated((1, 0, 0), 90)
+base = codecad.shapes.cylinder(h=(h - r) * 2, r=r - wall/2) + \
+       codecad.shapes.sphere(r=r-wall/2).translated(0, 0, h - r)
+mask = codecad.shapes.box(4 * r, 4 * r, h).translated(0, 0, h/2)
 
-m = mesh((airfoil & limit).rotated((1, 0, 0), 90),
-         spacing  = 15,
-         diameter = 1)
+unmasked_inside = mesh(spacing, rod_size) & base
+unmasked_skin = base.shell(wall/ 2, wall / 2)
 
-o = codecad.shapes.union([m, shell], 2)
+o = (unmasked_inside + unmasked_skin) & mask
 
 if __name__ == "__main__":
-    codecad.commandline_render(o, 0.3)
+    codecad.commandline_render(o, 0.2)

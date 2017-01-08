@@ -1,4 +1,3 @@
-import theano
 import gzip
 import collections
 import os.path

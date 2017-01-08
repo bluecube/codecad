@@ -1,6 +1,5 @@
 from .. import util
-import theano
-import theano.tensor as T
+from ..compute import grid_eval
 import numpy
 import matplotlib
 import matplotlib.pyplot as plt
@@ -9,35 +8,25 @@ def render_slice(obj,
                  resolution,
                  filename=None # For interface compatibility with other renderers
                  ):
-    with util.status_block("calculating bounding box"):
-        box = obj.bounding_box().expanded(0.1).flattened()
 
-    # Flatten the box in the Z axis
-    box = util.BoundingBox(util.Vector(box.a.x, box.a.y, 0),
-                           util.Vector(box.b.x, box.b.y, 0))
-
-    with util.status_block("building expression"):
-        coords = util.theano_box_grid(box, resolution)
-        distances = obj.distance(coords)[:,:,0]
-
-    dist_range = T.max(abs(distances))
-
-    with util.status_block("compiling"):
-        f = theano.function([], (distances, dist_range))
+    box = obj.bounding_box().expanded(0.1).flattened()
 
     with util.status_block("running"):
-        values, values_range = f()
+        values, corner, step = grid_eval.grid_eval(obj, resolution, box)
 
-    print(values.shape)
+    values = values.reshape((values.shape[0], values.shape[1]))
 
-    print("plotting")
-    plt.imshow(values,
-               cmap=plt.get_cmap("seismic"),
-               norm=matplotlib.colors.SymLogNorm(0.1,
-                                                 vmin=-values_range,
-                                                 vmax=values_range),
-               origin="lower",
-               interpolation="none",
-               aspect="equal",
-               extent=(box.a.x, box.b.x, box.a.y, box.b.y))
+    values_range = numpy.max(numpy.abs(values))
+
+    with util.status_block("plotting"):
+        plt.imshow(values,
+                   cmap=plt.get_cmap("seismic"),
+                   norm=matplotlib.colors.SymLogNorm(0.1,
+                                                     vmin=-values_range,
+                                                     vmax=values_range),
+                   origin="upper",
+                   interpolation="none",
+                   aspect="equal",
+                   extent=(corner.x, corner.x + (values.shape[1] - 1) * step,
+                           corner.y, corner.y + (values.shape[0] - 1) * step))
     plt.show()

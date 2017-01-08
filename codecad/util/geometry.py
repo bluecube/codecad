@@ -1,6 +1,7 @@
-from . import theanomath
+import math
 import collections
 import itertools
+import numpy
 
 class Vector(collections.namedtuple("Vector", "x y z")):
     __slots__ = ()
@@ -31,7 +32,7 @@ class Vector(collections.namedtuple("Vector", "x y z")):
         return self
 
     def __abs__(self):
-        return theanomath.sqrt(self.abs_squared())
+        return math.sqrt(self.abs_squared())
 
     def abs_squared(self):
         return self.dot(self)
@@ -46,10 +47,10 @@ class Vector(collections.namedtuple("Vector", "x y z")):
         return Vector(self.x / other.x, self.y / other.y, self.z / other.z)
 
     def max(self, other=None):
-        return self._minmax(other, theanomath.maximum)
+        return self._minmax(other, max)
 
     def min(self, other=None):
-        return self._minmax(other, theanomath.minimum)
+        return self._minmax(other, min)
 
     def dot(self, other):
         return self.x * other.x + self.y * other.y + self.z * other.z
@@ -79,6 +80,9 @@ class Vector(collections.namedtuple("Vector", "x y z")):
 
     def flattened(self):
         return Vector(self.x, self.y, 0)
+
+    def as_float4(self):
+        return numpy.array((self.x, self.y, self.z, 0), dtype=numpy.float32)
 
 
 class BoundingBox(collections.namedtuple("BoundingBox", "a b")):
@@ -113,7 +117,7 @@ class BoundingBox(collections.namedtuple("BoundingBox", "a b")):
 
     def expanded_additive(self, expansion):
         """ Expand the bounding box by a given factor on each side """
-        expansion_vector = Vector(expansion, expansion, expansion)
+        expansion_vector = Vector.splat(expansion)
         return BoundingBox(self.a - expansion_vector,
                            self.b + expansion_vector)
 
@@ -140,11 +144,11 @@ class Quaternion(collections.namedtuple("Quaternion", "v w")):
 
     @classmethod
     def from_degrees(cls, axis, angle, scale = 1):
-        phi = theanomath.radians(angle) / 2
-        mul = theanomath.sqrt(scale)
+        phi = math.radians(angle) / 2
+        mul = math.sqrt(scale)
         axis = Vector(*axis)
-        return cls(axis.normalized() * theanomath.sin(phi) * mul,
-                   theanomath.cos(phi) * mul)
+        return cls(axis.normalized() * math.sin(phi) * mul,
+                   math.cos(phi) * mul)
 
     def __mul__(self, other):
         return Quaternion(self.v * other.w + other.v * self.w + self.v.cross(other.v),
@@ -163,6 +167,11 @@ class Quaternion(collections.namedtuple("Quaternion", "v w")):
     def transform_vector(self, vector):
         return (self.v * self.v.dot(vector) + self.v.cross(vector) * self.w) * 2 + \
                 vector * (self.w * self.w - self.v.abs_squared())
+
+    def as_list(self):
+        """ Return parameters as a list of floats (for nodes) """
+        return list(self.v) + [self.w]
+
 
 class Transformation(collections.namedtuple("Transformation", "quaternion offset")):
     """ Quaternion and a vector offset """
@@ -184,3 +193,7 @@ class Transformation(collections.namedtuple("Transformation", "quaternion offset
 
     def transform_vector(self, vector):
         return self.quaternion.transform_vector(vector) + self.offset
+
+    def as_list(self):
+        """ Return parameters as a list of floats (for nodes) """
+        return self.quaternion.as_list() + list(self.offset)

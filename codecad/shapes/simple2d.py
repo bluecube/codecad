@@ -64,13 +64,11 @@ class Rectangle(Shape2D):
             y = x
         self.half_size = util.Vector(x, y) / 2
 
-    def distance(self, point):
-        v = point.flattened().elementwise_abs() - self.half_size
-        return util.maximum(v.x, v.y)
-
     def bounding_box(self):
         return util.BoundingBox(-self.half_size, self.half_size)
 
+    def get_node(self, point, cache):
+        return cache.make_node("rectangle", [self.half_size.x, self.half_size.y], [point])
 
 class Circle(Shape2D):
     def __init__(self, d = 1, r = None):
@@ -79,12 +77,12 @@ class Circle(Shape2D):
         else:
             self.r = r
 
-    def distance(self, point):
-        return abs(point.flattened()) - self.r;
-
     def bounding_box(self):
-        v = util.Vector(self.r, self.r, float("inf"))
+        v = util.Vector(self.r, self.r)
         return util.BoundingBox(-v, v)
+
+    def get_node(self, point, cache):
+        return cache.make_node("circle", [self.r], [point])
 
 
 class Union2D(base.Union, Shape2D):
