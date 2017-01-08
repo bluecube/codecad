@@ -12,6 +12,7 @@ Main sources so far:
 - http://iquilezles.org/www/articles/distfunctions/distfunctions.htm
 
 ## To do
+(in no particular order)
 -  Extrusions
   - [ ] With scaling
   - [ ] Twisted extrusion
@@ -33,11 +34,15 @@ Main sources so far:
 - [ ] Add setup.py
 - [ ] *Fix rounded unions!*
 - [ ] Parametrization of the model
+- [ ] *tests!*
+- [ ] Models with high dynamic range (1m vs 1nm in the same model)
+- [ ] Boundary conditions -- unions of touching objects
 - Fix problems created by the opencl conversion
   - [X] STL export
   - [X] Matplotlib slice
   - [ ] Volume and centroid
   - [ ] Animations
+  - [ ] Svg export
   - [ ] Tests
 - Optimization ideas
   - [ ] Merge `transformation_to` and `transformation_from` blocks
