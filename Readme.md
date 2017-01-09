@@ -21,6 +21,7 @@ Main sources so far:
 - [ ] NACA airfoils
 - [ ] Involute gears
 - [ ] Assemblies (operations on combined shapes that propagate back to components)
+- [ ] Modules (pieces of geometry with both positive and negative space)
 - Fancy raycaster effects
     - [ ] Axes
     - [ ] Shadows, ambient occlusion
@@ -35,6 +36,7 @@ Main sources so far:
 - [ ] *tests!*
 - [ ] Models with high dynamic range (1m vs 1nm in the same model)
 - [ ] Boundary conditions -- unions of touching objects
+- [ ] OpenSCAD csg export
 - Fix problems created by the opencl conversion
   - [X] STL export
   - [X] Matplotlib slice
