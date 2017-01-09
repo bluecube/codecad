@@ -48,6 +48,18 @@ class ShapeBase(metaclass=abc.ABCMeta):
         """ Return a computation node for this shape. The node should be created
         using cache.make_node to give CSE a chance to work """
 
+    @abc.abstractmethod
+    def scaled(self, s):
+        """ Returns current shape scaled by given ratio """
+
+    @abc.abstractmethod
+    def offset(self, d):
+        """ Returns current shape offset by given distance (positive increases size) """
+
+    @abc.abstractmethod
+    def shell(self, wall_thickness):
+        """ Returns a shell of the current shape"""
+
 
 class Union:
     def __init__(self, shapes, r = None):
