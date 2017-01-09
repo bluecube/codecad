@@ -127,18 +127,31 @@ class Transformation:
                                self.transformation.quaternion)
 
 
-class Shell:
-    def __init__(self, s, inside, outside):
+class Offset:
+    def __init__(self, s, distance):
         self.check_dimension(s)
         self.s = s
-        self.inside = inside
-        self.outside = outside
+        self.distance = distance
 
     def bounding_box(self):
-        return self.s.bounding_box().expanded_additive(self.outside)
+        return self.s.bounding_box().expanded_additive(self.distance)
+
+    def get_node(self, point, cache):
+        return cache.make_node("offset",
+                               [self.distance],
+                               [self.s.get_node(point, cache)])
+
+
+class Shell:
+    def __init__(self, s, wall_thickness):
+        self.check_dimension(s)
+        self.s = s
+        self.wall_thickness = wall_thickness
+
+    def bounding_box(self):
+        return self.s.bounding_box().expanded_additive(self.wall_thickness / 2)
 
     def get_node(self, point, cache):
         return cache.make_node("shell",
-                               [(self.inside + self.outside) / 2,
-                                (self.inside - self.outside) / 2],
+                               [self.wall_thickness / 2],
                                [self.s.get_node(point, cache)])

@@ -105,13 +105,16 @@ uchar transformation_from_op(__constant float* params, float4* output, float4 in
     return 4;
 }
 
+uchar offset_op(__constant float* params, float4* output, float4 input, float4 unused) {
+    float distance = params[0];
+    *output = input - distance;
+    return 1;
+}
+
 uchar shell_op(__constant float* params, float4* output, float4 input, float4 unused) {
-    float half_thickness = *params++;
-    float half_offset = *params;
-
-    *output = fabs(input - half_offset) - half_thickness;
-
-    return 2;
+    float half_thickness = params[0];
+    *output = fabs(input) - half_thickness;
+    return 1;
 }
 
 // vim: filetype=c

@@ -46,9 +46,13 @@ class Shape2D(base.ShapeBase):
                                             util.Quaternion.from_degrees(util.Vector(0, 0, 1), 0, s),
                                             util.Vector(0, 0, 0))
 
-    def shell(self, inside, outside):
+    def offset(self, d):
+        """ Returns current shape scaled by given ratio """
+        return Offset2D(self, d)
+
+    def shell(self, wall_thickness):
         """ Returns a shell of the current shape"""
-        return Shell2D(self, inside, outside)
+        return Shell2D(self, wall_thickness)
 
     def extruded(self, height):
         return simple3d.Extrusion(self, height)
@@ -94,6 +98,10 @@ class Intersection2D(base.Intersection, Shape2D):
 
 
 class Subtraction2D(base.Subtraction, Shape2D):
+    pass
+
+
+class Offset2D(base.Offset, Shape2D):
     pass
 
 

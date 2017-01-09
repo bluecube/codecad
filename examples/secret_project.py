@@ -47,12 +47,12 @@ wall = 0.5
 spacing = 10
 rod_size = 0.8
 
-base = codecad.shapes.cylinder(h=(h - r) * 2, r=r - wall/2) + \
-       codecad.shapes.sphere(r=r-wall/2).translated(0, 0, h - r)
-mask = codecad.shapes.box(4 * r, 4 * r, h).translated(0, 0, h/2)
+base = (codecad.shapes.cylinder(h=(h - r) * 2, r=r) + \
+        codecad.shapes.sphere(r=r).translated(0, 0, h - r)).offset(-wall / 2)
+mask = codecad.shapes.box(4 * r, 4 * r, h).translated(0, 0, h / 2)
 
 unmasked_inside = mesh(spacing, rod_size) & base
-unmasked_skin = base.shell(wall/ 2, wall / 2)
+unmasked_skin = base.shell(wall)
 
 o = (unmasked_inside + unmasked_skin) & mask
 

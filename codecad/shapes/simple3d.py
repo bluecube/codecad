@@ -43,9 +43,13 @@ class Shape3D(base.ShapeBase):
                                           util.Quaternion.from_degrees(util.Vector(0, 0, 1), 0, s),
                                           util.Vector(0, 0, 0))
 
-    def shell(self, inside, outside):
+    def offset(self, d):
+        """ Returns current shape scaled by given ratio """
+        return Offset(self, d)
+
+    def shell(self, wall_thickness):
         """ Returns a shell of the current shape"""
-        return Shell(self, inside, outside)
+        return Shell(self, wall_thickness)
 
 
 class Sphere(Shape3D):
@@ -72,6 +76,10 @@ class Intersection(base.Intersection, Shape3D):
 
 
 class Subtraction(base.Subtraction, Shape3D):
+    pass
+
+
+class Offset(base.Offset, Shape3D):
     pass
 
 
