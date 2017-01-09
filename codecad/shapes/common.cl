@@ -14,7 +14,24 @@ float quaternion_scale(float4 quaternion)
 // with perpendicular gradients
 float4 perpendicular_intersection(float4 input1, float4 input2)
 {
-    if (input1.w > input2.w)
+    if (input1.w > 0 && input2.w > 0)
+    {
+        float dist = hypot(input1.w, input2.w);
+
+        float3 gradient1 = as_float3(input1);
+        float3 gradient2 = as_float3(input2);
+
+        float m1 = input1.w / dist;
+        float m2 = input2.w / dist;
+
+        float3 outGradient = gradient1 * m1 + gradient2 * m2;
+
+        float4 out = as_float4(outGradient);
+        out.w = dist;
+
+        return out;
+    }
+    else if (input1.w > input2.w)
         return input1;
     else
         return input2;
