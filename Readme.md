@@ -16,10 +16,12 @@ Main sources so far:
   - [ ] Twisted extrusion
   - [ ] Helix
   - [ ] Along a general curve
-- [ ] Flip primitive
-- [ ] Ellipsoid
-- [ ] NACA airfoils
-- [ ] Involute gears
+- More primitives
+    - [X] Offset
+    - [ ] Flip
+    - [ ] Ellipsoid
+    - [ ] NACA airfoils
+    - [ ] Involute curve
 - [ ] Assemblies (operations on combined shapes that propagate back to components)
 - [ ] Modules (pieces of geometry with both positive and negative space)
 - Fancy raycaster effects
