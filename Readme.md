@@ -39,6 +39,7 @@ Main sources so far:
 - [ ] Models with high dynamic range (1m vs 1nm in the same model)
 - [ ] Boundary conditions -- unions of touching objects
 - [ ] OpenSCAD csg export
+- [ ] Colors / materials
 - Fix problems created by the opencl conversion
   - [X] STL export
   - [X] Matplotlib slice
