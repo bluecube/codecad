@@ -21,7 +21,7 @@ Main sources so far:
     - [ ] Flip
     - [ ] Ellipsoid
     - [ ] NACA airfoils
-    - [ ] Involute curve
+    - [X] Involute curve
 - [ ] Assemblies (operations on combined shapes that propagate back to components)
 - [ ] Modules (pieces of geometry with both positive and negative space)
 - Fancy raycaster effects

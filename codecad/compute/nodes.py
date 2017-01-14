@@ -8,7 +8,7 @@ class Node:
         "sphere", "extrusion", "revolution_to", "revolution_from", # 3D shapes
         "union", "intersection", "subtraction", "offset", "shell", # Common operations
         "transformation_to", "transformation_from", # Transform
-        "repetition"])) # Misc
+        "repetition", "involute"])) # Misc
 
     def __init__(self, name, params, dependencies, extra_data = None):
         # Note: If dependency count > 2, then we assume that the node is  both
