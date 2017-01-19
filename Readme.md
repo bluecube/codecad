@@ -11,17 +11,17 @@ Main sources so far:
 
 ## To do
 (in no particular order)
--  Extrusions
-  - [ ] With scaling
-  - [ ] Twisted extrusion
-  - [ ] Helix
-  - [ ] Along a general curve
+
 - More primitives
-    - [X] Offset
-    - [ ] Flip
-    - [ ] Ellipsoid
-    - [ ] NACA airfoils
-    - [X] Involute curve
+  - [X] Offset
+  - [ ] Flip
+  - [ ] Ellipsoid
+  - [ ] NACA airfoils
+  - [X] Involute curve
+  -  Extrusions
+    - [ ] With scaling
+    - [ ] Twisted extrusion
+    - [ ] Along a general curve
 - [ ] Assemblies (operations on combined shapes that propagate back to components)
 - [ ] Modules (pieces of geometry with both positive and negative space)
 - Fancy raycaster effects
