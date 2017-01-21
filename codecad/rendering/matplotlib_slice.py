@@ -44,17 +44,23 @@ def render_slice(obj,
     distance_range = numpy.max(numpy.abs(distances))
 
     with util.status_block("plotting"):
+        common_args = {"norm": matplotlib.colors.SymLogNorm(0.1,
+                                                            vmin=-distance_range,
+                                                            vmax=distance_range),
+                       "origin": "lower",
+                       "aspect": "equal",
+                       "extent": (corner.x, corner.x + (values.shape[1] - 1) * resolution,
+                                  corner.y, corner.y + (values.shape[0] - 1) * resolution)}
+
+
         plt.imshow(distances,
-                   cmap=plt.get_cmap("seismic"),
-                   norm=matplotlib.colors.SymLogNorm(0.1,
-                                                     vmin=-distance_range,
-                                                     vmax=distance_range),
-                   origin="lower",
+                   cmap=plt.get_cmap("viridis"),
                    interpolation="none",
-                   aspect="equal",
-                   extent=(corner.x, corner.x + (values.shape[1] - 1) * resolution,
-                           corner.y, corner.y + (values.shape[0] - 1) * resolution))
+                   **common_args)
         plt.colorbar()
+        plt.contour(distances,
+                    colors="black",
+                   **common_args)
 
         quiver_thinning = 10
         quiver_x = numpy.arange(0, grid_dimensions[0], quiver_thinning) * resolution + corner.x
@@ -62,5 +68,9 @@ def render_slice(obj,
         plt.quiver(quiver_x,
                    quiver_y,
                    values[::quiver_thinning,::quiver_thinning,1],
-                   values[::quiver_thinning,::quiver_thinning,2])
+                   values[::quiver_thinning,::quiver_thinning,2],
+                   color="teal",
+                   angles="xy",
+                   scale_units="xy",
+                   scale=200 / new_box_size.max())
     plt.show()
