@@ -58,5 +58,5 @@ Main sources so far:
 - Things to model with it
   - [ ] _mystery project_ (NACA airfoils, meshed internal structure)
   - [ ] Box generator (Assemblies)
-  - [ ] Involute gears
+  - [X] Involute gears
   - [ ] Mecha generator
