@@ -6,8 +6,8 @@ import codecad.shapes as s
 n1 = 30
 n2 = 15
 module = 2
-backlash = 0.5
-clearance = 1
+backlash = 0.25
+clearance = 0.5
 gear_thickness = 5
 bearing_id = 8
 bearing_od = 22
@@ -49,9 +49,9 @@ base = s.rectangle(center_distance + bearing_od, bearing_od) \
 
 
 # Measure sizes for packing to output
-g1_size = g1.bounding_box().size().x + 2
-g2_size = g2.bounding_box().size().x + 2
-base_size = base.bounding_box().size().y + 2
+g1_size = g1.bounding_box().size().x + 5
+g2_size = g2.bounding_box().size().x + 5
+base_size = base.bounding_box().size().y + 5
 
 
 # Pack it
@@ -63,4 +63,4 @@ o = g1.translated(-g2_size / 2, -base_size / 2, 0) + \
 o = o.rotated((1, 0, 0), 90)
 
 if __name__ == "__main__":
-    codecad.commandline_render(o, 0.5)
+    codecad.commandline_render(o, 0.25)
