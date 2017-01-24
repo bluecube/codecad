@@ -40,6 +40,7 @@ Main sources so far:
 - [ ] Boundary conditions -- unions of touching objects
 - [ ] OpenSCAD csg export
 - [ ] Colors / materials
+- [ ] Asynchronous API
 - Fix problems created by the opencl conversion
   - [X] STL export
   - [X] Matplotlib slice
@@ -60,3 +61,6 @@ Main sources so far:
   - [ ] Box generator (Assemblies)
   - [X] Involute gears
   - [ ] Mecha generator
+- SDF problems
+  - [ ] Empty intersection of two objects still has gradients pointing somewhere random
+  - [ ] `object.offset(-1).offset(1)` gives the original object, without rounded corners
