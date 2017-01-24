@@ -47,11 +47,11 @@ class Shape2D(base.ShapeBase):
                                             util.Vector(0, 0, 0))
 
     def offset(self, d):
-        """ Returns current shape scaled by given ratio """
+        """ Returns current shape offset by given distance (positive is outside) """
         return Offset2D(self, d)
 
     def shell(self, wall_thickness):
-        """ Returns a shell of the current shape"""
+        """ Returns a shell of the current shape (centered around the original surface) """
         return Shell2D(self, wall_thickness)
 
     def extruded(self, height):

@@ -58,7 +58,7 @@ class ShapeBase(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def shell(self, wall_thickness):
-        """ Returns a shell of the current shape"""
+        """ Returns a shell of the current shape (centered around the original surface) """
 
 
 class Union:
