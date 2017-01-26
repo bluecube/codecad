@@ -37,18 +37,15 @@ float4 perpendicular_intersection(float4 input1, float4 input2)
         return input2;
 }
 
-float4 slab_x(float halfSize, float4 point)
-{
+float4 slab_x(float halfSize, float4 point) {
     return (float4)(copysign(1.0f, point.x), 0, 0, fabs(point.x) - halfSize);
 }
 
-float4 slab_y(float halfSize, float4 point)
-{
+float4 slab_y(float halfSize, float4 point) {
     return (float4)(0, copysign(1.0f, point.y), 0, fabs(point.y) - halfSize);
 }
 
-float4 slab_z(float halfSize, float4 point)
-{
+float4 slab_z(float halfSize, float4 point) {
     return (float4)(0, 0, copysign(1.0f, point.z), fabs(point.z) - halfSize);
 }
 
