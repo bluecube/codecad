@@ -62,7 +62,7 @@ class ShapeBase(metaclass=abc.ABCMeta):
 
 
 class Union:
-    def __init__(self, shapes, r = None):
+    def __init__(self, shapes, r = 0):
         self.shapes = list(shapes)
         self.check_dimension(*self.shapes)
         self.r = r
@@ -73,7 +73,7 @@ class Union:
 
     def get_node(self, point, cache):
         return cache.make_node("union",
-                               [self.r if self.r is not None else -1],
+                               [self.r],
                                (shape.get_node(point, cache) for shape in self.shapes))
 
 
@@ -82,8 +82,6 @@ class Intersection:
         self.shapes = list(shapes)
         self.check_dimension(*self.shapes)
         self.r = r
-        if r != 0:
-            raise NotImplementedError("Rounded intersections are not supported yet") #TODO
 
     def bounding_box(self):
         return functools.reduce(lambda a, b: a.intersection(b),
@@ -91,7 +89,7 @@ class Intersection:
 
     def get_node(self, point, cache):
         return cache.make_node("intersection",
-                               [self.r if self.r is not None else -1],
+                               [self.r],
                                (shape.get_node(point, cache) for shape in self.shapes))
 
 

@@ -49,12 +49,11 @@ float4 slab_z(float halfSize, float4 point) {
     return (float4)(0, 0, copysign(1.0f, point.z), fabs(point.z) - halfSize);
 }
 
-uchar union_op(__constant float* params, float4* output, float4 obj1, float4 obj2) {
+float4 rounded_union(float r, float4 obj1, float4 obj2) {
     if (obj1.w < obj2.w)
-        *output = obj1;
+        return obj1;
     else
-        *output = obj2;
-    return 1; // TODO: Actually use the radius
+        return obj2;
 
     /*
     @staticmethod
@@ -62,38 +61,36 @@ uchar union_op(__constant float* params, float4* output, float4 obj1, float4 obj
         epsilon = min(s1.bounding_box().size().min(),
                       s2.bounding_box().size().min()) / 10000;
 
-        d1 = s1.distance(point)
-        d2 = s2.distance(point)
-        x1 = r - d1
-        x2 = r - d2
+    float d1 = obj1.w;
+    float d2 = obj2.w
+    float cosAlpha = dot(as_float3(obj1), as_float3(obj2))
+    float x1 = radius - d1
+    float x2 = radius - d2
 
-        # epsilon * gradient(s1)(point)
-        g1 = util.Vector(s1.distance(point + util.Vector(epsilon, 0, 0)) - d1,
-                         s1.distance(point + util.Vector(0, epsilon, 0)) - d1,
-                         s1.distance(point + util.Vector(0, 0, epsilon)) - d1)
-
-        cos_alpha = abs((s2.distance(point + g1) - d2) / epsilon)
-
+    if (cos_alpha * x1 < x2 && cos_alpha * x2 < x1)
         dist_to_rounding = r - util.sqrt((x1 * x1 + x2 * x2 - 2 * cos_alpha * x1 * x2) / (1 - cos_alpha * cos_alpha))
-
-        cond1 = (cos_alpha * x1 < x2)
-        cond2 = (cos_alpha * x2 < x1)
-
-        return util.switch(cond1 & cond2, dist_to_rounding, util.minimum(d1, d2))
-    */
-}
-
-uchar intersection_op(__constant float* params, float4* output, float4 obj1, float4 obj2) {
-    if (obj1.w > obj2.w)
+    else if (obj1.w < obj2.w)
         *output = obj1;
     else
         *output = obj2;
-    return 1; // TODO: Actually use the radius
+    */
+
+    return 1;
+}
+
+uchar union_op(__constant float* params, float4* output, float4 obj1, float4 obj2) {
+    *output = rounded_union(params[0], obj1, obj2);
+    return 1;
+}
+
+uchar intersection_op(__constant float* params, float4* output, float4 obj1, float4 obj2) {
+    *output = -rounded_union(params[0], -obj1, -obj2);
+    return 1;
 }
 
 uchar subtraction_op(__constant float* params, float4* output, float4 obj1, float4 obj2) {
-    return intersection_op(params, output, obj1, -obj2);
-        // "-" here both negates distance and turns around gradient vector
+    *output = -rounded_union(params[0], -obj1, obj2);
+    return 1;
 }
 
 uchar transformation_to_op(__constant float* params, float4* output, float4 point, float4 unused) {
