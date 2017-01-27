@@ -50,32 +50,24 @@ float4 slab_z(float halfSize, float4 point) {
 }
 
 float4 rounded_union(float r, float4 obj1, float4 obj2) {
+
+    if (r >= 0)
+    {
+        float cos_alpha = dot(as_float3(obj1), as_float3(obj2));
+        float x1 = r - obj1.w;
+        float x2 = r - obj2.w;
+
+        if (cos_alpha * x1 < x2 && cos_alpha * x2 < x1)
+        {
+            float d = r - sqrt((x1 * x1 + x2 * x2 - 2 * cos_alpha * x1 * x2) / (1 - cos_alpha * cos_alpha));
+            return (float4)(0, 0, 0, d); // TODO: Gradient
+        }
+    }
+
     if (obj1.w < obj2.w)
         return obj1;
     else
         return obj2;
-
-    /*
-    @staticmethod
-    def distance2(r, s1, s2, point):
-        epsilon = min(s1.bounding_box().size().min(),
-                      s2.bounding_box().size().min()) / 10000;
-
-    float d1 = obj1.w;
-    float d2 = obj2.w
-    float cosAlpha = dot(as_float3(obj1), as_float3(obj2))
-    float x1 = radius - d1
-    float x2 = radius - d2
-
-    if (cos_alpha * x1 < x2 && cos_alpha * x2 < x1)
-        dist_to_rounding = r - util.sqrt((x1 * x1 + x2 * x2 - 2 * cos_alpha * x1 * x2) / (1 - cos_alpha * cos_alpha))
-    else if (obj1.w < obj2.w)
-        *output = obj1;
-    else
-        *output = obj2;
-    */
-
-    return 1;
 }
 
 uchar union_op(__constant float* params, float4* output, float4 obj1, float4 obj2) {

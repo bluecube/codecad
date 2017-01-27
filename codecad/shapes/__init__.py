@@ -56,8 +56,8 @@ def _group_op_helper(shapes, name, op2, op3, r):
         if dim == 3:
             return op3(shapes, r = r)
 
-def union(shapes, r = 0):
+def union(shapes, r = -1):
     return _group_op_helper(shapes, "Union", _s2.Union2D, _s3.Union, r)
 
-def intersection(shapes, r = 0):
+def intersection(shapes, r = -1):
     return _group_op_helper(shapes, "Intersection", _s2.Intersection2D, _s3.Intersection, r)

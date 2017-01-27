@@ -62,7 +62,7 @@ class ShapeBase(metaclass=abc.ABCMeta):
 
 
 class Union:
-    def __init__(self, shapes, r = 0):
+    def __init__(self, shapes, r = -1):
         self.shapes = list(shapes)
         self.check_dimension(*self.shapes)
         self.r = r
@@ -78,7 +78,7 @@ class Union:
 
 
 class Intersection:
-    def __init__(self, shapes, r = 0):
+    def __init__(self, shapes, r = -1):
         self.shapes = list(shapes)
         self.check_dimension(*self.shapes)
         self.r = r
