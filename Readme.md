@@ -22,6 +22,8 @@ Main sources so far:
     - [ ] With scaling
     - [ ] Twisted extrusion
     - [ ] Along a general curve
+  - [ ] Projection to plane
+  - [ ] Slice by a plane (Correct one, not just set Z to 0)
 - [ ] Assemblies (operations on combined shapes that propagate back to components)
 - [ ] Modules (pieces of geometry with both positive and negative space)
 - Fancy raycaster effects
