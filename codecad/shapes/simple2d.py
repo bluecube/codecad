@@ -1,4 +1,5 @@
 import math
+import numpy
 
 from .. import util
 from . import base
@@ -87,6 +88,25 @@ class Circle(Shape2D):
 
     def get_node(self, point, cache):
         return cache.make_node("circle", [self.r], [point])
+
+
+class Polygon2D(Shape2D):
+    def __init__(self, points):
+        self.points = numpy.asarray(points, dtype=numpy.float32, order="c")
+        s = self.points.shape
+        if len(s) != 2 or s[1] != 2:
+            raise ValueError("points must be a list of (x, y) pairs or array with shape (x, 2)")
+
+        self.box = util.BoundingBox(util.Vector(*numpy.amin(self.points, axis=0)),
+                                    util.Vector(*numpy.amax(self.points, axis=0)))
+
+    def bounding_box(self):
+        return self.box
+
+    def get_node(self, point, cache):
+        return cache.make_node("polygon2d",
+                               util.Concatenate([len(self.points)], self.points.flat),
+                               [point])
 
 
 class Union2D(base.Union, Shape2D):

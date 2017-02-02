@@ -22,6 +22,9 @@ def circle(d = 1, r = None):
         d = 2 * r
     return _s2.Circle(d)
 
+def polygon2d(points):
+    return _s2.Polygon2D(points)
+
 def box(x = 1, y = None, z = None):
     if (y is None) != (z is None):
         raise ValueError("y and z must either both be None, or both be number")

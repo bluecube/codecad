@@ -17,3 +17,11 @@ def status_block(title):
 
 def check_close(a, b, closeness):
     return abs(a - b) < closeness
+
+class Concatenate:
+    def __init__(self, *iterables):
+        self._iterables = iterables
+
+    def __iter__(self):
+        for iterable in self._iterables:
+            yield from iterable
