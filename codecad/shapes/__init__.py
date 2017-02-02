@@ -11,6 +11,7 @@ from . import simple3d as _s3
 from . import unsafe
 from . import naca_airfoil
 from . import gears
+from . import airfoils
 
 def rectangle(x = 1, y = None):
     if y is None:
