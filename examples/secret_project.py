@@ -3,11 +3,11 @@
 import codecad
 import math
 
-def mesh(spacing, diameter, wall_thickness, rounding = None):
+def mesh(spacing, diameter, rounding = None):
     if rounding is None:
         rounding = 2 * diameter
 
-    cylinder = codecad.shapes.cylinder(d=diameter-wall_thickness, h=float("inf"))
+    cylinder = codecad.shapes.cylinder(d=diameter, h=float("inf"))
 
     grid_list = []
 
@@ -38,19 +38,20 @@ def mesh(spacing, diameter, wall_thickness, rounding = None):
         spheres = codecad.shapes.unsafe.Repetition(codecad.shapes.sphere(rounding), (spacing, spacing, spacing))
         grids = codecad.shapes.union([grids, spheres], rounding)
 
-    return grids.shell(wall_thickness)
+    return grids
+
 
 r = 20
 h = 30
 wall = 0.5
-spacing = 12
-rod_size = 2
+spacing = 10
+rod_size = 0.8
 
 base = (codecad.shapes.cylinder(h=(h - r) * 2, r=r) + \
         codecad.shapes.sphere(r=r).translated(0, 0, h - r)).offset(-wall / 2)
 mask = codecad.shapes.box(4 * r, 4 * r, h).translated(0, 0, h / 2)
 
-unmasked_inside = mesh(spacing, rod_size, wall) & base
+unmasked_inside = mesh(spacing, rod_size) & base
 unmasked_skin = base.shell(wall)
 
 o = (unmasked_inside + unmasked_skin) & mask
