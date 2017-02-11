@@ -43,6 +43,7 @@ Main sources so far:
 - [ ] OpenSCAD csg export
 - [ ] Colors / materials
 - [ ] Asynchronous API
+- [ ] Get rid of PyMCubes use GPU for triangulation (dual contouring?)
 - Fix problems created by the opencl conversion
   - [X] STL export
   - [X] Matplotlib slice
