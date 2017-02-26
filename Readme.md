@@ -47,7 +47,7 @@ Main sources so far:
 - Fix problems created by the opencl conversion
   - [X] STL export
   - [X] Matplotlib slice
-  - [ ] Volume and centroid
+  - [X] Volume and centroid
   - [ ] Animations
   - [ ] Svg export
   - [ ] Tests

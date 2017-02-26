@@ -1,33 +1,53 @@
 from . import util
+from .compute import compute, program
 import collections
 import numpy
+import math
+import pyopencl
 
 VolumeAndCentroid = collections.namedtuple("VolumeAndCentroid", "volume centroid")
 
 def volume_and_centroid(shape, resolution):
-    x = T.tensor3("x")
-    y = T.tensor3("y")
-    z = T.tensor3("z")
+    """ Return iterator over pairs (bounding box, numpy array of samples).
+    Blocks that don't have any chance of crossing the boundary are skipped. """
 
-    inside = shape.distance(util.Vector(x, y, z)) < 0
-    inside_count = inside.sum()
-    volume = inside_count * (resolution * resolution * resolution)
-    centroid_x = (inside * x).sum() / inside_count
-    centroid_y = (inside * y).sum() / inside_count
-    centroid_z = (inside * z).sum() / inside_count
+    assert resolution > 0
+    box = shape.bounding_box().expanded_additive(resolution)
+    grid_dimensions = [math.ceil(s / resolution) + 1 for s in box.size()]
 
-    with util.status_block("compiling"):
-        f = theano.function([x, y, z], (volume, centroid_x, centroid_y, centroid_z))
+    #TODO: Since we're only doing a single pass, we can't have too dense sampling not to overflow the counters
+    cell_count = grid_dimensions[0] * grid_dimensions[1] * grid_dimensions[2]
+    print(grid_dimensions, cell_count)
+    assert cell_count * grid_dimensions[0] <= 2**32
+    assert cell_count * grid_dimensions[0] <= 2**32
+    assert cell_count * grid_dimensions[0] <= 2**32
 
-    box = shape.bounding_box()
-    box_a = box.a + util.Vector(resolution, resolution, resolution) / 2
+    corner = box.a + util.Vector.splat(resolution / 2)
 
-    xs = numpy.arange(box_a.x, box.b.x, resolution)
-    ys = numpy.arange(box_a.y, box.b.y, resolution)
-    zs = numpy.arange(box_a.z, box.b.z, resolution)
+    mf = pyopencl.mem_flags
+    program_buffer = pyopencl.Buffer(compute.ctx,
+                                     mf.READ_ONLY | mf.COPY_HOST_PTR,
+                                     hostbuf=program.make_program(shape))
+    counters = numpy.zeros(4, dtype=numpy.uint32)
+    counters_buffer = pyopencl.Buffer(compute.ctx,
+                                      mf.READ_WRITE,
+                                      counters.nbytes)
 
-    with util.status_block("running"):
-        result = [float(x) for x in f(*numpy.meshgrid(xs, ys, zs))]
+    ev = pyopencl.enqueue_copy(compute.queue,
+                               counters_buffer, counters,
+                               is_blocking=False)
+    ev = compute.program.volume(compute.queue, grid_dimensions, None,
+                                program_buffer,
+                                corner.as_float4(), numpy.float32(resolution),
+                                counters_buffer,
+                                wait_for=[ev])
+    pyopencl.enqueue_copy(compute.queue,
+                          counters, counters_buffer,
+                          wait_for=[ev])
 
-    return VolumeAndCentroid(result[0], util.Vector(*result[1:]))
+    count = counters[0]
+    coords_sum = util.Vector(*(counters[i + 1] for i in range(3)))
+
+    return VolumeAndCentroid(count * resolution * resolution * resolution,
+                             coords_sum * (resolution / count) + corner)
 
