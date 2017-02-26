@@ -15,9 +15,6 @@ def status_block(title):
         elapsed = time.perf_counter() - start
         print(" {:0.2f} s".format(elapsed))
 
-def check_close(a, b, closeness):
-    return abs(a - b) < closeness
-
 class Concatenate:
     def __init__(self, *iterables):
         self._iterables = iterables

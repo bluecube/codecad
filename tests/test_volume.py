@@ -1,14 +1,15 @@
 import codecad
 import math
+from pytest import approx
 
 def check_shape(shape, volume, centroid = None):
     print(repr(shape))
-    result = codecad.volume_and_centroid(shape, 0.01)
+    result = codecad.volume_and_centroid(shape, .01)
 
-    assert codecad.util.check_close(result.volume, volume, 0.005)
+    assert result.volume == approx(volume, rel=0.01)
 
     if centroid is not None:
-        assert codecad.util.check_close(result.centroid, codecad.util.Vector(*centroid), 0.005)
+        assert result.centroid == approx(codecad.util.Vector(*centroid), rel=0.01)
 
 def test_shapes():
     cube = codecad.shapes.box()
