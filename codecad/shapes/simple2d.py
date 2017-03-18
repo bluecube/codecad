@@ -90,6 +90,16 @@ class Circle(Shape2D):
         return cache.make_node("circle", [self.r], [point])
 
 
+class HalfPlane(Shape2D):
+    """ Half space y > 0. """
+    def bounding_box(self):
+        return util.BoundingBox(util.Vector(-float("inf"), 0, -float("inf")),
+                                util.Vector.splat(float("inf")));
+
+    def get_node(self, point, cache):
+        return cache.make_node("half_space", [], [point])
+
+
 class Polygon2D(Shape2D):
     def __init__(self, points):
         self.points = numpy.asarray(points, dtype=numpy.float32, order="c")

@@ -67,6 +67,16 @@ class Sphere(Shape3D):
         return cache.make_node("sphere", [self.r], [point])
 
 
+class HalfSpace(Shape3D):
+    """ Half space y > 0. """
+    def bounding_box(self):
+        return util.BoundingBox(util.Vector(-float("inf"), 0, -float("inf")),
+                                util.Vector.splat(float("inf")));
+
+    def get_node(self, point, cache):
+        return cache.make_node("half_space", [], [point])
+
+
 class Union(base.Union, Shape3D):
     pass
 

@@ -22,6 +22,9 @@ def circle(d = 1, r = None):
         d = 2 * r
     return _s2.Circle(d)
 
+def half_plane():
+    return _s2.HalfPlane()
+
 def polygon2d(points):
     return _s2.Polygon2D(points)
 
@@ -40,6 +43,9 @@ def sphere(d = 1, r = None):
 
 def cylinder(h = 1, d = 1, r = None):
     return circle(d = d, r = r).extruded(h)
+
+def half_space():
+    return _s3.HalfSpace()
 
 def _group_op_helper(shapes, name, op2, op3, r):
     """ Check that shapes is not empty and that dimensions match """

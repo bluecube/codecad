@@ -4,11 +4,11 @@ class Node:
     # Mapping of node names to instruction codes
     # These also need to be implemented in opencl.
     _type_map = collections.OrderedDict((name, i + 2) for i, name in enumerate([
-        "rectangle", "circle", # 2D shapes
+        "rectangle", "circle", "polygon2d", # 2D shapes
         "sphere", "extrusion", "revolution_to", "revolution_from", # 3D shapes
         "union", "intersection", "subtraction", "offset", "shell", # Common operations
         "transformation_to", "transformation_from", # Transform
-        "repetition", "involute_gear", "polygon2d"])) # Misc
+        "repetition", "half_space", "involute_gear"])) # Misc
 
     def __init__(self, name, params, dependencies, extra_data = None):
         # Note: If dependency count > 2, then we assume that the node is  both
