@@ -55,8 +55,12 @@ class Shape2D(base.ShapeBase):
         """ Returns a shell of the current shape (centered around the original surface) """
         return Shell2D(self, wall_thickness)
 
-    def extruded(self, height):
-        return simple3d.Extrusion(self, height)
+    def extruded(self, height, symmetrical=True):
+        s = simple3d.Extrusion(self, height)
+        if symmetrical:
+            return s
+        else:
+            return s.translated(0, 0, height/2)
 
     def revolved(self):
         """ Returns current shape taken as 2D in xy plane and revolved around y axis """

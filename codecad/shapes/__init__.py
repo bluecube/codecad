@@ -41,8 +41,8 @@ def sphere(d = 1, r = None):
         d = 2 * r
     return _s3.Sphere(d)
 
-def cylinder(h = 1, d = 1, r = None):
-    return circle(d = d, r = r).extruded(h)
+def cylinder(h = 1, d = 1, r = None, symmetrical = True):
+    return circle(d = d, r = r).extruded(h, symmetrical)
 
 def half_space():
     return _s3.HalfSpace()
