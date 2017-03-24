@@ -12,18 +12,20 @@ Main sources so far:
 ## To do
 (in no particular order)
 
-- More primitives
+- Primitives wishlist
   - [X] Offset
-  - [ ] Flip
   - [ ] Ellipsoid
-  - [ ] NACA airfoils
   - [X] Involute curve
   -  Extrusions
     - [ ] With scaling
     - [ ] Twisted extrusion
-    - [ ] Along a general curve
+    - [ ] Along a <strike>general curve</strike> spline
   - [ ] Projection to plane
   - [ ] Slice by a plane (Correct one, not just set Z to 0)
+  - [ ] 2D closed spline
+  - [ ] Polygonal model
+    - [ ] STL import
+  - [ ] Swipe 3D object (allows extrusion from or up to a general surface)
 - [ ] Assemblies (operations on combined shapes that propagate back to components)
 - [ ] Modules (pieces of geometry with both positive and negative space)
 - Fancy raycaster effects
@@ -32,7 +34,8 @@ Main sources so far:
     - [ ] Experiment with three point lighting
     - [ ] Transparent PNGs
 - [ ] Successive approximation of the geometry
-- [ ] Better geometry representation in IPython using three.js
+- [ ] Better geometry representation in Jupyter notebook (using three.js)?
+  - [ ] Figure out simple way to use virtualenv in Jupyter
   - [ ] Use this to make a documentation notebook
 - [ ] Add setup.py
 - [ ] *Fix rounded unions!*
