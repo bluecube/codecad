@@ -31,11 +31,20 @@ class Shape3D(base.ShapeBase):
                                           util.Quaternion.from_degrees(util.Vector(0, 0, 1), 0),
                                           o)
 
-    def rotated(self, vector, angle):
-        """ Returns current shape rotated by an angle around the vector """
-        return Transformation.make_merged(self,
-                                          util.Quaternion.from_degrees(util.Vector(*vector), angle),
-                                          util.Vector(0, 0, 0))
+    def rotated(self, vector, angle, n = 1):
+        """ Returns current shape rotated by an angle around the vector.
+
+        If n > 1, returns an union of n copies of self, rotated in regular intervals
+        up to given angle.
+        For example angle = 180, n = 3 makes copies of self rotated by 60, 120
+        and 180 degrees."""
+        if n == 1:
+            return Transformation.make_merged(self,
+                                              util.Quaternion.from_degrees(util.Vector(*vector), angle),
+                                              util.Vector(0, 0, 0))
+        else:
+            angle_step = angle / n
+            return Union([self.rotated(vector, (1 + i) * angle_step) for i in range(n)])
 
     def scaled(self, s):
         """ Returns current shape scaled by given ratio """

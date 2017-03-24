@@ -35,11 +35,20 @@ class Shape2D(base.ShapeBase):
                                             util.Quaternion.from_degrees(util.Vector(0, 0, 1), 0),
                                             o)
 
-    def rotated(self, angle):
-        """ Returns current shape rotated by given angle """
-        return Transformation2D.make_merged(self,
-                                            util.Quaternion.from_degrees(util.Vector(0, 0, 1), angle),
-                                            util.Vector(0, 0, 0))
+    def rotated(self, angle, n = 1):
+        """ Returns current shape rotated by given angle.
+
+        If n > 1, returns an union of n copies of self, rotated in regular intervals
+        up to given angle.
+        For example angle = 180, n = 3 makes copies of self rotated by 60, 120
+        and 180 degrees. """
+        if n == 1:
+            return Transformation2D.make_merged(self,
+                                                util.Quaternion.from_degrees(util.Vector(0, 0, 1), angle),
+                                                util.Vector(0, 0, 0))
+        else:
+            angle_step = angle / n
+            return Union2D([self.rotated((1 + i) * angle_step) for i in range(n)])
 
     def scaled(self, s):
         """ Returns current shape scaled by given ratio """
