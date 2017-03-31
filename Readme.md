@@ -26,42 +26,45 @@ Main sources so far:
   - [ ] Polygonal model
     - [ ] STL import
   - [ ] Swipe 3D object (allows extrusion from or up to a general surface)
-- [ ] Assemblies (operations on combined shapes that propagate back to components)
+- [ ] Assemblies (operations on combined shapes that propagate back to components) :four:
+  - [ ] Exploded view
 - [ ] Modules (pieces of geometry with both positive and negative space)
 - Fancy raycaster effects
     - [ ] Axes
     - [ ] Shadows, ambient occlusion
     - [ ] Experiment with three point lighting
     - [ ] Transparent PNGs
-- [ ] Successive approximation of the geometry
-- [ ] Better geometry representation in Jupyter notebook (using three.js)?
+- [ ] Successive approximation of the geometry :one: (needed for volume and centroid)
+- [ ] Better geometry representation in Jupyter notebook (using three.js?)
   - [ ] Figure out simple way to use virtualenv in Jupyter
   - [ ] Use this to make a documentation notebook
 - [ ] Add setup.py
-- [ ] *Fix rounded unions!*
+- [ ] Fix rounded unions! :three:
 - [ ] Parametrization of the model
-- [ ] *tests!*
+- [ ] tests! :one:
 - [ ] Models with high dynamic range (1m vs 1nm in the same model)
+  - [ ] Multiprecision? `float` for initial approximation, `double` for final details
 - [ ] Boundary conditions -- unions of touching objects
 - [ ] OpenSCAD csg export
 - [ ] Colors / materials
-- [ ] Asynchronous API
-- [ ] Get rid of PyMCubes use GPU for triangulation (dual contouring?)
+- [ ] Asynchronous API :four:
+- [ ] Get rid of PyMCubes use GPU for triangulation (dual contouring?) :four:
 - Fix problems created by the opencl conversion
   - [X] STL export
   - [X] Matplotlib slice
   - [X] Volume and centroid
   - [ ] Animations
-  - [ ] Svg export
-  - [ ] Tests
+  - [ ] Svg export :two:
+  - [ ] Tests :one:
 - Optimization ideas
   - [ ] Merge `transformation_to` and `transformation_from` blocks
   - [ ] Don't output no-op transformations
-  - [ ] Pass scaling operations through into the primitives -- combo with previous
+  - [ ] Pass scaling operations through into the primitives
+    - [ ] Turn sphere and circle rotations into no-ops
   - [ ] Separate translation only and rotation only transformations
   - [ ] Separate 2d transformations
-  - [ ] Turn sphere and circle rotations into no-ops
-  - [ ] Convert 90° rotations to vector component shuffling and negations (related to flip primitive)
+  - [ ] Convert 90° rotations and -1 scaling to vector component shuffling and negations
+  - [ ] Include bounding volumes in instruction stream and use it to clip the computation
 - Things to model with it
   - [ ] _mystery project_ (NACA airfoils, meshed internal structure)
   - [ ] Box generator (Assemblies)
