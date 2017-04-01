@@ -23,21 +23,28 @@ def involute_gear(tooth_count, module,
                   dedendum_modules = 1,
                   pressure_angle = 20,
                   backlash = 0,
-                  clearance = 0):
-    """ Generates a 2D shape of a external involute gear. """
+                  clearance = 0,
+                  internal = False):
+    """ Generates a 2D shape of a external or internal involute gear. """
+
     pitch_radius = tooth_count * module / 2
-    root_radius = pitch_radius - dedendum_modules * module - clearance
+    root_radius = pitch_radius - dedendum_modules * module
     outside_radius = pitch_radius + addendum_modules * module
+
+    if internal:
+        outside_radius += clearance
+        backlash = -backlash
+    else:
+        root_radius -= clearance
 
     base = InvoluteGearBase(tooth_count, pressure_angle).scaled(pitch_radius)
 
-    if backlash > 0:
+    if backlash != 0:
         base = base.offset(-backlash)
 
     root_circle = simple2d.Circle(r=root_radius)
     outside_circle = simple2d.Circle(r=outside_radius)
 
-    #return root_circle
     return (base & outside_circle) + root_circle
 
 def involute_gear_pair(tooth_count1, tooth_count2, module,
