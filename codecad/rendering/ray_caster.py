@@ -78,7 +78,7 @@ def get_camera_params(box, size, view_angle):
 
     return (origin, direction, up, focal_length)
 
-def render_picture(obj, filename, size = (800, 600),
+def render_picture(obj, filename, size = (1024, 768),
                    view_angle = None,
                    resolution=None):
 
