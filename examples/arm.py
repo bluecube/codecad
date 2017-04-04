@@ -4,209 +4,340 @@ import codecad
 import codecad.shapes as s
 import fractions
 import math
+import itertools
+import datetime
 
-line_width = 0.45
-layer_height = 0.2
+class Joint: # TODO: Use an assembly once they are ready
+    """ Representation of the robot arm joint.
+    This is a class to allow reusing the code for optimization of gear ratios """
 
-module = 1.5
+    # Setting parameters which are independent of tooth counts as class variables
 
-min_wall_thickness = 2 * line_width
-wall_thickness = 3
-min_floor_thickness = layer_height * math.ceil(0.6 / layer_height)
+    # First some desired joint parameters
+    target_rps = 0.25
+    target_torque = 20
+    joint_od = 100
 
-n_bevel1 = 11
-n_bevel2 = 40
-n_sun = 11
-n_planet1 = 26
-n_planet2 = 12
-n_ring = 49
+    # The arm is supposed to be 3D printable, so we specify some printer parameters
+    line_width = 0.45
+    layer_height = 0.2
+    min_wall_thickness = 2 * line_width
+    wall_thickness = 3
+    min_floor_thickness = layer_height * math.ceil(0.6 / layer_height)
 
-print("Transmission ratio: 1 / {}".format((n_ring / n_planet2) * (n_planet1 / n_sun) * (n_bevel2 / n_bevel1)))
+    # Some general gear parameters
+    min_module = 1 # Minimum gear module for most gears in the system
+    min_module_ring = 1.5 # Minimum module for the ring gear, to maximize transferable torque
+    tip_clearance = 0.5
+    backlash = 0.1
+    profile_shift = 0.15 # Profile shift in modules
 
-bevel_thickness = 5
-ring_thickness = 20
-sun_thickness = 10
+    motor_gear_thickness = 7
+    ring_thickness = 15
+    sun_thickness = 10
 
-tip_clearance = 0.5
-backlash = 0.2
+    shroud_overlap = 1.6
 
-# General clearance between moving parts. Corresponds to thickness of M4 washer
-# So it can be used as a spacer
-clearance = 0.8
+    # General clearance between moving parts.
+    clearance = 0.8
 
-planet_count = 3
+    # Clearance between shaft and printed parts
+    shaft_clearance = 0.1
 
-total_od = 100
+    # # 624 bearing
+    # bearing_id = 4
+    # bearing_od = 13
+    # bearing_thickness = 5
+    # bearing_shoulder_size = 1.5
+    # bearing_clearance = 0
 
-# 624 bearing
-bearing_id = 4
-bearing_od = 13
-bearing_thickness = 5
-bearing_shoulder_size = 1.5
-bearing_clearance = 0
+    # 608 bearing
+    bearing_id = 8
+    bearing_od = 22
+    bearing_thickness = 7
+    bearing_shoulder_size = 1.5
+    bearing_clearance = 0
 
-#M3 screw
-screw_diameter = 3
+    #M3 screw
+    screw_diameter = 3
 
-# For the planetary gearbox to mesh properly
-assert(n_sun + n_planet1 + n_planet2 == n_ring)
+    motor_shaft_diameter = 3
 
-# Sharing wear
-assert(fractions.gcd(n_bevel1, n_bevel2) == 1)
-assert(fractions.gcd(n_sun, n_planet1) == 1)
-assert(fractions.gcd(n_planet2, n_ring) == 1)
+    @classmethod
+    def optimize(cls, n = 20):
+        """ Go through plausible looking combinations of tooth counts and print
+        n combinations with highest transmission ratios. """
+        best_ratio = 1
+        solutions = []
+        started = datetime.datetime.now()
 
-# For assembly of planet2 / ring interface
-assert(module * n_planet2 - 2 * 0.5 * module - 2 * tip_clearance > bearing_od + 2 * min_wall_thickness)
+        def r(a, b):
+            if (a > b):
+                return range(a, b - 1, -1)
+            else:
+                return range(a, b + 1)
 
-# To fit the largest diameter into the intended max housing diameter
-assert(module * (n_sun + 2 * n_planet1) + module <= total_od - min_wall_thickness - tip_clearance);
+        # There is just a single option for the motor gears, since we can find
+        # the optimal values (or close to it) manually easily and don't have to 
+        # slow the rest down
+        ranges = [r(11, 11), r(60, 60), r(10, 15), r(20, 80), r(10, 30), r(30, 70)]
+        candidate_count = 1
+        for r in ranges:
+            candidate_count *= len(r)
 
-bearing_shoulder_thickness = min_floor_thickness
-bearing_wall_thickness = bearing_thickness + bearing_shoulder_thickness
-inner_carrier_half_length = ((n_bevel1 + 3) * (module + bevel_thickness / n_bevel1) / 2) + clearance
-outer_carrier_length = sun_thickness + ring_thickness + 3 * clearance + bearing_wall_thickness
-sun_od = module * n_sun + module * 2 * 1.5
-outer_carrier_od = (n_sun + n_planet1) * module + bearing_od + 2 * min_wall_thickness
-planet_radius = (n_sun + n_planet1) * module / 2
-outer_carrier_screw_radius = wall_thickness + screw_diameter / 2 - outer_carrier_od / 2
+        try:
+            for i, counts in enumerate(itertools.product(*ranges)):
+                if i % 1000 == 0:
+                    progress = i / candidate_count
+                    elapsed = datetime.datetime.now() - started
 
-bearing_hole = s.cylinder(d = bearing_od + 2 * bearing_clearance,
-                          h = 2 * bearing_thickness, symmetrical=False) + \
-               s.cylinder(d = bearing_od - 2 * bearing_shoulder_size,
-                          h = float("inf"))
-screw_holes = s.cylinder(h = float("inf"),
-                         d = screw_diameter).translated(outer_carrier_screw_radius, 0, 0).rotated((0, 0, 1), 360, planet_count)
+                    if progress > 0:
+                        eta = elapsed * (1 / progress - 1)
+                    else:
+                        eta = "???"
 
-def make_planet():
-    # Gears are profile shifted by 0.5 module (smaller gear has larger addendum)
-    h = sun_thickness
-    gear1 = s.gears.involute_gear(tooth_count = n_planet1,
-                                  module = module,
-                                  addendum_modules = 0.5,
-                                  dedendum_modules = 1.5,
-                                  backlash = backlash / 2,
-                                  clearance = tip_clearance).extruded(h, symmetrical = False)
+                    print("  {:.3f}%, found {} solutions, best ratio 1 / {:.2f}, elapsed {}, ETA {}".format(progress * 100, len(solutions), 1 / best_ratio, elapsed, eta), end="\r")
 
-    h += clearance
-    h += ring_thickness
-    gear2 = s.gears.involute_gear(tooth_count = n_planet2,
-                                  module = module,
-                                  addendum_modules = 1.5,
-                                  dedendum_modules = 0.5,
-                                  backlash = backlash / 2,
-                                  clearance = tip_clearance).extruded(h, symmetrical = False)
+                try:
+                    j = cls(*counts)
+                except AssertionError:
+                    continue
 
-    h += clearance
-    spacer = s.cylinder(h, bearing_id + 2 * bearing_shoulder_size, symmetrical = False)
+                ratio = j.get_ratio()
+                if best_ratio is None or ratio < best_ratio:
+                    best_ratio = ratio
 
-    hole = s.cylinder(float("inf"), bearing_id)
+                solutions.append(j)
+        except KeyboardInterrupt:
+            print("Interrupted")
 
-    return s.union([gear1, gear2, spacer]) - hole
+        print()
+        print("best:")
 
-def make_sun():
-    h = bearing_wall_thickness + clearance
-    spacer1 = s.cylinder(h, sun_od, symmetrical=False)
+        solutions_sorted = sorted(solutions, key=lambda x: x.get_ratio())
+        for j in solutions_sorted[:n]:
+            j.print_details()
 
-    h += sun_thickness + 2 * clearance
-    gear = s.gears.involute_gear(tooth_count = n_sun,
-                                 module = module,
-                                 addendum_modules = 1.5,
-                                 dedendum_modules = 0.5,
-                                 backlash = backlash / 2,
-                                 clearance = tip_clearance).extruded(h, symmetrical = False)
+    def __init__(self, n_motor_gear1, n_motor_gear2, n_sun_gear, n_planet_gear1, n_planet_gear2, n_ring_gear):
+        # This would fail later, but also would cause division by zero
+        assert n_ring_gear > n_planet_gear2
 
-    h += ring_thickness + clearance
-    spacer2 = s.cylinder(h, bearing_id + 2 * bearing_shoulder_size, symmetrical=False)
+        # Chosing module for the motor gear so that the sun gear always has enough space for the shaft
+        self.module_motor = max(self.min_module, (self.motor_shaft_diameter + 2 * (self.min_wall_thickness + self.shaft_clearance + self.tip_clearance)) / (n_motor_gear1 - 2 * (1 - self.profile_shift)))
 
-    hole = s.cylinder(float("inf"), bearing_id)
+        # The same for sun gear
+        self.module_sun = max(self.min_module, (self.bearing_id + 2 * (self.min_wall_thickness + self.shaft_clearance + self.tip_clearance)) / (n_sun_gear - 2 * (1 - self.profile_shift)))
 
-    return s.union([spacer1, spacer2, gear]) - hole
+        # Choosing module for the ring gear so that the pitch circle of the planet matches
+        self.module_ring = self.module_sun * (n_sun_gear + n_planet_gear1) / (n_ring_gear - n_planet_gear2)
 
-def make_carrier_inner():
-    side = s.cylinder(h = inner_carrier_half_length, d = total_od, symmetrical = False) -\
-           s.cylinder(h = float("inf"), d = total_od - 2 * wall_thickness)
-    cap = s.cylinder(h = bearing_wall_thickness, d = total_od, symmetrical = False)
+        assert self.module_ring >= self.min_module_ring
 
-    sun_hole = s.cylinder(d = sun_od + clearance * 2, h = float("inf"))
-    cap -= sun_hole
+        # The gears themselves
+        self.motor_gear1 =  s.gears.InvoluteGear(n_motor_gear1, self.module_motor, 1 + self.profile_shift, 1 - self.profile_shift,
+                                                 backlash = self.backlash, clearance = self.tip_clearance)
+        self.motor_gear2 =  s.gears.InvoluteGear(n_motor_gear2, self.module_motor, 1 - self.profile_shift, 1 + self.profile_shift,
+                                                 backlash = self.backlash, clearance = self.tip_clearance)
 
-    moved_bearing_hole = bearing_hole.rotated((1, 0, 0), 180).translated(0, 0, bearing_thickness)
-    cap -= moved_bearing_hole.translated(planet_radius, 0, 0).rotated((0, 0, 1), 360, planet_count)
+        self.sun_gear =     s.gears.InvoluteGear(n_sun_gear, self.module_sun, 1 + self.profile_shift, 1 - self.profile_shift,
+                                                 backlash = self.backlash, clearance = self.tip_clearance)
+        self.planet_gear1 = s.gears.InvoluteGear(n_planet_gear1, self.module_sun, 1 - self.profile_shift, 1 + self.profile_shift,
+                                                 backlash = self.backlash, clearance = self.tip_clearance)
+        self.planet_gear2 = s.gears.InvoluteGear(n_planet_gear2, self.module_ring, 1 + self.profile_shift, 1 - self.profile_shift,
+                                                 backlash = self.backlash, clearance = self.tip_clearance)
+        self.ring_gear =    s.gears.InvoluteGear(n_ring_gear, self.module_ring, 1 - self.profile_shift, 1 + self.profile_shift, internal = True,
+                                                 backlash = self.backlash, clearance = self.tip_clearance)
 
-    cap -= screw_holes
+        # Fit the ring gear into the intended max housing diameter
+        assert self.ring_gear.root_diameter + 2 * self.min_wall_thickness < self.joint_od
 
-    return side + cap
+        # Fit the motor gear into the intended housing diameter
+        assert self.motor_gear2.outside_diameter < self.joint_od - 2 * (self.wall_thickness + self.clearance)
 
-def make_carrier_outer():
-    side = s.cylinder(h = outer_carrier_length, d = outer_carrier_od, symmetrical = False)
-    cap = s.cylinder(h = bearing_wall_thickness, d = outer_carrier_od, symmetrical = False)
+        # Be able to slide the ring over the planet bearing housing
+        assert self.planet_gear2.root_diameter > self.bearing_od + 2 * self.min_wall_thickness
 
-    sun_hole = s.cylinder(h = float("inf"), d = outer_carrier_od - 2 * wall_thickness)
-    side -= sun_hole
+        self._check_gear_on_shaft(self.motor_gear1, self.motor_shaft_diameter)
+        self._check_gear_on_shaft(self.motor_gear2)
+        self._check_gear_on_shaft(self.sun_gear)
+        self._check_gear_on_shaft(self.planet_gear1)
+        self._check_gear_on_shaft(self.planet_gear2)
+        self._check_gear_pair(self.sun_gear, self.planet_gear1)
+        self._check_gear_pair(self.planet_gear2, self.ring_gear)
 
-    moved_bearing_hole = bearing_hole.translated(0, 0, bearing_shoulder_thickness)
-    cap -= moved_bearing_hole
-    cap -= moved_bearing_hole.translated(planet_radius, 0, 0).rotated((0, 0, 1), 360, planet_count)
+        # Pitch diameters add up properly
+        assert self.sun_gear.pitch_diameter + self.planet_gear1.pitch_diameter + self.planet_gear2.pitch_diameter == self.ring_gear.pitch_diameter
+        # This condition should hold regardless of tooth counts because of how ring module is chosen
 
-    planet_hole = s.cylinder(2 * sun_thickness + 2 * clearance,
-                             module * n_planet1 + 2 * (module * 0.5 + clearance)) +\
-                  s.cylinder(float("inf"),
-                              module * n_planet2 + 2 * (module * 1.5 + clearance))
-    side -= planet_hole.translated(planet_radius, 0, outer_carrier_length).rotated((0, 0, 1), 360, planet_count)
+        # Some intermediate values
+        self.bearing_shoulder_thickness = self.min_floor_thickness
+        self.bearing_wall_thickness = self.bearing_thickness + self.bearing_shoulder_thickness
+        self.inner_carrier_half_length = 20 + self.ring_thickness + self.clearance
+        self.outer_carrier_length = self.ring_thickness + 2 * self.clearance + self.bearing_wall_thickness
+        self.planet_radius = (self.sun_gear.pitch_diameter + self.planet_gear1.pitch_diameter) / 2
 
-    screw_tube = s.cylinder(h = outer_carrier_length,
-                            d = screw_diameter + 2 * wall_thickness,
-                            symmetrical=False)
+        self.planet_count = math.floor(math.pi / math.asin((self.planet_gear1.outside_diameter + self.clearance) / (2 * self.planet_radius)))
+        self.outer_carrier_od = 2 * self.planet_radius + self.bearing_od + 2 * self.min_wall_thickness
+        self.outer_carrier_screw_radius = self.outer_carrier_od / 2 - self.wall_thickness - self.screw_diameter / 2
 
-    body = side + cap + screw_tube.translated(outer_carrier_screw_radius, 0, 0).rotated((0, 0, 1), 360, planet_count)
-        #TODO: Rounded unions
+        # Fit the large planet into the intended max housing diameter
+        assert 2 * self.planet_radius + self.planet_gear1.outside_diameter <= self.joint_od - self.min_wall_thickness - self.tip_clearance
 
-    body -= screw_holes
+        # Some often needed shapes
+        self.bearing_hole = s.cylinder(d = self.bearing_od + 2 * self.bearing_clearance,
+                                       h = 2 * self.bearing_thickness, symmetrical=False) + \
+                            s.cylinder(d = self.bearing_od - 2 * self.bearing_shoulder_size,
+                                       h = float("inf"))
+        self.screw_holes = s.cylinder(h = float("inf"),
+                                      d = self.screw_diameter).translated(self.outer_carrier_screw_radius, 0, 0).rotated((0, 0, 1), 180 / self.planet_count).rotated((0, 0, 1), 360, self.planet_count)
+        self.shaft_hole = s.cylinder(h = float("inf"),
+                                     d = self.bearing_id + 2 * self.shaft_clearance)
+        self.outer_circle = s.circle(self.joint_od)
 
-    return body
+    @staticmethod
+    def _check_gear_pair(g1, g2):
+        assert g1.module == g2.module
 
-def make_ring():
-    h = bearing_wall_thickness
-    cap = s.cylinder(h = h, d = total_od, symmetrical = False)
-    cap -= bearing_hole.translated(0, 0, bearing_shoulder_thickness)
+        # Load sharing between teeth
+        assert fractions.gcd(g1.n, g2.n) == 1
 
-    h += bearing_wall_thickness + clearance
-    outer = (s.circle(total_od) -
-             s.circle(outer_carrier_od + 2 * clearance)).extruded(h, symmetrical=False)
+    @classmethod
+    def _check_gear_on_shaft(cls, g, shaft_diameter = None):
+        if shaft_diameter is None:
+            shaft_diameter = cls.bearing_id
+        assert g.root_diameter >= shaft_diameter + 2 * (cls.min_wall_thickness + cls.shaft_clearance)
 
-    h += ring_thickness + clearance
-    gear = (s.circle(total_od) - \
-            s.gears.involute_gear(tooth_count = n_ring,
-                         module = module,
-                         addendum_modules = 1.5,
-                         dedendum_modules = 0.5,
-                         backlash = backlash / 2,
-                         clearance = tip_clearance,
-                         internal=True)).extruded(h, symmetrical = False)
+    def get_ratio(self):
+        return (self.motor_gear1.n / self.motor_gear2.n) * (self.sun_gear.n / self.planet_gear1.n) * (self.planet_gear2.n / self.ring_gear.n)
 
-    h += clearance + sun_thickness
-    inner = (s.circle(total_od) - \
-             s.circle(total_od - 2 * min_wall_thickness)).extruded(h, symmetrical=False)
+    def print_details(self):
+        ratio = self.get_ratio()
+        print("Tooth counts: {} {} {} {} {} {}".format(self.motor_gear1.n, self.motor_gear2.n, self.sun_gear.n, self.planet_gear1.n, self.planet_gear2.n, self.ring_gear.n))
+        print("Transmission ratio: 1 / {}".format(1 / ratio))
+        print("  {:.0f} motor RPM for {} RPS arm rotation".format(60 * self.target_rps / ratio, self.target_rps))
+        print("  {:.0f} mNm motor torque for {} nm arm torque".format(1e3 * self.target_torque * ratio, self.target_torque))
+        print("Planet count: {}, motor module: {:.2f}, sun module: {:.2f}, ring module: {:.2f}".format(self.planet_count, self.module_motor, self.module_sun, self.module_ring))
 
-    return cap + outer + gear + inner
+    def make_planet(self):
+        # Gears are profile shifted by 0.5 module (smaller gear has larger addendum)
+        h = self.sun_thickness
+        gear1 = self.planet_gear1.extruded(h, symmetrical = False)
 
-planet_moved = make_planet().translated(planet_radius, 0, inner_carrier_half_length + clearance)
+        h += self.clearance
+        h += self.ring_thickness
+        gear2 = self.planet_gear2.extruded(h, symmetrical = False)
 
-o = s.union([make_carrier_inner().rotated((1, 0, 0), 180).translated(0, 0, inner_carrier_half_length),
-             make_carrier_outer().rotated((1, 0, 0), 180).translated(0, 0, outer_carrier_length + inner_carrier_half_length),
-             make_sun().translated(0, 0, inner_carrier_half_length - bearing_wall_thickness - clearance),
-             make_ring().rotated((1, 0, 0), 180).translated(0, 0, outer_carrier_length + inner_carrier_half_length + bearing_wall_thickness + clearance)
-             ]
-            + [planet_moved.rotated((0, 0, 1), 360 * i / planet_count) for i in range(planet_count)]
-            )
+        h += self.clearance
+        spacer = s.cylinder(h, self.bearing_id + 2 * self.bearing_shoulder_size, symmetrical = False)
 
-o = (o & s.half_space()).rotated((1, 0, 0), 30)
+        return s.union([gear1, gear2, spacer]) - self.shaft_hole
 
-#o = (make_carrier_inner()
-#     & s.half_space()
-#     ).rotated((1, 0, 0), 30)
+    def make_sun(self):
+        h = self.motor_gear_thickness
+        gear1 = self.motor_gear2.extruded(h, symmetrical = False)
+
+        h += self.bearing_wall_thickness + self.clearance
+        spacer1 = s.cylinder(h, self.sun_gear.outside_diameter, symmetrical=False)
+
+        h += self.sun_thickness + 2 * self.clearance
+        gear2 = self.sun_gear.extruded(h, symmetrical = False)
+
+        h += self.ring_thickness + self.clearance
+        spacer2 = s.cylinder(h, self.bearing_id + 2 * self.bearing_shoulder_size, symmetrical=False)
+
+        return s.union([spacer1, spacer2, gear1, gear2]) - self.shaft_hole
+
+    def make_carrier_inner(self):
+        shroud_skip = self.shroud_overlap + self.clearance
+        side = (self.outer_circle - s.circle(self.joint_od - 2 * self.wall_thickness)).extruded(self.inner_carrier_half_length - shroud_skip, symmetrical = False).translated(0, 0, shroud_skip)
+        cap = s.circle(self.joint_od - 2 * (self.min_wall_thickness + self.clearance)).extruded(self.bearing_wall_thickness + self.clearance + self.sun_thickness, symmetrical = False)
+
+        sun_hole = s.cylinder(d = self.sun_gear.outside_diameter + 2 * self.clearance, h = float("inf"))
+        cap -= sun_hole
+
+        moved_bearing_hole = self.bearing_hole.rotated((1, 0, 0), 180).translated(0, 0, self.bearing_thickness + self.sun_thickness + self.clearance)
+        cap -= moved_bearing_hole.translated(self.planet_radius, 0, 0).rotated((0, 0, 1), 360, self.planet_count)
+
+        planet_hole = s.cylinder(2 * self.sun_thickness + 2 * self.clearance,
+                                 self.planet_gear1.outside_diameter + 2 * self.clearance)
+        cap -= planet_hole.translated(self.planet_radius, 0, 0).rotated((0, 0, 1), 360, self.planet_count)
+
+        cap -= self.screw_holes
+
+        return side + cap
+
+    def make_carrier_outer(self):
+        side = s.cylinder(h = self.outer_carrier_length, d = self.outer_carrier_od, symmetrical = False)
+        cap = s.cylinder(h = self.bearing_wall_thickness, d = self.outer_carrier_od, symmetrical = False)
+
+        sun_hole = s.cylinder(h = float("inf"), d = self.outer_carrier_od - 2 * self.wall_thickness)
+        side -= sun_hole
+
+        screw_tubes = s.cylinder(h = self.outer_carrier_length,
+                                 d = self.screw_diameter + 2 * self.wall_thickness,
+                                 symmetrical=False).translated(self.outer_carrier_screw_radius, 0, 0) \
+                                   .rotated((0, 0, 1), 180 / self.planet_count) \
+                                   .rotated((0, 0, 1), 360, self.planet_count)
+        side += screw_tubes
+
+        moved_bearing_hole = self.bearing_hole.translated(0, 0, self.bearing_shoulder_thickness)
+        cap -= moved_bearing_hole
+        cap -= moved_bearing_hole.translated(self.planet_radius, 0, 0).rotated((0, 0, 1), 360, self.planet_count)
+
+        planet_hole = s.cylinder(float("inf"),
+                                 self.planet_gear2.outside_diameter + 2 * self.clearance)
+        side -= planet_hole.translated(self.planet_radius, 0, self.outer_carrier_length).rotated((0, 0, 1), 360, self.planet_count)
+
+        body = side + cap
+            #TODO: Rounded unions
+
+        body -= self.screw_holes
+
+        return body
+
+    def make_ring(self):
+        h = self.bearing_wall_thickness
+        cap = s.cylinder(h = h, d = self.joint_od, symmetrical = False)
+        cap -= self.bearing_hole.translated(0, 0, self.bearing_shoulder_thickness)
+
+        h += self.bearing_wall_thickness
+        h += self.clearance
+        outer = (self.outer_circle - s.circle(self.outer_carrier_od + 2 * self.clearance)).extruded(h, symmetrical=False)
+
+        h += self.ring_thickness
+        h += self.clearance
+        gear = (self.outer_circle - self.ring_gear).extruded(h, symmetrical = False)
+
+        h += self.clearance
+        h += self.shroud_overlap
+        shroud = (self.outer_circle - s.circle(self.joint_od - 2 * self.min_wall_thickness)).extruded(h, symmetrical=False)
+
+        return cap + outer + gear + shroud
+
+    def make_shapes(self):
+        """ Return list of shapes in print orientation """
+        return {"inner_carrier": self.make_carrier_inner(),
+                "outer_carrier": self.make_carrier_outer(),
+                "sun": self.make_sun(),
+                "ring": self.make_ring(),
+                "planet1": self.make_planet(),
+                "planet2": self.make_planet(),
+                "planet3": self.make_planet()}
+
+    def make_overview(self):
+        o = s.union([self.make_carrier_inner().rotated((1, 0, 0), 180).translated(0, 0, self.inner_carrier_half_length),
+                     self.make_carrier_outer().rotated((1, 0, 0), 180).translated(0, 0, self.outer_carrier_length + self.inner_carrier_half_length),
+                     self.make_sun().translated(0, 0, self.inner_carrier_half_length - self.bearing_wall_thickness - 2 * self.clearance - self.sun_thickness - self.motor_gear_thickness),
+                     self.make_ring().rotated((1, 0, 0), 180).translated(0, 0, self.outer_carrier_length + self.inner_carrier_half_length + self.bearing_wall_thickness + self.clearance),
+                     self.make_planet().translated(self.planet_radius, 0, self.inner_carrier_half_length - self.sun_thickness).rotated((0, 0, 1), 360, self.planet_count)
+                     ]
+                    )
+
+        return (o & s.half_space()).rotated((1, 0, 0), 30)
 
 if __name__ == "__main__":
-    codecad.commandline_render(o, 0.1)
+    #Joint.optimize()
+    j = Joint(11, 60, 13, 41, 18, 53)
+    j.print_details()
+    codecad.commandline_render(j.make_overview(), 0.1)
 

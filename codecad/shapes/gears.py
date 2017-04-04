@@ -18,47 +18,56 @@ class InvoluteGearBase(simple2d.Shape2D):
                                 [self.tooth_count, self.pressure_angle],
                                 [point])
 
-def involute_gear(tooth_count, module,
-                  addendum_modules = 1,
-                  dedendum_modules = 1,
-                  pressure_angle = 20,
-                  backlash = 0,
-                  clearance = 0,
-                  internal = False):
-    """ Generates a 2D shape of a external or internal involute gear. """
+class InvoluteGear(simple2d.Union2D):
+    """ A 2D shape of a external or internal involute gear.
+    In case of an internal gear, this is the negative shape to be subtracted.
 
-    pitch_radius = tooth_count * module / 2
-    root_radius = pitch_radius - dedendum_modules * module
-    outside_radius = pitch_radius + addendum_modules * module
+    The following member variables are set:
+    n, module, addendum modules, dedendum_modules, pressure_angle, backlash, clearance, internal.
+    pitch_diameter, root_circle_diameter, addendum_circle_diameter """
 
-    if internal:
-        outside_radius += clearance
-        backlash = -backlash
-    else:
-        root_radius -= clearance
+    def __init__(self, n, module,
+                 addendum_modules = 1,
+                 dedendum_modules = 1,
+                 pressure_angle = 20,
+                 backlash = 0,
+                 clearance = 0,
+                 internal = False):
 
-    base = InvoluteGearBase(tooth_count, pressure_angle).scaled(pitch_radius)
+        self.n = n
+        self.module = module
+        self.addendum_modules = addendum_modules
+        self.dedendum_modules = dedendum_modules
+        self.pressure_angle = pressure_angle
+        self.backlash = backlash
+        self.clearance = clearance
+        self.internal = internal
 
-    if backlash != 0:
-        base = base.offset(-backlash)
+        self.pitch_diameter = n * module
 
-    root_circle = simple2d.Circle(r=root_radius)
-    outside_circle = simple2d.Circle(r=outside_radius)
+        pitch_radius = self.pitch_diameter / 2
 
-    return (base & outside_circle) + root_circle
+        if internal:
+            inside_radius = pitch_radius - addendum_modules * module
+            outside_radius = pitch_radius + dedendum_modules * module + clearance
 
-def involute_gear_pair(tooth_count1, tooth_count2, module,
-                       working_depth_modules = 2,
-                       pressure_angle = 20,
-                       backlash = 0,
-                       clearance = 0):
-    """ Returns tuple (gear1, gear2, center_distance) """
-    # TODO Profile and backlash shifting
-    gear1 = involute_gear(tooth_count1, module,
-                          working_depth_modules / 2, working_depth_modules / 2,
-                          pressure_angle, backlash / 2, clearance)
-    gear2 = involute_gear(tooth_count2, module,
-                          working_depth_modules / 2, working_depth_modules / 2,
-                          pressure_angle, backlash / 2, clearance)
+            self.inside_diameter = inside_radius * 2
+            self.root_diameter = outside_radius * 2
 
-    return gear1, gear2, (tooth_count1 + tooth_count2) * module / 2
+            backlash = -backlash
+        else:
+            inside_radius = pitch_radius - dedendum_modules * module - clearance
+            outside_radius = pitch_radius + addendum_modules * module
+
+            self.outside_diameter = outside_radius * 2
+            self.root_diameter = inside_radius * 2
+
+        base = InvoluteGearBase(n, pressure_angle).scaled(pitch_radius)
+
+        if backlash != 0:
+            base = base.offset(-backlash)
+
+        inner_circle = simple2d.Circle(r=inside_radius)
+        outer_circle = simple2d.Circle(r=outside_radius)
+
+        super().__init__([base & outer_circle, inner_circle])
