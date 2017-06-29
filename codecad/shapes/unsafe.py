@@ -27,8 +27,8 @@ class _Repetition:
 
     def bounding_box(self):
         b = self.s.bounding_box()
-        return util.BoundingBox(util.Vector(*(x if s is None else s for x, s in zip(b.a, self.spacing))),
-                                util.Vector(*(x if s is None else s for x, s in zip(b.b, self.spacing))))
+        return util.BoundingBox(util.Vector(*(x if s is None else -float("inf") for x, s in zip(b.a, self.spacing))),
+                                util.Vector(*(x if s is None else float("inf") for x, s in zip(b.b, self.spacing))))
 
     def get_node(self, point, cache):
         return self.s.get_node(cache.make_node("repetition",
