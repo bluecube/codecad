@@ -1,8 +1,15 @@
+# Core:
 numpy==1.11.0
+pyopencl==2017.1.1
+
+# Image export:
 Pillow==3.4.0
-Cython==0.24
+
+# STL export:
+Cython==0.24 # Needed for PyMCubes :-/
 PyMCubes==0.0.6
 numpy-stl==1.8.0
-pyopencl==2016.2.1
+
+# Tests:
 pytest==3.1.1
 trimesh==2.13.12
