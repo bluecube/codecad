@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="143mm" height="69.723mm" version="1.1" viewBox="0 0 142.99977 69.723015" xmlns="http://www.w3.org/2000/svg">
+ <g transform="translate(-18.25,-65.25)">
+  <path transform="scale(.26458)" d="m245.67 274.2a103.84 168.01 0 0 0 -103.84 168.01 103.84 168.01 0 0 0 2.793 37.795h157.73v-178.38a103.84 168.01 0 0 0 -56.691 -27.424z" style="fill-opacity:.49451;fill-rule:evenodd;fill:#008f39;stroke-dashoffset:6.37;stroke-opacity:.49412;stroke-width:1.8898;stroke:#395644"/>
+  <rect x="20" y="67" width="60" height="60" style="color:#000000;fill:none;stroke-width:.5;stroke:#000"/>
+  <circle cx="20" cy="67" r=".75" style="fill-rule:evenodd;fill:#ff0610"/>
+  <circle cx="40" cy="67" r=".75" style="fill-rule:evenodd;fill:#ff0610"/>
+  <circle cx="60" cy="67" r=".75" style="fill-rule:evenodd;fill:#ff0610"/>
+  <circle cx="20" cy="87" r=".75" style="fill-rule:evenodd;fill:#ff0610"/>
+  <circle cx="40" cy="87" r=".75" style="fill-rule:evenodd;fill:#ff0610"/>
+  <circle cx="60" cy="87" r=".75" style="fill-rule:evenodd;fill:#ff0610"/>
+  <circle cx="20" cy="107" r=".75" style="fill-rule:evenodd;fill:#ff0610"/>
+  <circle cx="40" cy="107" r=".75" style="fill-rule:evenodd;fill:#ff0610"/>
+  <circle cx="60" cy="107" r=".75" style="fill-rule:evenodd;fill:#ff0610"/>
+  <text x="30.000002" y="142" style="fill:#000000;font-family:'DejaVu Sans';font-size:4.2333px;letter-spacing:0px;line-height:125%;stroke-width:.26458px;text-align:center;text-anchor:middle;word-spacing:0px" xml:space="preserve"><tspan x="30.000002" y="145.74551" style="stroke-width:.26458px"/></text>
+  <text x="50.004131" y="133.09451" style="fill:#000000;font-family:'Liberation Mono';font-size:4.2333px;letter-spacing:0px;line-height:125%;stroke-width:.26458px;text-align:center;text-anchor:middle;word-spacing:0px" xml:space="preserve"><tspan x="50.004131" y="133.09451" style="stroke-width:.26458px">overlap = False</tspan></text>
+  <text x="130.00414" y="133.09451" style="fill:#000000;font-family:'Liberation Mono';font-size:4.2333px;letter-spacing:0px;line-height:125%;stroke-width:.26458px;text-align:center;text-anchor:middle;word-spacing:0px" xml:space="preserve"><tspan x="130.00414" y="133.09451" style="stroke-width:.26458px">overlap = True</tspan></text>
+  <path d="m145 72.548a27.473 44.452 0 0 0 -27.473 44.453 27.473 44.452 0 0 0 .73897 9.9999h41.734v-47.197a27.473 44.452 0 0 0 -15 -7.2559z" style="fill-opacity:.49451;fill-rule:evenodd;fill:#008f39;stroke-dashoffset:6.37;stroke-opacity:.49412;stroke-width:.5;stroke:#395644"/>
+  <circle cx="100" cy="67" r=".75" style="fill-rule:evenodd;fill:#ff0610"/>
+  <circle cx="120" cy="67" r=".75" style="fill-rule:evenodd;fill:#ff0610"/>
+  <circle cx="140" cy="67" r=".75" style="fill-rule:evenodd;fill:#ff0610"/>
+  <circle cx="100" cy="87" r=".75" style="fill-rule:evenodd;fill:#ff0610"/>
+  <circle cx="120" cy="87" r=".75" style="fill-rule:evenodd;fill:#ff0610"/>
+  <circle cx="140" cy="87" r=".75" style="fill-rule:evenodd;fill:#ff0610"/>
+  <circle cx="100" cy="107" r=".75" style="fill-rule:evenodd;fill:#ff0610"/>
+  <circle cx="120" cy="107" r=".75" style="fill-rule:evenodd;fill:#ff0610"/>
+  <rect x="100" y="67" width="40" height="40" style="color:#000000;fill:none;stroke-width:.5;stroke:#000"/>
+  <circle cx="140" cy="107" r=".75" style="fill-rule:evenodd;fill:#ff0610"/>
+ </g>
+</svg>

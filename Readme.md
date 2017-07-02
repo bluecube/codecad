@@ -65,6 +65,7 @@ Main sources so far:
   - [ ] Separate 2d transformations
   - [ ] Convert 90° rotations and -1 scaling to vector component shuffling and negations
   - [ ] Include bounding volumes in instruction stream and use it to clip the computation
+  - [ ] Try speeding up subdivision code (and others) with prefix sums
 - Things to model with it
   - [ ] _mystery project_ (NACA airfoils, meshed internal structure)
   - [ ] Box generator (Assemblies)
