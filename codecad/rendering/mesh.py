@@ -1,0 +1,57 @@
+import numpy
+import mcubes
+import pyopencl
+
+from .. import util
+from .. import subdivision
+from ..compute import compute
+
+def triangular_mesh(obj, resolution, subdivision_grid_size=None, debug_subdivision_boxes = False):
+    """ Yield tuples (vertices, indices). """
+    obj.check_dimension(required = 3)
+
+    program_buffer, grid_size, boxes = subdivision.subdivision(obj,
+                                                               resolution,
+                                                               grid_size=subdivision_grid_size)
+
+    block = numpy.empty((grid_size[1], grid_size[0], grid_size[2]),
+                        dtype=numpy.float32)
+    block_buffer = pyopencl.Buffer(compute.ctx, pyopencl.mem_flags.WRITE_ONLY, block.nbytes)
+
+    for i, (box_corner, box_resolution, box_size) in enumerate(boxes):
+        box_size = util.Vector(*box_size)
+
+        if debug_subdivision_boxes:
+            # Export just an outline of the block instead of displaying its contents
+            vertices = [util.Vector(i, j, k).elementwise_mul(box_size) * box_resolution + box_corner
+                        for k in range(2) for j in range(2) for i in range(2)]
+            trinagles = [[0, 3, 1], [0, 2, 3],
+                         [1, 3, 5], [3, 7, 5],
+                         [4, 5, 6], [5, 7, 6],
+                         [0, 6, 2], [0, 4, 6],
+                         [0, 1, 5], [0, 5, 4],
+                         [3, 2, 6], [3, 6, 7]]
+            yield vertices, triangles
+            continue
+
+        #print(box_corner, box_resolution, box_size)
+        #with util.status_block("{}/{}".format(i + 1, len(boxes))):
+        # TODO: Staggered opencl / python processing the way subdivision does it.
+        ev = compute.program.grid_eval(compute.queue, grid_size, None,
+                                       program_buffer,
+                                       box_corner.as_float4(), numpy.float32(box_resolution),
+                                       block_buffer)
+        pyopencl.enqueue_copy(compute.queue, block, block_buffer, wait_for=[ev])
+
+        vertices, triangles = mcubes.marching_cubes(block, 0)
+
+        if len(triangles) == 0:
+            continue
+
+        vertices[:, [0, 1]] = vertices[:, [1, 0]]
+        vertices[:, 1] *= -1
+        vertices *= box_resolution
+        vertices += box_corner
+        triangles[:, [0, 1]] = triangles[:, [1, 0]]
+
+        yield vertices, triangles
