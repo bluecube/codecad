@@ -49,6 +49,11 @@ Main sources so far:
 - [ ] Colors / materials
 - [ ] Asynchronous API :four:
 - [ ] Get rid of PyMCubes use GPU for triangulation (dual contouring?) :four:
+- [ ] Clean up progress reporting and script/application/notebook interfaces
+- [ ] Mass properties separated from subdivision
+ - [ ] Volume
+ - [ ] Centroid
+ - [ ] Inertia matrix?
 - Fix problems created by the opencl conversion
   - [X] STL export
   - [X] Matplotlib slice
@@ -56,6 +61,8 @@ Main sources so far:
   - [ ] Animations
   - [ ] Svg export :two:
   - [ ] Tests :one:
+    - [ ] Doctests
+    - [ ] Test examples
 - Optimization ideas
   - [ ] Merge `transformation_to` and `transformation_from` blocks
   - [ ] Don't output no-op transformations
