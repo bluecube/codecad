@@ -1,15 +1,16 @@
+""" Very simple smoke tests for shape evaluation and mass properties """
 import codecad
 import math
 from pytest import approx
 
 def check_shape(shape, volume, centroid = None):
     print(repr(shape))
-    result = codecad.volume_and_centroid(shape, .01)
+    result = codecad.volume_and_centroid(shape, .1)
 
-    assert result.volume == approx(volume, rel=0.01)
+    assert result.volume == approx(volume, rel=0.05)
 
     if centroid is not None:
-        assert result.centroid == approx(codecad.util.Vector(*centroid), rel=0.01)
+        assert result.centroid == approx(codecad.util.Vector(*centroid), rel=0.05)
 
 def test_shapes():
     cube = codecad.shapes.box()

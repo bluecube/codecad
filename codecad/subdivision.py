@@ -15,7 +15,7 @@ class _Helper:
         self.grid_size = grid_size
         self.program_buffer = program_buffer
         self.block_sizes = block_sizes
-        self.counters = cl_util.Buffer(queue, numpy.uint32, 5, pyopencl.mem_flags.READ_WRITE)
+        self.counter = cl_util.Buffer(queue, numpy.uint32, 1, pyopencl.mem_flags.READ_WRITE)
         self.list = cl_util.Buffer(queue, cl_util.Buffer.quad_dtype(numpy.uint8), grid_size * grid_size * grid_size, pyopencl.mem_flags.WRITE_ONLY)
 
         self.level = None
@@ -29,35 +29,26 @@ class _Helper:
         shifted_corner = box_corner + util.Vector.splat(box_step / 2)
 
         # Enqueue write instead of fill to work around pyopencl bug #168
-        fill_ev = self.counters.enqueue_write(numpy.zeros((self.counters.size,), self.counters.dtype))
+        fill_ev = self.counter.enqueue_write(numpy.zeros(1, self.counter.dtype))
 
         self.ev = compute.program.subdivision_step(self.queue, grid_dimensions, None,
                                                    self.program_buffer,
                                                    shifted_corner.as_float4(), numpy.float32(box_step),
                                                    numpy.float32(box_step * math.sqrt(3)),
-                                                   self.counters.buffer, self.list.buffer,
+                                                   self.counter.buffer, self.list.buffer,
                                                    wait_for=[fill_ev])
 
     def process_result(self):
         box_step = self.block_sizes[self.level][0]
 
-        c = self.counters.read(wait_for=[self.ev])
+        c = self.counter.read(wait_for=[self.ev])
         intersecting_count = c[0]
-        inner_count = c[1]
-        inner_sum = util.Vector(c[2], c[3], c[4])
         intersecting_indices = self.list.read()
 
         intersecting_pos = [util.Vector(i, j, k) * box_step + self.box_corner
                             for i, j, k, l in intersecting_indices[:intersecting_count]]
 
-        if inner_count > 0:
-            inner_volume = inner_count * box_step * box_step * box_step
-            inner_avg_pos = self.box_corner + inner_sum * util.Vector.splat(box_step / inner_count)
-        else:
-            inner_volume = 0
-            inner_avg_pos = util.Vector.splat(0)
-
-        return self.level, intersecting_pos, inner_volume, inner_avg_pos
+        return self.level, intersecting_pos
 
 def _calculate_block_sizes(box, resolution, grid_size, overlap):
     # Figure out the layout of grids for processing.
@@ -137,15 +128,12 @@ def subdivision(shape, resolution, overlap_edge_samples=True, grid_size=None):
     stack = []
     final_blocks = []
 
-    #inner_avg_pos = util.Vector(0, 0, 0)
-    #inner_volume = # TODO: Caclculate volume
-
     while True:
         stack_was_empty = len(stack) == 0
         if not stack_was_empty:
             helper2.enqueue(*stack.pop())
 
-        level, intersecting_pos, block_inner_volume, block_inner_avg_pos = helper1.process_result()
+        level, intersecting_pos = helper1.process_result()
         level += 1
         if level == len(block_sizes) - 1:
             for pos in intersecting_pos:
