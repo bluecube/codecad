@@ -32,13 +32,13 @@ def test_block_sizes(grid_size, overlap):
             else:
                 assert level_resolution == prev_level_resolution * prev_level_size[i], "Each level must exactly cover the next one"
 
-def test_blocks():
+def test_block_corners():
     _, _, blocks = codecad.subdivision.subdivision(codecad.shapes.box(10),
                                                    1,
-                                                   grid_size=7,
+                                                   grid_size=4,
                                                    overlap_edge_samples=True)
 
     corners = { block[0] for block in blocks }
-    expected = { codecad.util.Vector(*coords) for coords in itertools.product([-5.5, 0.5], repeat=3) }
+    expected = { codecad.util.Vector(*coords) for coords in itertools.product([-5.5, -2.5, 0.5, 3.5], repeat=3) }
 
     assert corners == expected

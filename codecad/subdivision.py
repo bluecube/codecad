@@ -10,11 +10,13 @@ from .compute import program
 
 
 class _Helper:
-    def __init__(self, queue, grid_size, program_buffer, block_sizes):
+    def __init__(self, queue, grid_size, program_buffer, block_sizes, final_blocks):
         self.queue = queue
         self.grid_size = grid_size
         self.program_buffer = program_buffer
         self.block_sizes = block_sizes
+        self.final_blocks = final_blocks
+
         self.counter = cl_util.Buffer(queue, numpy.uint32, 1, pyopencl.mem_flags.READ_WRITE)
         self.list = cl_util.Buffer(queue, cl_util.Buffer.quad_dtype(numpy.uint8), grid_size * grid_size * grid_size, pyopencl.mem_flags.WRITE_ONLY)
 
@@ -31,24 +33,32 @@ class _Helper:
         # Enqueue write instead of fill to work around pyopencl bug #168
         fill_ev = self.counter.enqueue_write(numpy.zeros(1, self.counter.dtype))
 
-        self.ev = compute.program.subdivision_step(self.queue, grid_dimensions, None,
-                                                   self.program_buffer,
-                                                   shifted_corner.as_float4(), numpy.float32(box_step),
-                                                   numpy.float32(box_step * math.sqrt(3)),
-                                                   self.counter.buffer, self.list.buffer,
-                                                   wait_for=[fill_ev])
+        return compute.program.subdivision_step(self.queue, grid_dimensions, None,
+                                                self.program_buffer,
+                                                shifted_corner.as_float4(), numpy.float32(box_step),
+                                                numpy.float32(box_step * math.sqrt(3)),
+                                                self.counter.buffer, self.list.buffer,
+                                                wait_for=[fill_ev])
 
-    def process_result(self):
+    def process_result(self, event):
         box_step = self.block_sizes[self.level][0]
 
-        c = self.counter.read(wait_for=[self.ev])
+        c = self.counter.read(wait_for=[event])
         intersecting_count = c[0]
         intersecting_indices = self.list.read()
 
         intersecting_pos = [util.Vector(i, j, k) * box_step + self.box_corner
                             for i, j, k, l in intersecting_indices[:intersecting_count]]
 
-        return self.level, intersecting_pos
+        level = self.level + 1
+        if level == len(self.block_sizes) - 1:
+            for pos in intersecting_pos:
+                self.final_blocks.append((util.Vector(*pos[:3]),
+                                         self.block_sizes[level][0],
+                                         self.block_sizes[level][1]))
+            return []
+        else:
+            return ((util.Vector(*pos[:3]), level) for pos in intersecting_pos)
 
 def _calculate_block_sizes(box, resolution, grid_size, overlap):
     # Figure out the layout of grids for processing.
@@ -121,35 +131,11 @@ def subdivision(shape, resolution, overlap_edge_samples=True, grid_size=None):
     if len(block_sizes) == 1:
         return program_buffer, block_sizes[0][1], [(box.a, block_sizes[0][0], block_sizes[0][1])]
 
-    helper1 = _Helper(compute.queue, grid_size, program_buffer, block_sizes)
-    helper1.enqueue(box.a, 0)
-    helper2 = _Helper(compute.queue, grid_size, program_buffer, block_sizes)
-
-    stack = []
     final_blocks = []
+    helper1 = _Helper(compute.queue, grid_size, program_buffer, block_sizes, final_blocks)
+    helper1.enqueue(box.a, 0)
+    helper2 = _Helper(compute.queue, grid_size, program_buffer, block_sizes, final_blocks)
 
-    while True:
-        stack_was_empty = len(stack) == 0
-        if not stack_was_empty:
-            helper2.enqueue(*stack.pop())
-
-        level, intersecting_pos = helper1.process_result()
-        level += 1
-        if level == len(block_sizes) - 1:
-            for pos in intersecting_pos:
-                final_blocks.append((util.Vector(*pos[:3]),
-                                     block_sizes[level][0],
-                                     block_sizes[level][1]))
-            if stack_was_empty:
-                break
-
-        else:
-            for pos in intersecting_pos:
-                stack.append((util.Vector(*pos[:3]), level))
-
-            if stack_was_empty:
-                helper2.enqueue(*stack.pop())
-
-        helper1, helper2 = helper2, helper1 # Swap them for the next iteration
+    cl_util.interleave([(box.a, 0)], helper1, helper2)
 
     return program_buffer, block_sizes[-1][1], final_blocks

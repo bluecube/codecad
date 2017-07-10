@@ -65,3 +65,42 @@ class Buffer:
     #    with array.base:
     #        print("array", array.dtype);
     #        yield array
+
+
+class _InterleavingHelperWrapper:
+    def __init__(self, helper):
+        self._helper = helper
+        self._event = None
+
+    def enqueue(self, *args, **kwargs):
+        self._event = self._helper.enqueue(*args, **kwargs)
+
+    def process_result(self):
+        return self._helper.process_result(self._event)
+
+
+def interleave(initial_jobs, helper1, helper2):
+    assert len(initial_jobs), "There must be at least one job to start"
+
+    stack = list(initial_jobs)
+
+    wrapped_helper1 = _InterleavingHelperWrapper(helper1)
+    wrapped_helper2 = _InterleavingHelperWrapper(helper2)
+
+    wrapped_helper1.enqueue(*stack.pop())
+
+    while True:
+        stack_was_empty = not len(stack)
+
+        if not stack_was_empty:
+            wrapped_helper2.enqueue(*stack.pop())
+
+        stack.extend(wrapped_helper1.process_result())
+
+        if stack_was_empty:
+            if len(stack):
+                wrapped_helper2.enqueue(*stack.pop())
+            else:
+                break
+
+        wrapped_helper1, wrapped_helper2 = wrapped_helper2, wrapped_helper1 # Swap them for the next iteration
