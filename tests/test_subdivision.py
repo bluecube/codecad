@@ -10,7 +10,7 @@ import codecad.subdivision
 def test_block_sizes(grid_size, overlap):
     size = codecad.util.Vector(10, 20, 30)
     box = codecad.util.BoundingBox(-size / 2, size / 2)
-    bs = codecad.subdivision._calculate_block_sizes(box, 1, grid_size, overlap)
+    bs = codecad.subdivision.calculate_block_sizes(box, 1, grid_size, overlap)
 
     assert bs[-1][0] == 1, "Final block size must have the preset resolution"
     for level_resolution, level_size in bs[1:]:

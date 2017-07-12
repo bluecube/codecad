@@ -60,7 +60,7 @@ class _Helper:
         else:
             return ((util.Vector(*pos[:3]), level) for pos in intersecting_pos)
 
-def _calculate_block_sizes(box, resolution, grid_size, overlap):
+def calculate_block_sizes(box, resolution, grid_size, overlap):
     # Figure out the layout of grids for processing.
     # There shouldn't ever be more than ~10 levels.
 
@@ -126,7 +126,7 @@ def subdivision(shape, resolution, overlap_edge_samples=True, grid_size=None):
 
     box = shape.bounding_box().expanded_additive(resolution/2)
 
-    block_sizes = _calculate_block_sizes(box, resolution, grid_size, overlap_edge_samples)
+    block_sizes = calculate_block_sizes(box, resolution, grid_size, overlap_edge_samples)
 
     if len(block_sizes) == 1:
         return program_buffer, block_sizes[0][1], [(box.a, block_sizes[0][0], block_sizes[0][1])]
