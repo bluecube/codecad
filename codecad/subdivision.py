@@ -133,7 +133,6 @@ def subdivision(shape, resolution, overlap_edge_samples=True, grid_size=None):
 
     final_blocks = []
     helper1 = _Helper(compute.queue, grid_size, program_buffer, block_sizes, final_blocks)
-    helper1.enqueue(box.a, 0)
     helper2 = _Helper(compute.queue, grid_size, program_buffer, block_sizes, final_blocks)
 
     cl_util.interleave([(box.a, 0)], helper1, helper2)
