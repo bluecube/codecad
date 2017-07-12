@@ -118,7 +118,7 @@ def subdivision(shape, resolution, overlap_edge_samples=True, grid_size=None):
 
     assert resolution > 0, "Non-positive resolution makes no sense"
     assert grid_size > 1, "Grid needs to be at least 2x2x2"
-    assert grid_size**4 <= 2**32, "Centroid coordinate sums would overflow"
+    assert grid_size <= 256, "Grid size > 256 would cause overflows in returned index list."
 
     program_buffer = pyopencl.Buffer(compute.ctx,
                                      pyopencl.mem_flags.READ_ONLY | pyopencl.mem_flags.COPY_HOST_PTR,
