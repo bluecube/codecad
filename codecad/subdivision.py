@@ -77,7 +77,7 @@ def calculate_block_sizes(box, resolution, grid_size, overlap):
         else:
             tmp = current_resolution * grid_size
 
-        if tmp > box_max_size:
+        if tmp >= box_max_size:
             break
         current_resolution = tmp
     if overlap and len(block_sizes) == 1:
