@@ -119,7 +119,7 @@ class _Helper:
         self.level = level
         shifted_corner = box_corner + util.Vector.splat(box_step / 2)
         if level < len(self.block_sizes) - 1:
-            distance_threshold = box_step * math.sqrt(3)
+            distance_threshold = box_step * math.sqrt(3) / 2
         else:
             distance_threshold = 0
 

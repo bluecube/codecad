@@ -36,7 +36,7 @@ class _Helper:
         return compute.program.subdivision_step(self.queue, grid_dimensions, None,
                                                 self.program_buffer,
                                                 shifted_corner.as_float4(), numpy.float32(box_step),
-                                                numpy.float32(box_step * math.sqrt(3)),
+                                                numpy.float32(box_step * math.sqrt(3) / 2),
                                                 self.counter.buffer, self.list.buffer,
                                                 wait_for=[fill_ev])
 
