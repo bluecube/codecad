@@ -9,7 +9,7 @@ class ShapeBase(metaclass=abc.ABCMeta):
     """ Abstract base class for 2D and 3D shapes """
 
     @abc.abstractmethod
-    def bounding_box(self, point):
+    def bounding_box(self):
         """ Returns a box that contains the whole shape.
         Must be overridden by subclasses. """
 
