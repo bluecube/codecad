@@ -41,6 +41,8 @@ def test_block_corners():
                                                    overlap_edge_samples=True)
 
     corners = { block[0] for block in blocks }
-    expected = { codecad.util.Vector(*coords) for coords in itertools.product([-5.5, -2.5, 0.5, 3.5], repeat=3) }
+    expected = { codecad.util.Vector(*coords) for coords in itertools.product([-5.5, -2.5, 0.5, 3.5], repeat=3) } - \
+               { codecad.util.Vector(*coords) for coords in itertools.product([-2.5, 0.5], repeat=3) }
+        # Subdivision skips blocks inside the shape
 
     assert corners == expected
