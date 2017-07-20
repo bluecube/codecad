@@ -11,6 +11,10 @@ from .compute import program
 from .compute import compute
 
 class MassProperties(collections.namedtuple("MassProperties", "volume centroid inertia_tensor")):
+    """
+    Contains volume of a body, position of its centroid and its inertia tensor.
+    The inertia tensor is referenced to the centroid, not origin!
+    """
     __slots__ = ()
 
 def mass_properties(shape, resolution, grid_size=None):
@@ -161,19 +165,30 @@ class _Helper:
         tmp_xz = s2 * sum_xz
         tmp_yz = s2 * sum_yz
 
-        # TODO: Watch out for numerical errors here!
+        integral_one = s3 * n
+        integral_x = s3 * (n * b.x + tmp_x)
+        integral_y = s3 * (n * b.y + tmp_y)
+        integral_z = s3 * (n * b.z + tmp_z)
+        integral_xx = s3 * (n * (b.x * b.x + s2 / 12) + 2 * b.x * tmp_x + tmp_xx)
+        integral_yy = s3 * (n * (b.y * b.y + s2 / 12) + 2 * b.y * tmp_y + tmp_yy)
+        integral_zz = s3 * (n * (b.z * b.z + s2 / 12) + 2 * b.z * tmp_z + tmp_zz)
+        integral_xy = s3 * (n * b.x * b.y + b.x * tmp_y + b.y * tmp_x + tmp_xy)
+        integral_xz = s3 * (n * b.x * b.z + b.x * tmp_z + b.z * tmp_x + tmp_xz)
+        integral_yz = s3 * (n * b.y * b.z + b.y * tmp_z + b.z * tmp_y + tmp_yz)
+
+        # TODO: Watch out for numerical errors here, convert this to use Kahan sumation
         # Values added to each integral running sum are going to be exponentially
         # decreasing as the grid gets finer, we might run out of space in mantissa
-        self.integral_one += s3 * n
-        self.integral_x += s3 * (n * b.x + tmp_x)
-        self.integral_y += s3 * (n * b.y + tmp_y)
-        self.integral_z += s3 * (n * b.z + tmp_z)
-        self.integral_xx += s3 * (n * b.x * b.x + 2 * b.x * tmp_x + tmp_xx)
-        self.integral_yy += s3 * (n * b.y * b.y + 2 * b.y * tmp_y + tmp_yy)
-        self.integral_zz += s3 * (n * b.z * b.z + 2 * b.z * tmp_z + tmp_zz)
-        self.integral_xy += s3 * (n * b.x * b.y + b.x * tmp_y + b.y * tmp_z + tmp_xy)
-        self.integral_xz += s3 * (n * b.x * b.z + b.x * tmp_z + b.z * tmp_x + tmp_xz)
-        self.integral_yz += s3 * (n * b.y * b.z + b.y * tmp_z + b.z * tmp_y + tmp_yz)
+        self.integral_one += integral_one
+        self.integral_x += integral_x
+        self.integral_y += integral_y
+        self.integral_z += integral_z
+        self.integral_xx += integral_xx
+        self.integral_yy += integral_yy
+        self.integral_zz += integral_zz
+        self.integral_xy += integral_xy
+        self.integral_xz += integral_xz
+        self.integral_yz += integral_yz
 
         level = self.level + 1
         if level == len(self.block_sizes):
