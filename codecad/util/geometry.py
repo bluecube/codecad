@@ -84,6 +84,8 @@ class Vector(collections.namedtuple("Vector", "x y z")):
     def as_float4(self):
         return numpy.array((self.x, self.y, self.z, 0), dtype=numpy.float32)
 
+    def as_matrix(self):
+        return numpy.matrix([[self.x], [self.y], [self.z], [1]])
 
 class BoundingBox(collections.namedtuple("BoundingBox", "a b")):
     __slots__ = ()
@@ -172,6 +174,19 @@ class Quaternion(collections.namedtuple("Quaternion", "v w")):
         """ Return parameters as a list of floats (for nodes) """
         return list(self.v) + [self.w]
 
+    def as_matrix(self):
+        """
+        Return a 4x4 numpy matrix that represents the same transformation.
+
+        Currently this is slow (but robust) and only intended for testing.
+        """
+
+        ret = numpy.matrix([self.transform_vector(Vector(1, 0, 0)).as_float4(),
+                            self.transform_vector(Vector(0, 1, 0)).as_float4(),
+                            self.transform_vector(Vector(0, 0, 1)).as_float4(),
+                            [0, 0, 0, 1]]).T
+        return ret
+
 
 class Transformation(collections.namedtuple("Transformation", "quaternion offset")):
     """ Quaternion and a vector offset """
@@ -197,3 +212,13 @@ class Transformation(collections.namedtuple("Transformation", "quaternion offset
     def as_list(self):
         """ Return parameters as a list of floats (for nodes) """
         return self.quaternion.as_list() + list(self.offset)
+
+    def as_matrix(self):
+        """
+        Return a 4x4 numpy matrix that represents the same transformation.
+        """
+        ret = self.quaternion.as_matrix()
+        ret[0, 3] = self.offset.x
+        ret[1, 3] = self.offset.y
+        ret[2, 3] = self.offset.z
+        return ret
