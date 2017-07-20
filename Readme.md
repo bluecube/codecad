@@ -34,14 +34,12 @@ Main sources so far:
     - [ ] Shadows, ambient occlusion
     - [ ] Experiment with three point lighting
     - [ ] Transparent PNGs
-- [ ] Successive approximation of the geometry :one: (needed for volume and centroid)
+- [X] Successive approximation of the geometry (needed for volume and centroid)
 - [ ] Better geometry representation in Jupyter notebook (using three.js?)
-  - [ ] Figure out simple way to use virtualenv in Jupyter
   - [ ] Use this to make a documentation notebook
 - [ ] Add setup.py
 - [ ] Fix rounded unions! :three:
 - [ ] Parametrization of the model
-- [ ] tests! :one:
 - [ ] Models with high dynamic range (1m vs 1nm in the same model)
   - [ ] Multiprecision? `float` for initial approximation, `double` for final details
 - [ ] Boundary conditions -- unions of touching objects
@@ -50,19 +48,22 @@ Main sources so far:
 - [ ] Asynchronous API :four:
 - [ ] Get rid of PyMCubes use GPU for triangulation (dual contouring?) :four:
 - [ ] Clean up progress reporting and script/application/notebook interfaces
-- [ ] Mass properties separated from subdivision
- - [ ] Volume
- - [ ] Centroid
- - [ ] Inertia matrix?
+- [X] Mass properties separated from subdivision
+ - [X] Volume
+ - [X] Centroid
+ - [X] Inertia tensor
 - Fix problems created by the opencl conversion
   - [X] STL export
   - [X] Matplotlib slice
   - [X] Volume and centroid
   - [ ] Animations
   - [ ] Svg export :two:
-  - [ ] Tests :one:
-    - [ ] Doctests
-    - [ ] Test examples
+  - [X] Tests
+- Testing
+  - MORE TESTS FOR EVERYTHING
+  - [ ] Setup Travis
+  - [ ] Doctests
+  - [ ] Test examples
 - Optimization ideas
   - [ ] Merge `transformation_to` and `transformation_from` blocks
   - [ ] Don't output no-op transformations
@@ -74,11 +75,6 @@ Main sources so far:
   - [ ] Include bounding volumes in instruction stream and use it to clip the computation
   - [ ] Try speeding up subdivision code (and others) with prefix sums
   - [ ] Caching instruction buffers
-- Things to model with it
-  - [ ] _mystery project_ (NACA airfoils, meshed internal structure)
-  - [ ] Box generator (Assemblies)
-  - [X] Involute gears
-  - [ ] Mecha generator
 - SDF problems
   - [ ] Empty intersection of two objects still has gradients pointing somewhere random
   - [ ] `object.offset(-1).offset(1)` gives the original object, without rounded corners
