@@ -3,80 +3,9 @@ import numpy
 
 from .. import util
 from . import base
-from . import simple3d
+from . import mixins
 
-class Shape2D(base.ShapeBase):
-    """ A base 2D shape. """
-
-    @staticmethod
-    def dimension():
-        return 2
-
-    def __and__(self, second):
-        return Intersection2D([self, second])
-
-    def __add__(self, second):
-        return Union2D([self, second])
-
-    def __sub__(self, second):
-        return Subtraction2D(self, second)
-
-    def translated(self, x, y = None):
-        """ Returns current shape translated by a given offset """
-        if isinstance(x, util.Vector):
-            if y is not None:
-                raise TypeError("If first parameter is Vector, the others must be left unspecified.")
-            o = x
-        else:
-            if y is None:
-                raise ValueError("Y coordinate can only be missing if first parameter is a Vector.")
-            o = util.Vector(x, y)
-        return Transformation2D.make_merged(self,
-                                            util.Quaternion.from_degrees(util.Vector(0, 0, 1), 0),
-                                            o)
-
-    def rotated(self, angle, n = 1):
-        """ Returns current shape rotated by given angle.
-
-        If n > 1, returns an union of n copies of self, rotated in regular intervals
-        up to given angle.
-        For example angle = 180, n = 3 makes copies of self rotated by 60, 120
-        and 180 degrees. """
-        if n == 1:
-            return Transformation2D.make_merged(self,
-                                                util.Quaternion.from_degrees(util.Vector(0, 0, 1), angle),
-                                                util.Vector(0, 0, 0))
-        else:
-            angle_step = angle / n
-            return Union2D([self.rotated((1 + i) * angle_step) for i in range(n)])
-
-    def scaled(self, s):
-        """ Returns current shape scaled by given ratio """
-        return Transformation2D.make_merged(self,
-                                            util.Quaternion.from_degrees(util.Vector(0, 0, 1), 0, s),
-                                            util.Vector(0, 0, 0))
-
-    def offset(self, d):
-        """ Returns current shape offset by given distance (positive is outside) """
-        return Offset2D(self, d)
-
-    def shell(self, wall_thickness):
-        """ Returns a shell of the current shape (centered around the original surface) """
-        return Shell2D(self, wall_thickness)
-
-    def extruded(self, height, symmetrical=True):
-        s = simple3d.Extrusion(self, height)
-        if symmetrical:
-            return s
-        else:
-            return s.translated(0, 0, height/2)
-
-    def revolved(self):
-        """ Returns current shape taken as 2D in xy plane and revolved around y axis """
-        return simple3d.Revolution(self)
-
-
-class Rectangle(Shape2D):
+class Rectangle(base.Shape2D):
     def __init__(self, x = 1, y = None):
         if y is None:
             y = x
@@ -88,7 +17,7 @@ class Rectangle(Shape2D):
     def get_node(self, point, cache):
         return cache.make_node("rectangle", [self.half_size.x, self.half_size.y], [point])
 
-class Circle(Shape2D):
+class Circle(base.Shape2D):
     def __init__(self, d = 1, r = None):
         if r is None:
             self.r = d / 2
@@ -103,7 +32,7 @@ class Circle(Shape2D):
         return cache.make_node("circle", [self.r], [point])
 
 
-class HalfPlane(Shape2D):
+class HalfPlane(base.Shape2D):
     """ Half space y > 0. """
     def bounding_box(self):
         return util.BoundingBox(util.Vector(-float("inf"), 0, -float("inf")),
@@ -113,7 +42,7 @@ class HalfPlane(Shape2D):
         return cache.make_node("half_space", [], [point])
 
 
-class Polygon2D(Shape2D):
+class Polygon2D(base.Shape2D):
     def __init__(self, points):
         self.points = numpy.asarray(points, dtype=numpy.float32, order="c")
         s = self.points.shape
@@ -132,27 +61,27 @@ class Polygon2D(Shape2D):
                                [point])
 
 
-class Union2D(base.Union, Shape2D):
+class Union2D(mixins.UnionMixin, base.Shape2D):
     pass
 
 
-class Intersection2D(base.Intersection, Shape2D):
+class Intersection2D(mixins.IntersectionMixin, base.Shape2D):
     pass
 
 
-class Subtraction2D(base.Subtraction, Shape2D):
+class Subtraction2D(mixins.SubtractionMixin, base.Shape2D):
     pass
 
 
-class Offset2D(base.Offset, Shape2D):
+class Offset2D(mixins.OffsetMixin, base.Shape2D):
     pass
 
 
-class Shell2D(base.Shell, Shape2D):
+class Shell2D(mixins.ShellMixin, base.Shape2D):
     pass
 
 
-class Transformation2D(base.Transformation, Shape2D):
+class Transformation2D(mixins.TransformationMixin, base.Shape2D):
     def bounding_box(self):
         b = self.s.bounding_box().flattened()
 

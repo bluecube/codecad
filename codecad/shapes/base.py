@@ -1,9 +1,8 @@
 import abc
-import functools
 import math
-import numpy
 
 from .. import util
+# simple2d and simple3d are imported in functions to break circular dependencies
 
 class ShapeBase(metaclass=abc.ABCMeta):
     """ Abstract base class for 2D and 3D shapes """
@@ -61,107 +60,149 @@ class ShapeBase(metaclass=abc.ABCMeta):
         """ Returns a shell of the current shape (centered around the original surface) """
 
 
-class Union:
-    def __init__(self, shapes, r = -1):
-        self.shapes = list(shapes)
-        self.check_dimension(*self.shapes)
-        self.r = r
+class Shape2D(ShapeBase):
+    """ A base 2D shape. """
 
-    def bounding_box(self):
-        return functools.reduce(lambda a, b: a.union(b),
-                                (s.bounding_box() for s in self.shapes))
+    @staticmethod
+    def dimension():
+        return 2
 
-    def get_node(self, point, cache):
-        return cache.make_node("union",
-                               [self.r],
-                               (shape.get_node(point, cache) for shape in self.shapes))
+    def __and__(self, second):
+        from . import simple2d
+        return simple2d.Intersection2D([self, second])
 
+    def __add__(self, second):
+        from . import simple2d
+        return simple2d.Union2D([self, second])
 
-class Intersection:
-    def __init__(self, shapes, r = -1):
-        self.shapes = list(shapes)
-        self.check_dimension(*self.shapes)
-        self.r = r
+    def __sub__(self, second):
+        from . import simple2d
+        return simple2d.Subtraction2D(self, second)
 
-    def bounding_box(self):
-        return functools.reduce(lambda a, b: a.intersection(b),
-                                (s.bounding_box() for s in self.shapes))
+    def translated(self, x, y = None):
+        """ Returns current shape translated by a given offset """
+        if isinstance(x, util.Vector):
+            if y is not None:
+                raise TypeError("If first parameter is Vector, the others must be left unspecified.")
+            o = x
+        else:
+            if y is None:
+                raise ValueError("Y coordinate can only be missing if first parameter is a Vector.")
+            o = util.Vector(x, y)
 
-    def get_node(self, point, cache):
-        return cache.make_node("intersection",
-                               [self.r],
-                               (shape.get_node(point, cache) for shape in self.shapes))
+        from . import simple2d
+        return simple2d.Transformation2D.make_merged(self,
+                                                     util.Quaternion.from_degrees(util.Vector(0, 0, 1), 0),
+                                                     o)
 
+    def rotated(self, angle, n = 1):
+        """ Returns current shape rotated by given angle.
 
-class Subtraction:
-    def __init__(self, s1, s2):
-        self.check_dimension(s1, s2)
-        self.s1 = s1
-        self.s2 = s2
+        If n > 1, returns an union of n copies of self, rotated in regular intervals
+        up to given angle.
+        For example angle = 180, n = 3 makes copies of self rotated by 60, 120
+        and 180 degrees. """
+        from . import simple2d
+        if n == 1:
+            return simple2d.Transformation2D.make_merged(self,
+                                                         util.Quaternion.from_degrees(util.Vector(0, 0, 1), angle),
+                                                         util.Vector(0, 0, 0))
+        else:
+            angle_step = angle / n
+            return simple2d.Union2D([self.rotated((1 + i) * angle_step) for i in range(n)])
 
-    def bounding_box(self):
-        return self.s1.bounding_box()
+    def scaled(self, s):
+        """ Returns current shape scaled by given ratio """
+        from . import simple2d
+        return simple2d.Transformation2D.make_merged(self,
+                                                     util.Quaternion.from_degrees(util.Vector(0, 0, 1), 0, s),
+                                                     util.Vector(0, 0, 0))
 
-    def get_node(self, point, cache):
-        return cache.make_node("subtraction",
-                               [-1],
-                               [self.s1.get_node(point, cache), self.s2.get_node(point, cache)])
+    def offset(self, d):
+        """ Returns current shape offset by given distance (positive is outside) """
+        from . import simple2d
+        return simple2d.Offset2D(self, d)
 
-class Transformation:
-    """ Rotation and scaling followed by translation. """
-    def __init__(self, s, quaternion, translation):
-        self.check_dimension(s)
-        self.s = s
-        self.transformation = util.Transformation(quaternion, translation)
+    def shell(self, wall_thickness):
+        """ Returns a shell of the current shape (centered around the original surface) """
+        from . import simple2d
+        return simple2d.Shell2D(self, wall_thickness)
 
-    @classmethod
-    def make_merged(cls, s, quaternion, translation):
-        t = cls(s, quaternion, translation)
-        if isinstance(s, cls):
-            t.s = s.s
-            t.transformation = t.transformation * s.transformation
+    def extruded(self, height, symmetrical=True):
+        from . import simple3d
+        s = simple3d.Extrusion(self, height)
+        if symmetrical:
+            return s
+        else:
+            return s.translated(0, 0, height/2)
 
-        return t
-
-    def get_node(self, point, cache):
-        #TODO: Merge transformation nodes
-        inverse_transformation = self.transformation.inverse()
-        new_point = cache.make_node("transformation_to",
-                                    inverse_transformation.as_list(),
-                                    [point],
-                                    inverse_transformation)
-        distance = self.s.get_node(new_point, cache)
-        return cache.make_node("transformation_from",
-                               self.transformation.quaternion.as_list(),
-                               [distance],
-                               self.transformation.quaternion)
-
-
-class Offset:
-    def __init__(self, s, distance):
-        self.check_dimension(s)
-        self.s = s
-        self.distance = distance
-
-    def bounding_box(self):
-        return self.s.bounding_box().expanded_additive(self.distance)
-
-    def get_node(self, point, cache):
-        return cache.make_node("offset",
-                               [self.distance],
-                               [self.s.get_node(point, cache)])
+    def revolved(self):
+        """ Returns current shape taken as 2D in xy plane and revolved around y axis """
+        from . import simple3d
+        return simple3d.Revolution(self)
 
 
-class Shell:
-    def __init__(self, s, wall_thickness):
-        self.check_dimension(s)
-        self.s = s
-        self.wall_thickness = wall_thickness
+class Shape3D(ShapeBase):
+    """ A base 3D shape. """
 
-    def bounding_box(self):
-        return self.s.bounding_box().expanded_additive(self.wall_thickness / 2)
+    @staticmethod
+    def dimension():
+        return 3
 
-    def get_node(self, point, cache):
-        return cache.make_node("shell",
-                               [self.wall_thickness / 2],
-                               [self.s.get_node(point, cache)])
+    def __and__(self, second):
+        from . import simple3d
+        return simple3d.Intersection([self, second])
+
+    def __add__(self, second):
+        from . import simple3d
+        return simple3d.Union([self, second])
+
+    def __sub__(self, second):
+        from . import simple3d
+        return simple3d.Subtraction(self, second)
+
+    def translated(self, x, y = None, z = None):
+        """ Returns current shape translated by a given offset """
+        if isinstance(x, util.Vector):
+            if y is not None or z is not None:
+                raise TypeError("If first parameter is Vector, the others must be left unspecified.")
+            o = x
+        else:
+            o = util.Vector(x, y, z)
+        from . import simple3d
+        return simple3d.Transformation.make_merged(self,
+                                                   util.Quaternion.from_degrees(util.Vector(0, 0, 1), 0),
+                                                   o)
+
+    def rotated(self, vector, angle, n = 1):
+        """ Returns current shape rotated by an angle around the vector.
+
+        If n > 1, returns an union of n copies of self, rotated in regular intervals
+        up to given angle.
+        For example angle = 180, n = 3 makes copies of self rotated by 60, 120
+        and 180 degrees."""
+        from . import simple3d
+        if n == 1:
+            return simple3d.Transformation.make_merged(self,
+                                                       util.Quaternion.from_degrees(util.Vector(*vector), angle),
+                                                       util.Vector(0, 0, 0))
+        else:
+            angle_step = angle / n
+            return Union([self.rotated(vector, (1 + i) * angle_step) for i in range(n)])
+
+    def scaled(self, s):
+        """ Returns current shape scaled by given ratio """
+        from . import simple3d
+        return simple3d.Transformation.make_merged(self,
+                                                   util.Quaternion.from_degrees(util.Vector(0, 0, 1), 0, s),
+                                                   util.Vector(0, 0, 0))
+
+    def offset(self, d):
+        """ Returns current shape offset by given distance (positive increases size) """
+        from . import simple3d
+        return simple3d.Offset(self, d)
+
+    def shell(self, wall_thickness):
+        """ Returns a shell of the current shape (centered around the original surface) """
+        from . import simple3d
+        return simple3d.Shell(self, wall_thickness)

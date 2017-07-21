@@ -3,11 +3,10 @@ Read docstrings of the individual objects. """
 
 import math
 
-from . import simple2d
-from . import simple3d
 from .. import util
+from . import base
 
-class _Repetition:
+class _RepetitionMixin:
     """ Infinite repetition of an object along X, Y and Z axis.
     If spacing along an axis is not infinite, then the object should be symmetrical
     about a plane perpendicular to that axis going through origin, and its
@@ -37,9 +36,9 @@ class _Repetition:
                                cache)
 
 
-class Repetition2D(_Repetition, simple2d.Shape2D):
+class Repetition2D(_RepetitionMixin, base.Shape2D):
     pass
 
 
-class Repetition(_Repetition, simple3d.Shape3D):
+class Repetition(_RepetitionMixin, base.Shape3D):
     pass

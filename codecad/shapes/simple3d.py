@@ -1,67 +1,10 @@
 import math
 
-from . import base
 from .. import util
+from . import base
+from . import mixins
 
-class Shape3D(base.ShapeBase):
-    """ A base 3D shape. """
-
-    @staticmethod
-    def dimension():
-        return 3
-
-    def __and__(self, second):
-        return Intersection([self, second])
-
-    def __add__(self, second):
-        return Union([self, second])
-
-    def __sub__(self, second):
-        return Subtraction(self, second)
-
-    def translated(self, x, y = None, z = None):
-        """ Returns current shape translated by a given offset """
-        if isinstance(x, util.Vector):
-            if y is not None or z is not None:
-                raise TypeError("If first parameter is Vector, the others must be left unspecified.")
-            o = x
-        else:
-            o = util.Vector(x, y, z)
-        return Transformation.make_merged(self,
-                                          util.Quaternion.from_degrees(util.Vector(0, 0, 1), 0),
-                                          o)
-
-    def rotated(self, vector, angle, n = 1):
-        """ Returns current shape rotated by an angle around the vector.
-
-        If n > 1, returns an union of n copies of self, rotated in regular intervals
-        up to given angle.
-        For example angle = 180, n = 3 makes copies of self rotated by 60, 120
-        and 180 degrees."""
-        if n == 1:
-            return Transformation.make_merged(self,
-                                              util.Quaternion.from_degrees(util.Vector(*vector), angle),
-                                              util.Vector(0, 0, 0))
-        else:
-            angle_step = angle / n
-            return Union([self.rotated(vector, (1 + i) * angle_step) for i in range(n)])
-
-    def scaled(self, s):
-        """ Returns current shape scaled by given ratio """
-        return Transformation.make_merged(self,
-                                          util.Quaternion.from_degrees(util.Vector(0, 0, 1), 0, s),
-                                          util.Vector(0, 0, 0))
-
-    def offset(self, d):
-        """ Returns current shape offset by given distance (positive increases size) """
-        return Offset(self, d)
-
-    def shell(self, wall_thickness):
-        """ Returns a shell of the current shape (centered around the original surface) """
-        return Shell(self, wall_thickness)
-
-
-class Sphere(Shape3D):
+class Sphere(base.Shape3D):
     def __init__(self, d = 1, r = None):
         if r is None:
             self.r = d / 2
@@ -76,7 +19,7 @@ class Sphere(Shape3D):
         return cache.make_node("sphere", [self.r], [point])
 
 
-class HalfSpace(Shape3D):
+class HalfSpace(base.Shape3D):
     """ Half space y > 0. """
     def bounding_box(self):
         return util.BoundingBox(util.Vector(-float("inf"), 0, -float("inf")),
@@ -86,27 +29,27 @@ class HalfSpace(Shape3D):
         return cache.make_node("half_space", [], [point])
 
 
-class Union(base.Union, Shape3D):
+class Union(mixins.UnionMixin, base.Shape3D):
     pass
 
 
-class Intersection(base.Intersection, Shape3D):
+class Intersection(mixins.IntersectionMixin, base.Shape3D):
     pass
 
 
-class Subtraction(base.Subtraction, Shape3D):
+class Subtraction(mixins.SubtractionMixin, base.Shape3D):
     pass
 
 
-class Offset(base.Offset, Shape3D):
+class Offset(mixins.OffsetMixin, base.Shape3D):
     pass
 
 
-class Shell(base.Shell, Shape3D):
+class Shell(mixins.ShellMixin, base.Shape3D):
     pass
 
 
-class Transformation(base.Transformation, Shape3D):
+class Transformation(mixins.TransformationMixin, base.Shape3D):
     def bounding_box(self):
         b = self.s.bounding_box()
 
@@ -118,7 +61,7 @@ class Transformation(base.Transformation, Shape3D):
             return util.BoundingBox.containing(self.transformation.transform_vector(v) for v in b.vertices())
 
 
-class Extrusion(Shape3D):
+class Extrusion(base.Shape3D):
     def __init__(self, s, height):
         self.check_dimension(s, required=2)
         self.s = s
@@ -136,7 +79,7 @@ class Extrusion(Shape3D):
         else:
             return cache.make_node("extrusion", [self.h / 2], [point, sub_node])
 
-class Revolution(Shape3D):
+class Revolution(base.Shape3D):
     def __init__(self, s):
         self.check_dimension(s, required=2)
         self.s = s

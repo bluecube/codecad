@@ -1,9 +1,10 @@
 import math
 
 from .. import util
+from . import base
 from . import simple2d
 
-class InvoluteGearBase(simple2d.Shape2D):
+class InvoluteGearBase(base.Shape2D):
     def __init__(self, tooth_count, pressure_angle):
         self.tooth_count = tooth_count
         self.pressure_angle = math.radians(pressure_angle)
