@@ -1,5 +1,6 @@
 import abc
 import math
+import io
 
 from .. import util
 # simple2d and simple3d are imported in functions to break circular dependencies
@@ -206,3 +207,9 @@ class Shape3D(ShapeBase):
         """ Returns a shell of the current shape (centered around the original surface) """
         from . import simple3d
         return simple3d.Shell(self, wall_thickness)
+
+    def _repr_png_(self):
+        from ..rendering import ray_caster
+        with io.BytesIO() as fp:
+            ray_caster.render_image(self, size=(800, 400)).save(fp, format="png")
+            return fp.getvalue()
