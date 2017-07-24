@@ -26,7 +26,7 @@ def commandline_render(shape, resolution, default_renderer=None, **kwargs):
             renderer = _extensions[os.path.splitext(output)[1]]
     else:
         if renderer is None:
-            renderer = "picture"
+            renderer = "image"
         ext = _renderers[renderer][1]
         if ext is not None:
             output = "output" + ext
@@ -61,10 +61,10 @@ _extensions = {}
 
 PIL.Image.init()
 
-_register("picture", "ray_caster", PIL.Image.EXTENSION.keys(), ".png")
+_register("image", "image", PIL.Image.EXTENSION.keys(), ".png")
 _register("stl", "stl_renderer", [".stl"])
 _register("slice", "matplotlib_slice", [])
 _register("mesh", "matplotlib_mesh", [])
-_register("gif", "ray_caster", [".gif"])
+_register("gif", "image", [".gif"])
 _register("svg", "svg", [".svgz", ".svg"])
 _register("nodes_graph", "graphviz", [".dot"])
