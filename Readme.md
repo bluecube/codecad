@@ -40,7 +40,7 @@ computing power.
 - [X] Successive approximation of the geometry (needed for volume and centroid)
 - [ ] Better geometry representation in Jupyter notebook (using three.js?)
   - [ ] Use this to make a documentation notebook
-- [ ] Add setup.py
+- [X] Add setup.py
 - [ ] Parametrization of the model
 - [ ] Models with high dynamic range (1m vs 1nm in the same model)
   - [ ] Multiprecision? `float` for initial approximation, `double` for final details
