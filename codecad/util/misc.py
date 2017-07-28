@@ -22,3 +22,6 @@ class Concatenate:
     def __iter__(self):
         for iterable in self._iterables:
             yield from iterable
+
+def clamp(v, lower, upper):
+    return max(lower, min(v, upper))

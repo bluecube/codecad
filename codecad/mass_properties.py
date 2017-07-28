@@ -37,6 +37,7 @@ def mass_properties(shape, resolution, grid_size=None):
 
     box = shape.bounding_box()
     block_sizes = subdivision.calculate_block_sizes(box,
+                                                    shape.dimension(),
                                                     resolution,
                                                     grid_size,
                                                     overlap=False)
