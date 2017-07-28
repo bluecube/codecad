@@ -57,7 +57,7 @@ computing power.
   - [ ] Setup Travis
   - [ ] Doctests
   - [ ] Test examples
-  
+
 ## Optimization ideas
 - [ ] Merge `transformation_to` and `transformation_from` blocks
 - [ ] Don't output no-op transformations
