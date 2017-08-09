@@ -14,17 +14,14 @@ def triangular_mesh(obj, resolution, subdivision_grid_size=None, debug_subdivisi
     Yields tuples (vertices, indices). """
     obj.check_dimension(required = 3)
 
-    program_buffer, grid_size, boxes = subdivision.subdivision(obj,
+    program_buffer, max_box_size, boxes = subdivision.subdivision(obj,
                                                                resolution,
                                                                grid_size=subdivision_grid_size)
 
-    block = numpy.empty((grid_size[1], grid_size[0], grid_size[2]),
-                        dtype=numpy.float32)
+    block = numpy.empty(max_box_size, dtype=numpy.float32)
     block_buffer = pyopencl.Buffer(compute.ctx, pyopencl.mem_flags.WRITE_ONLY, block.nbytes)
 
-    for i, (box_corner, box_resolution, box_size) in enumerate(boxes):
-        box_size = util.Vector(*box_size)
-
+    for i, (box_size, box_corner, box_resolution, *_) in enumerate(boxes):
         if debug_subdivision_boxes:
             # Export just an outline of the block instead of displaying its contents
             vertices = [util.Vector(i, j, k).elementwise_mul(box_size) * box_resolution + box_corner
@@ -38,10 +35,10 @@ def triangular_mesh(obj, resolution, subdivision_grid_size=None, debug_subdivisi
             yield vertices, triangles
             continue
 
-        #print(box_corner, box_resolution, box_size)
+        print(box_corner, box_resolution, box_size)
         #with util.status_block("{}/{}".format(i + 1, len(boxes))):
         # TODO: Staggered opencl / python processing the way subdivision does it.
-        ev = compute.program.grid_eval(compute.queue, grid_size, None,
+        ev = compute.program.grid_eval(compute.queue, box_size, None,
                                        program_buffer,
                                        box_corner.as_float4(), numpy.float32(box_resolution),
                                        block_buffer)

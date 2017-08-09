@@ -9,12 +9,14 @@ from .compute import compute
 from .compute import program
 
 class _Helper:
-    def __init__(self, queue, grid_size, dimension, program_buffer, block_sizes, final_blocks):
+    def __init__(self, queue, grid_size, dimension, program_buffer, block_sizes, origin, resolution, final_blocks):
         self.queue = queue
         self.grid_size = grid_size
         self.dimension = dimension
         self.program_buffer = program_buffer
         self.block_sizes = block_sizes
+        self.origin = origin
+        self.resolution = resolution
         self.final_blocks = final_blocks
 
         self.counter = cl_util.Buffer(queue, numpy.uint32, 1, pyopencl.mem_flags.READ_WRITE)
@@ -22,19 +24,23 @@ class _Helper:
 
         self.level = None
 
-    def enqueue(self, box_corner, level):
-        box_step = self.block_sizes[level][0]
+    def enqueue(self, int_box_corner, level):
+        int_box_step = self.block_sizes[level][0]
         grid_dimensions = self.block_sizes[level][1]
         assert all(x <= self.grid_size for x in grid_dimensions)
-        self.box_corner = box_corner
+        self.int_box_corner = int_box_corner
         self.level = level
 
         if self.dimension == 3:
-            shifted_corner = box_corner + util.Vector.splat(box_step / 2)
+            int_shifted_corner = int_box_corner + util.Vector.splat(int_box_step / 2)
         elif self.dimension == 2:
-            shifted_corner = box_corner + util.Vector(box_step / 2, box_step / 2)
+            int_shifted_corner = int_box_corner + util.Vector(int_box_step / 2, int_box_step / 2)
         else:
             assert False
+
+        box_step = int_box_step * self.resolution
+        shifted_corner = int_shifted_corner * self.resolution + self.origin
+
         distance_threshold = box_step * math.sqrt(self.dimension) / 2
 
         # Enqueue write instead of fill to work around pyopencl bug #168
@@ -48,56 +54,60 @@ class _Helper:
                                                 wait_for=[fill_ev])
 
     def process_result(self, event):
-        box_step = self.block_sizes[self.level][0]
+        int_box_step = self.block_sizes[self.level][0]
+        box_step = int_box_step * self.resolution
 
         c = self.counter.read(wait_for=[event])
         intersecting_count = c[0]
         intersecting_indices = self.list.read()
 
-        intersecting_pos = [util.Vector(i, j, k) * box_step + self.box_corner
-                            for i, j, k, l in intersecting_indices[:intersecting_count]]
+        int_intersecting_pos = [util.Vector(i, j, k) * int_box_step + self.int_box_corner
+                                for i, j, k, l in intersecting_indices[:intersecting_count]]
 
         level = self.level + 1
         if level == len(self.block_sizes) - 1:
-            for pos in intersecting_pos:
-                self.final_blocks.append((util.Vector(*pos[:3]),
-                                         self.block_sizes[level][0],
-                                         self.block_sizes[level][1]))
+            next_int_box_step = self.block_sizes[level][0]
+            next_box_step = next_int_box_step * self.resolution
+            for int_pos in int_intersecting_pos:
+                pos = int_pos * self.resolution + self.origin
+                self.final_blocks.append((self.block_sizes[level][1],
+                                          pos, next_box_step,
+                                          int_pos, next_int_box_step))
             return []
         else:
-            return ((util.Vector(*pos[:3]), level) for pos in intersecting_pos)
+            return ((int_pos, level) for int_pos in int_intersecting_pos)
 
 def calculate_block_sizes(box, dimension, resolution, grid_size, overlap):
     # Figure out the layout of grids for processing.
     # There shouldn't ever be more than ~10 levels.
 
     block_sizes = []
-    current_resolution = resolution
     if dimension == 2:
-        level_size = (grid_size, grid_size, 1)
+        level_size = util.Vector(grid_size, grid_size, 1)
         box = box.flattened()
     elif dimension == 3:
-        level_size = (grid_size,) * 3
+        level_size = util.Vector.splat(grid_size)
     else:
         assert False
 
-    box_size = box.size()
-    box_max_size = box_size.max()
+    box_int_size = (box.size() / resolution).applyfunc(math.ceil)
+    box_max_int_size = box_int_size.max()
+    cell_size = 1
 
     while True:
-        block_sizes.append((current_resolution, level_size))
+        block_sizes.append((cell_size, level_size))
 
         overlap_delta = 1 if overlap and len(block_sizes) == 1 else 0
 
-        tmp = current_resolution * (grid_size - overlap_delta)
+        next_cell_size = cell_size * (grid_size - overlap_delta)
 
-        if tmp >= box_max_size:
+        if next_cell_size >= box_max_int_size:
             break
-        current_resolution = tmp
+        cell_size = next_cell_size
 
-    block_sizes[-1] = (current_resolution,
-                       tuple(util.clamp(math.ceil(x) + overlap_delta, 1, s)
-                             for x, s in zip(box_size / current_resolution, level_size)))
+    block_sizes[-1] = (cell_size,
+                       util.Vector(*(util.clamp(math.ceil(x) + overlap_delta, 1, s)
+                             for x, s in zip(box_int_size / cell_size, level_size))))
 
     block_sizes.reverse()
     return block_sizes
@@ -107,13 +117,19 @@ def subdivision(shape, resolution, overlap_edge_samples=True, grid_size=None):
     Subdivides a space around a shape into blocks that are suitable for evaluating
     with OpenCL in one piece, skipping 100% empty space and 100% filled space.
 
-    :returns: Tuple `(program_buffer, grid_dimensions, [(corner, resolution)])`.
+    :returns: Tuple `(program_buffer, max_grid_size, [(grid_size, corner, spacing, int_corner, int_spacing)])`.
         `program_buffer` is a PyOpenCL buffer object that contains the compiled
-        instructions for evaluating the model, `grid_dimensions` is a three item
-        tuple describing the size of the sampling grid inside each block.
-        `corner` and `resolution` are respectively a `Vector3` of block corner
+        instructions for evaluating the model, `grid_size` and `max_grid_size` are
+        `Vector`s describing the size of the sampling grid inside each block and
+        maximal size through all blocks for allocations.
+        `corner` and `spacing` are respectively a `Vector` of block corner
         and spacing between sample points (so that the block has volume
         (grid_size - 1)**3 * resolution, see :param overlap).
+        `int_corner` and `int_spacing` are similar to the previous two, but
+        in resolution units (smallest step is 1) and relative to the first calculated node.
+
+        For example box from -5, -5, -5 to 5, 5, 5 and resolution 0.1 and grid_size 16
+        will contain a corner block  `((16, 16, 16), (-5.05, -5.05, -5.05), 0.1, (0, 0, 0), 1)`.
     :param shape: The shape to be evaluated.
     :param resolution: Intended resolution of leaf blocks.
     :param overlap_edge_samples: If this is set to true, leaf are effectively
@@ -152,12 +168,16 @@ def subdivision(shape, resolution, overlap_edge_samples=True, grid_size=None):
                                         overlap_edge_samples)
 
     if len(block_sizes) == 1:
-        return program_buffer, block_sizes[0][1], [(box.a, block_sizes[0][0], block_sizes[0][1])]
+        return program_buffer, block_sizes[0][1], [(block_sizes[0][1], box.a, resolution, util.Vector(0, 0, 0), 1)]
 
     final_blocks = []
-    helper1 = _Helper(compute.queue, grid_size, dimension, program_buffer, block_sizes, final_blocks)
-    helper2 = _Helper(compute.queue, grid_size, dimension, program_buffer, block_sizes, final_blocks)
+    helper1 = _Helper(compute.queue, grid_size, dimension,
+                      program_buffer, block_sizes, box.a, resolution,
+                      final_blocks)
+    helper2 = _Helper(compute.queue, grid_size, dimension,
+                      program_buffer, block_sizes, box.a, resolution,
+                      final_blocks)
 
-    cl_util.interleave([(box.a, 0)], helper1, helper2)
+    cl_util.interleave([(util.Vector(0, 0, 0), 0)], helper1, helper2)
 
     return program_buffer, block_sizes[-1][1], final_blocks

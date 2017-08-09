@@ -42,6 +42,9 @@ def mass_properties(shape, resolution, grid_size=None):
                                                     grid_size,
                                                     overlap=False)
 
+    block_sizes = [(resolution * cell_size, level_size)
+                   for cell_size, level_size in block_sizes]
+
     helper1 = _Helper(compute.queue, grid_size, program_buffer, block_sizes)
     helper2 = _Helper(compute.queue, grid_size, program_buffer, block_sizes)
 
