@@ -42,8 +42,8 @@ def mass_properties(shape, resolution, grid_size=None):
                                                     grid_size,
                                                     overlap=False)
 
-    helper1 = _Helper(compute.queue, grid_size, program_buffer, block_sizes, "H1")
-    helper2 = _Helper(compute.queue, grid_size, program_buffer, block_sizes, "H2")
+    helper1 = _Helper(compute.queue, grid_size, program_buffer, block_sizes)
+    helper2 = _Helper(compute.queue, grid_size, program_buffer, block_sizes)
 
     cl_util.interleave([(box.a, 0)], helper1, helper2)
     # now helper1.integrals_* and helper2.integral_* each contain integral for
@@ -89,7 +89,7 @@ def mass_properties(shape, resolution, grid_size=None):
     return MassProperties(volume, centroid, inertia_tensor)
 
 class _Helper:
-    def __init__(self, queue, grid_size, program_buffer, block_sizes, name):
+    def __init__(self, queue, grid_size, program_buffer, block_sizes):
         self.queue = queue
         self.grid_size = grid_size
         self.program_buffer = program_buffer
@@ -113,8 +113,6 @@ class _Helper:
 
         self.box_corner = None
         self.level = None
-
-        self.name = name
 
     def enqueue(self, box_corner, level):
         box_step = self.block_sizes[level][0]
