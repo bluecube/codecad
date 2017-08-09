@@ -63,10 +63,6 @@ class Vector(collections.namedtuple("Vector", "x y z")):
     def normalized(self):
         return self / abs(self)
 
-    def eval(self, inputs):
-        """ Evaluate components from theano expressions to values. """
-        return Vector(self.x.eval(inputs), self.y.eval(inputs), self.z.eval(inputs))
-
     def _minmax(self, other, op):
         if other is None:
             return op(self.x, self.y, self.z)
@@ -135,10 +131,6 @@ class BoundingBox(collections.namedtuple("BoundingBox", "a b")):
     def volume(self):
         size = self.size()
         return size.x * size.y * size.z
-
-    def eval(self, inputs):
-        """ Evaluate components from theano expressions to values. """
-        return BoundingBox(self.a.eval(inputs), self.b.eval(inputs))
 
     def flattened(self):
         return BoundingBox(self.a.flattened(), self.b.flattened())
