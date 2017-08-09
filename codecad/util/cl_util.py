@@ -6,6 +6,10 @@ class Buffer:
     numpy arrays and transfers. """
 
     @staticmethod
+    def dual_dtype(scalar):
+        return numpy.dtype([(name, scalar) for name in 'xy'])
+
+    @staticmethod
     def quad_dtype(scalar):
         return numpy.dtype([(name, scalar) for name in 'xyzw'])
 
@@ -65,6 +69,15 @@ class Buffer:
     #    with array.base:
     #        print("array", array.dtype);
     #        yield array
+
+    def __getitem__(self, key):
+        return self.array[key]
+
+    def __setitem__(self, key, value):
+        self.array[key] = value
+
+    def __len__(self):
+        return self.size
 
 
 class _InterleavingHelperWrapper:

@@ -69,6 +69,7 @@ computing power.
 - [ ] Include bounding volumes in instruction stream and use it to clip the computation
 - [ ] Try speeding up subdivision code (and others) with prefix sums
 - [ ] Caching instruction buffers
+- [ ] Try putting `restrict` everywhere in OpenCL
 
 ## SDF problems
   - [ ] Empty intersection of two objects still has gradients pointing somewhere random

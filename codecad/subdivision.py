@@ -100,7 +100,6 @@ def calculate_block_sizes(box, dimension, resolution, grid_size, overlap):
                              for x, s in zip(box_size / current_resolution, level_size)))
 
     block_sizes.reverse()
-    print(block_sizes)
     return block_sizes
 
 def subdivision(shape, resolution, overlap_edge_samples=True, grid_size=None):

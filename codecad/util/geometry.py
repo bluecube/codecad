@@ -84,6 +84,9 @@ class Vector(collections.namedtuple("Vector", "x y z")):
     def as_float4(self):
         return numpy.array((self.x, self.y, self.z, 0), dtype=numpy.float32)
 
+    def as_float2(self):
+        return numpy.array((self.x, self.y), dtype=numpy.float32)
+
     def as_matrix(self):
         return numpy.matrix([[self.x], [self.y], [self.z], [1]])
 
