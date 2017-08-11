@@ -7,7 +7,7 @@ from .. import util
 from .. import subdivision
 from ..compute import compute
 
-_invalid_link = numpy.uint32(-1) # We use -1 as invalid flag in the polygon OpenCL code
+_link_overflow_mask = 0xfff00000
 
 def triangular_mesh(obj, resolution, subdivision_grid_size=None, debug_subdivision_boxes = False):
     """ Generate a triangular mesh representing a surface of 3D shape.
@@ -59,16 +59,23 @@ def triangular_mesh(obj, resolution, subdivision_grid_size=None, debug_subdivisi
 
 def _collect_polygon(vertices, links, starting_index, chain):
     """ Follow links starting at starting_index and apend outputs onto chain.
-    Returns index of the last valid cell. """
+    Returns the overflow spec of the last (invalid) link. """
     i = starting_index
 
-    while i != _invalid_link:
-        chain.append(vertices[i])
+    while not i & _link_overflow_mask:
+        chain.append(tuple(vertices[i]))
         last_index = i
         i = links[i]
-        links[last_index] = _invalid_link
+        links[last_index] = _link_overflow_mask
 
-    return last_index
+    return i & _link_overflow_mask
+
+def _step_from_overflow_spec(spec):
+    step_direction = -1 if spec & 0x20000000 else 1
+    if spec & 0x40000000:
+        return util.Vector(0, step_direction)
+    else:
+        return util.Vector(step_direction, 0)
 
 def polygon(obj, resolution, subdivision_grid_size=None):
     """ Generate polygons representing the boundaries of a 2D shape. """
@@ -76,8 +83,11 @@ def polygon(obj, resolution, subdivision_grid_size=None):
 
     program_buffer, grid_size, boxes = subdivision.subdivision(obj,
                                                                resolution,
-                                                               grid_size=32)
+                                                               grid_size=subdivision_grid_size)
+
+    assert grid_size[0] < 512, "Larger grid size would overflow the index encoding"
     assert grid_size[2] == 1
+
     grid_size = (grid_size[0], grid_size[1])
     grid_size_triangles = (grid_size[0] - 1, grid_size[1] - 1, 2)
 
@@ -103,10 +113,18 @@ def polygon(obj, resolution, subdivision_grid_size=None):
                                    1,
                                    pyopencl.mem_flags.READ_WRITE)
 
-    open_chains = {} # Indexed by coordinates of the last node
+    open_chain_beginnings = {}
+    open_chain_ends = {}
 
-    for i, (box_corner, box_resolution, box_size) in enumerate(boxes):
-        box_size = util.Vector(*box_size)
+    for i, (box_size,
+            box_corner, box_resolution,
+            int_box_corner, int_box_resolution) in enumerate(boxes):
+
+        print()
+        print("XXXX", i, int_box_corner)
+
+        assert box_size[0] == box_size[1]
+        int_box_step = int_box_resolution * (box_size[0] - 1)
 
         # TODO: Staggered opencl / python processing the way subdivision does it.
         corners_ev = compute.program.grid_eval_full(compute.queue, grid_size, None,
@@ -128,19 +146,67 @@ def polygon(obj, resolution, subdivision_grid_size=None):
         start_counter.read(wait_for=[process_ev])
 
         # First handle the open chains
-        open_chains = []
         assert start_counter[0] < len(starts)
         for starting_index in starts[:start_counter[0]]:
-            polygon = []
-            _collect_polygon(vertices, links, starting_index, polygon)
-            yield polygon # TODO: Merge open chains
+            overflow_spec = starting_index & _link_overflow_mask
+            starting_index = starting_index & (~_link_overflow_mask)
+
+
+            # Find existing chain in open chains that can be continued here, or
+            # create a new one
+            # After the block is done, we are holding either a fresh chain,
+            # or an existing one and the chain is registered only in open_chain_beginnings
+            beginning_key = (int_box_corner, overflow_spec)
+            try:
+                chain = open_chain_ends.pop(beginning_key)
+            except KeyError:
+                print("nothing before")
+                chain = []
+                assert beginning_key not in open_chain_beginnings
+            else:
+                print("found before")
+
+            overflow_spec = _collect_polygon(vertices, links, starting_index, chain)
+
+            end_key = (int_box_corner + _step_from_overflow_spec(overflow_spec) * int_box_step,
+                       overflow_spec)
+            open_chain_beginnings[beginning_key] = chain, end_key
+
+            # Find any chain following the current one and merge them
+            try:
+                to_append, to_append_end_key = open_chain_beginnings.pop(end_key)
+            except KeyError:
+                print("nothing after", len(chain))
+                open_chain_ends[end_key] = chain
+            else:
+                print("found after")
+                if to_append is chain:
+                    # This would close the chain into a loop, we're done with it
+                    del open_chain_beginnings[beginning_key]
+                    yield chain
+                    print("yielding result")
+                else:
+                    chain.extend(to_append)
+                    # Overwrite the reference to `to_append` to point to `chain` instead
+                    open_chain_ends[to_append_end_key] = chain
+
+            assert len(open_chain_beginnings) == len(open_chain_ends)
 
         # Next go through the whole array and find all cells that have valid links
         # Each of these must be a part of a closed chain
         for starting_index in range(len(vertices)):
-            if links[starting_index] == _invalid_link:
+            if links[starting_index] & _link_overflow_mask:
                 continue
             polygon = []
-            last_index = _collect_polygon(vertices, links, starting_index, polygon)
-            assert last_index == starting_index
+            _collect_polygon(vertices, links, starting_index, polygon)
             yield polygon # Closed chains can be yielded directly
+
+        print("beginnings")
+        for k, v in open_chain_beginnings.items():
+            print(k[0], bin(k[1]), "-", len(v[0]), "items, id:", hex(id(v[0])), ", key: ", v[1])
+        print("ends")
+        for k, v in open_chain_ends.items():
+            print(k[0], bin(k[1]), "-", len(v), "items, id:", hex(id(v)))
+
+    assert len(open_chain_beginnings) == 0
+    assert len(open_chain_ends) == 0
