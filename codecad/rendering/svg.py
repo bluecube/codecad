@@ -32,7 +32,7 @@ def render_svg(obj, resolution, filename):
             fp.write("M{},{}".format(x, -y))
             for x, y in it:
                 fp.write("L{},{}".format(x, -y))
-            fp.write("L{},{}".format(polygon[0][0], -polygon[0][1]))
+            fp.write("L{},{}".format(polygon[-1][0], -polygon[-1][1]))
         fp.write('" style="stroke:black;stroke-width:1px;fill:{}"/>'.format(color))
 
         fp.write('</svg>')
