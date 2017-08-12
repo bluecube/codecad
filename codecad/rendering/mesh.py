@@ -35,7 +35,6 @@ def triangular_mesh(obj, resolution, subdivision_grid_size=None, debug_subdivisi
             yield vertices, triangles
             continue
 
-        print(box_corner, box_resolution, box_size)
         #with util.status_block("{}/{}".format(i + 1, len(boxes))):
         # TODO: Staggered opencl / python processing the way subdivision does it.
         ev = compute.program.grid_eval(compute.queue, box_size, None,
@@ -120,9 +119,6 @@ def polygon(obj, resolution, subdivision_grid_size=None):
             box_corner, box_resolution,
             int_box_corner, int_box_resolution) in enumerate(boxes):
 
-        print()
-        print("XXXX", i, int_box_corner)
-
         assert box_size[0] == box_size[1]
         int_box_step = int_box_resolution * (box_size[0] - 1)
 
@@ -160,11 +156,8 @@ def polygon(obj, resolution, subdivision_grid_size=None):
             try:
                 chain = open_chain_ends.pop(beginning_key)
             except KeyError:
-                print("nothing before")
                 chain = []
                 assert beginning_key not in open_chain_beginnings
-            else:
-                print("found before")
 
             overflow_spec = _collect_polygon(vertices, links, starting_index, chain)
 
@@ -176,15 +169,12 @@ def polygon(obj, resolution, subdivision_grid_size=None):
             try:
                 to_append, to_append_end_key = open_chain_beginnings.pop(end_key)
             except KeyError:
-                print("nothing after", len(chain))
                 open_chain_ends[end_key] = chain
             else:
-                print("found after")
                 if to_append is chain:
                     # This would close the chain into a loop, we're done with it
                     del open_chain_beginnings[beginning_key]
                     yield chain
-                    print("yielding result")
                 else:
                     chain.extend(to_append)
                     # Overwrite the reference to `to_append` to point to `chain` instead
@@ -200,13 +190,6 @@ def polygon(obj, resolution, subdivision_grid_size=None):
             polygon = []
             _collect_polygon(vertices, links, starting_index, polygon)
             yield polygon # Closed chains can be yielded directly
-
-        print("beginnings")
-        for k, v in open_chain_beginnings.items():
-            print(k[0], bin(k[1]), "-", len(v[0]), "items, id:", hex(id(v[0])), ", key: ", v[1])
-        print("ends")
-        for k, v in open_chain_ends.items():
-            print(k[0], bin(k[1]), "-", len(v), "items, id:", hex(id(v)))
 
     assert len(open_chain_beginnings) == 0
     assert len(open_chain_ends) == 0
