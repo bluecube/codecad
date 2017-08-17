@@ -22,8 +22,14 @@ def render_svg(obj, resolution, filename):
         fp.write('<svg xmlns="http://www.w3.org/2000/svg" ')
         fp.write('width="{}mm" height="{}mm" '.format(box_size.x, box_size.y))
         fp.write('viewBox="{} {} {} {}">'.format(box.a.x, -box.b.y, box_size.x, box_size.y))
-
-        color = _html_color(render_params.surface)
+        fp.write('<style type="text/css">')
+        fp.write('path{')
+        fp.write('stroke:#000;')
+        fp.write('stroke-width:1px;')
+        fp.write('vector-effect:non-scaling-stroke;')
+        fp.write('fill:{};'.format(_html_color(render_params.surface)))
+        fp.write('}')
+        fp.write('</style>')
 
         fp.write('<path d="')
         for polygon in polygons:
@@ -33,6 +39,6 @@ def render_svg(obj, resolution, filename):
             for x, y in it:
                 fp.write("L{},{}".format(x, -y))
             fp.write("L{},{}".format(polygon[-1][0], -polygon[-1][1]))
-        fp.write('" style="stroke:black;stroke-width:1px;fill:{}"/>'.format(color))
+        fp.write('"/>')
 
         fp.write('</svg>')
