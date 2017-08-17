@@ -2,7 +2,7 @@
  * If coord is outside of a block (size specified by get_global_id),
  * this function prepends information about where this overflow happened on a
  * boundary of the block. */
-uint encode_index(int2 coord, uint index)
+static uint encode_index(int2 coord, uint index)
 {
     const uint indexSize = 20; // max size of index in bits
 
@@ -33,6 +33,52 @@ uint encode_index(int2 coord, uint index)
            index;
 }
 
+static float2 place_vertex(float2 cornerPositions[3],
+                           float4 cornerValues[3])
+{
+    // Instead of mass point we use average of corner positions weighted by
+    // (1/(1 + distance)) It's much simpler and gives only a tiny bit worse result.
+    float2 average = (float2)(0, 0);
+    float weight = 0;
+    for (int i = 0; i < 3; ++i)
+    {
+        float w = 1 / (1 + fabs(cornerValues[i].w));
+        average += cornerPositions[i] * w;
+        weight += w;
+    }
+    average /= weight;
+
+    // Run gradient search with fixed number of iterations
+    float2 p = average; // The candidate point
+    for (int i = 0; i < 8; ++i)
+    {
+        float2 gradient = (float2)(0, 0);
+        float residualSum = 0;
+        for (int j = 0; j < 3; ++j)
+        {
+            float2 surfaceNormal = cornerValues[j].xy;
+            // If the shape is properly 2D, then the gradient is inside Z=0 plane.
+            // so that surfaceNormal will be already normalized and cornerValues[j].w
+            // will also be correct.
+
+            float tmp = dot(surfaceNormal, p - cornerPositions[j]) + cornerValues[j].w;
+            residualSum += tmp * tmp;
+            gradient += surfaceNormal * tmp;
+        }
+
+        if (residualSum < 1e-3)
+            break;
+
+        float gradientLengthSquared = dot(gradient, gradient);
+
+        if (gradientLengthSquared < 1e-8)
+            break;
+
+        p -= gradient * (residualSum / gradientLengthSquared);
+    }
+    return p;
+}
+
 __kernel void process_polygon(float2 boxCorner, float boxStep,
                               __global float4* corners, /* Input, evaluated shape on grid corners */
                               __global float2* vertices, /* Output, vertex coordinates corresponding to each cell. */
@@ -43,16 +89,13 @@ __kernel void process_polygon(float2 boxCorner, float boxStep,
                               __global uint* startCounter /* Output, count of items in starts */)
 {
     uint2 offsets[3] = {{0, 0}, {1, 1}, {get_global_id(2), 1 - get_global_id(2)}};
-    float4 values[3];
     uint cellType = 0;
 
     for (uint i = 0; i < 3; ++i)
     {
         uint2 coords = (uint2)(get_global_id(0), get_global_id(1)) + offsets[i];
         size_t cornerIndex = INDEX2(get_global_size(0) + 1, coords.x, coords.y);
-
-        values[i] = corners[cornerIndex];
-        cellType = cellType << 1 | (values[i].w <= 0 ? 1 : 0);
+        cellType = cellType << 1 | (corners[cornerIndex].w <= 0 ? 1 : 0);
 
     }
     uint index = INDEX3_GG;
@@ -116,11 +159,17 @@ __kernel void process_polygon(float2 boxCorner, float boxStep,
     if (startIndex & 0x80000000) // If the overflow flag is set, then this is the start of an open chain
         starts[atomic_inc(startCounter)] = startIndex ^ 0x20000000; // Flip the +/- flag to match the end corresponding end of a chain
 
-    //TODO: use QEF to calculate vertex position
-    float2 centerOffset = (float2)(1 + get_global_id(2), 2 - get_global_id(2)) / 3;
-    vertices[index] = boxCorner +
-                      (float2)(get_global_id(0), get_global_id(1)) * boxStep +
-                      centerOffset * boxStep;
+
+    float2 cornerPositions[3];
+    float4 cornerValues[3];
+    for (uint i = 0; i < 3; ++i)
+    {
+        uint2 coords = (uint2)(get_global_id(0), get_global_id(1)) + offsets[i];
+        size_t cornerIndex = INDEX2(get_global_size(0) + 1, coords.x, coords.y);
+        cornerPositions[i] = boxCorner + convert_float2(coords) * boxStep;
+        cornerValues[i] = corners[cornerIndex];
+    }
+    vertices[index] = place_vertex(cornerPositions, cornerValues);
 }
 
 // vim: filetype=c

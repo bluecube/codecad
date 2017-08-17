@@ -119,8 +119,11 @@ def polygon(obj, resolution, subdivision_grid_size=None):
             box_corner, box_resolution,
             int_box_corner, int_box_resolution) in enumerate(boxes):
 
-        assert box_size[0] == box_size[1]
-        int_box_step = int_box_resolution * (box_size[0] - 1)
+        if len(boxes) > 1:
+            assert box_size[0] == box_size[1]
+            int_box_step = int_box_resolution * (box_size[0] - 1)
+        else:
+            int_box_step = None # There will be no open chains if we only visit one box
 
         # TODO: Staggered opencl / python processing the way subdivision does it.
         corners_ev = compute.program.grid_eval_full(compute.queue, grid_size, None,
