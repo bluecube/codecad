@@ -37,10 +37,10 @@ def triangular_mesh(obj, resolution, subdivision_grid_size=None, debug_subdivisi
 
         #with util.status_block("{}/{}".format(i + 1, len(boxes))):
         # TODO: Staggered opencl / python processing the way subdivision does it.
-        ev = compute.program.grid_eval(compute.queue, box_size, None,
-                                       program_buffer,
-                                       box_corner.as_float4(), numpy.float32(box_resolution),
-                                       block_buffer)
+        ev = compute.program.grid_eval_pymcubes(compute.queue, box_size, None,
+                                                program_buffer,
+                                                box_corner.as_float4(), numpy.float32(box_resolution),
+                                                block_buffer)
         pyopencl.enqueue_copy(compute.queue, block, block_buffer, wait_for=[ev])
 
         vertices, triangles = mcubes.marching_cubes(block, 0)
@@ -126,10 +126,10 @@ def polygon(obj, resolution, subdivision_grid_size=None):
             int_box_step = None # There will be no open chains if we only visit one box
 
         # TODO: Staggered opencl / python processing the way subdivision does it.
-        corners_ev = compute.program.grid_eval_full(compute.queue, grid_size, None,
-                                                    program_buffer,
-                                                    box_corner.as_float4(), numpy.float32(box_resolution),
-                                                    corners)
+        corners_ev = compute.program.grid_eval(compute.queue, grid_size, None,
+                                               program_buffer,
+                                               box_corner.as_float4(), numpy.float32(box_resolution),
+                                               corners)
         fill_ev = start_counter.enqueue_write(numpy.zeros(1, start_counter.dtype))
         process_ev = compute.program.process_polygon(compute.queue, grid_size_triangles, None,
                                                      box_corner.as_float2(), numpy.float32(box_resolution),

@@ -1,6 +1,7 @@
-__kernel void grid_eval(__constant float* scene,
-                        float4 boxCorner, float boxStep,
-                        __global float* output)
+/** Version of grid_eval that follows the weird pymcubes/numpy indexing */
+__kernel void grid_eval_pymcubes(__constant float* scene,
+                                 float4 boxCorner, float boxStep,
+                                 __global float* output)
 {
     uint3 coords = (uint3)(get_global_id(0),
                            get_global_id(1),
@@ -19,9 +20,9 @@ __kernel void grid_eval(__constant float* scene,
     output[index] = value;
 }
 
-__kernel void grid_eval_full(__constant float* scene,
-                             float4 boxCorner, float boxStep,
-                             __global float4* output)
+__kernel void grid_eval(__constant float* scene,
+                        float4 boxCorner, float boxStep,
+                        __global float4* output)
 {
     uint3 coords = (uint3)(get_global_id(0),
                            get_global_id(1),
