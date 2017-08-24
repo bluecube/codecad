@@ -69,7 +69,7 @@ def render_slice(obj,
                    quiver_y,
                    values[::quiver_thinning,::quiver_thinning,1],
                    values[::quiver_thinning,::quiver_thinning,2],
-                   color="teal",
+                   color="white",
                    angles="xy",
                    scale_units="xy",
                    scale=200 / new_box_size.max())
