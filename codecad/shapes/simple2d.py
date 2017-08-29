@@ -43,14 +43,92 @@ class HalfPlane(base.Shape2D):
 
 
 class Polygon2D(base.Shape2D):
+    """ 2D simple (without self intersections) polygon.
+    First and last point are implicitly connected. """
+
     def __init__(self, points):
         self.points = numpy.asarray(points, dtype=numpy.float32, order="c")
         s = self.points.shape
         if len(s) != 2 or s[1] != 2:
             raise ValueError("points must be a list of (x, y) pairs or array with shape (x, 2)")
+        if s[0] < 3:
+            raise ValueError("Polygon must have at least three vertices")
 
-        self.box = util.BoundingBox(util.Vector(*numpy.amin(self.points, axis=0)),
-                                    util.Vector(*numpy.amax(self.points, axis=0)))
+        area = 0
+        minimum = util.Vector.splat(float("inf"))
+        maximum = -minimum
+        previous = util.Vector(*self.points[-1])
+        for i, current in enumerate(self.points):
+            current = util.Vector(*current)
+            direction = current - previous
+            direction_abs_squared = direction.abs_squared()
+            perpendicular_direction = direction.perpendicular2d()
+
+            area += direction.x * (previous.y + current.y) / 2
+                # TODO: Use better precision sum once we have it coded
+
+            minimum = minimum.min(current)
+            maximum = maximum.max(current)
+
+            if direction_abs_squared == 0:
+                raise ValueError("Zero length segments are not allowed in polygon")
+
+            inner_previous = current
+            has_intersection = False
+            for j, inner_current in enumerate(self.points[i + 1:]):
+                inner_current = util.Vector(*inner_current)
+                inner_direction = inner_current - inner_previous
+
+                inner_perpendicular_direction = inner_direction.perpendicular2d()
+
+                direction_cross_product = direction.dot(inner_perpendicular_direction)
+                tmp = (previous - inner_previous)
+
+                print("{} vs {}: directions {}; {} cross_product: {}".format(
+                      i, j + i + 1, direction, inner_direction, direction_cross_product))
+
+                consecutive = j == 0 or j == len(points) - 1 # i precedes or follows j
+                parallel = abs(direction_cross_product) < 1e-12
+
+                if consecutive:
+                    # Consecutive segments always intersect, but we must check that they are
+                    # not collinear and in opposite direction
+                    if parallel and direction.dot(inner_direction) < 0:
+                        raise ValueError("Polygon cannot be self intersecting (anti-parallel consecutive edges)")
+                else:
+                    if parallel:
+                        if (previous - inner_previous).dot(perpendicular_direction) < 1e12:
+                            # collinear
+                            scaled_direction = direction / direction_abs_squared
+                            t1 = tmp.dot(scaled_direction)
+                            t2 = t1 + inner_direction.dot(scaled_direction)
+
+                            t1, t2 = sorted([t1, t2])
+
+                            if t2 >= 0 and t1 <= 1:
+                                raise ValueError("Polygon cannot be self intersecting (colinear segments)")
+
+                        else:
+                            # parallel
+                            pass
+                    else:
+                        tmp /= direction_cross_product
+
+                        t1 = tmp.dot(inner_perpendicular_direction)
+                        t2 = tmp.dot(perpendicular_direction)
+
+                        if 0 <= t1 <= 1 and 0 <= t2 <= 1:
+                            print(t1, t2)
+                            raise ValueError("Polygon cannot be self intersecting")
+
+                inner_previous = inner_current
+
+            previous = current
+
+        if area < 0:
+            self.points = numpy.flipud(self.points)
+
+        self.box = util.BoundingBox(minimum, maximum)
 
     def bounding_box(self):
         return self.box

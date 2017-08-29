@@ -77,6 +77,9 @@ class Vector(collections.namedtuple("Vector", "x y z")):
     def flattened(self):
         return Vector(self.x, self.y, 0)
 
+    def perpendicular2d(self):
+        return Vector(self.y, -self.x, self.z)
+
     def as_float4(self):
         return numpy.array((self.x, self.y, self.z, 0), dtype=numpy.float32)
 
