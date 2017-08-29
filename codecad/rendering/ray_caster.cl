@@ -1,31 +1,60 @@
 // Cast a ray through scene.
-// Returns estimated non-occlusion (0 if the ray hit the geometry,
-// 1 if it went directly away from the scene, INFINITY if there never was any scene;
-// this is tan(angle of a maximal cone centered at the ray that doesn't intesect any geometry)
-bool cast_ray(__constant float* scene,
-              float3 origin, float3 direction,
-              float epsilon, uint maxSteps, float minDistance, float maxDistance,
-              float4* evalResult, float* distance)
+// Returns estimated tan(apex angle of unobstructed cone) (0 if the ray hit the geometry,
+// 1 if it went directly away from the scene, INFINITY if there never was any scene).
+// Tracing starts at minDistance and ends at maxDistance.
+// nearest outputs the evaluation result at a point where the cone got maximally
+// obstructed, nearestDistance returns distance along the ray of this event
+static float cast_ray(__constant float* scene,
+                      float3 origin, float3 direction,
+                      float epsilon, uint maxSteps, float minDistance, float maxDistance,
+                      float4* nearestResult, float* nearestDistance)
 {
-    //float occlusion = INFINITY;
-    *distance = minDistance;
+    float tanApexAngle = 1; //INFINITY;
+    float distance = minDistance;
+    nearestResult->w = INFINITY;
     for (size_t i = 0; i < maxSteps; ++i)
     {
-        if (*distance > maxDistance)
-            break;
-        float3 point = origin + (*distance) * direction;
-        *evalResult = evaluate(scene, point);
+        float3 point = origin + distance * direction;
+        float4 evalResult = evaluate(scene, point);
 
-        if (evalResult->w < epsilon)
-            return true;
-            //return evalResult;
+        tanApexAngle = min(tanApexAngle, evalResult.w / distance);
+
+        if (evalResult.w < nearestResult->w)
+        {
+            *nearestResult = evalResult;
+            *nearestDistance = distance;
+        }
+
+        if (evalResult.w < epsilon)
+            return 0;
         else
-            *distance += evalResult->w;
-            //occlusion = min(occlusion, evalResult.w / distance);
+        {
+            distance += evalResult.w;
+
+            if (distance > maxDistance)
+                break;
+        }
     }
 
-    return false;
-    //return occlusion;
+    return tanApexAngle;
+}
+
+static float light_contribution(__constant float* scene,
+                                float3 point, float3 normal, float3 toLight,
+                                float epsilon, uint maxSteps, float maxDistance)
+{
+    float surfaceToLightDotProduct = dot(normal, toLight);
+
+    if (surfaceToLightDotProduct <= 0)
+        return 0;
+
+    float4 hitResult;
+    float hitDistance;
+    float lightVisibility = cast_ray(scene, point, toLight,
+                                     epsilon, maxSteps, epsilon, maxDistance,
+                                     &hitResult, &hitDistance);
+
+    return lightVisibility * surfaceToLightDotProduct;
 }
 
 __kernel void ray_caster(__constant float* scene,
@@ -48,20 +77,22 @@ __kernel void ray_caster(__constant float* scene,
                                  as_float3(right) * filmx -
                                  as_float3(up) * filmy);
 
-    float4 lastResult;
-    float distance;
+    float4 hitResult;
+    float hitDistance;
     float4 color;
 
-    if (cast_ray(scene, as_float3(origin), as_float3(direction),
+    if (cast_ray(scene, origin.xyz, direction,
                  epsilon, maxSteps, minDistance, maxDistance,
-                 &lastResult, &distance))
+                 &hitResult, &hitDistance) == 0)
     {
         float lightness = ambient;
-        float3 gradient = as_float3(lastResult);
-            // Theoretically the shapes should output unit length gradient in the first
-            // place, but we might have approximate ones that don't.
-            // TODO: Normalize gradient, if it causes problems
-        lightness += fmax(-dot(gradient, as_float3(light)), 0);
+        float3 normal = hitResult.xyz;
+
+        float3 point = origin.xyz + direction * (hitDistance - 2 * epsilon);// + normal * hitResult.w;
+
+        lightness += light_contribution(scene, point, normal, -light.xyz,
+                                        epsilon, maxSteps, maxDistance);
+
         color = lightness * surfaceColor;
     }
     else
