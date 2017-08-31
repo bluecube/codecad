@@ -37,7 +37,7 @@ uchar polygon2d_op(__constant float* params, float4* output, float4 coords, floa
 
         float2 direction = currentPoint - previousPoint;
         float2 toQuery = query - previousPoint;
-        float2 segmentNormal = (float2)(direction.y, -direction.x);
+        float2 segmentNormal = (float2)(-direction.y, direction.x);
 
         if (((previousPoint.y < coords.y) != (currentPoint.y < coords.y)) &&
             (direction.y * dot(segmentNormal, toQuery) > 0))

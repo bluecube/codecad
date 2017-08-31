@@ -81,13 +81,10 @@ class Polygon2D(base.Shape2D):
 
                 inner_perpendicular_direction = inner_direction.perpendicular2d()
 
-                direction_cross_product = direction.dot(inner_perpendicular_direction)
-                tmp = (previous - inner_previous)
+                direction_cross_product = inner_direction.dot(perpendicular_direction)
+                between_starts = (previous - inner_previous)
 
-                print("{} vs {}: directions {}; {} cross_product: {}".format(
-                      i, j + i + 1, direction, inner_direction, direction_cross_product))
-
-                consecutive = j == 0 or j == len(points) - 1 # i precedes or follows j
+                consecutive = j == 0 or j == len(points) - 2 # i precedes or follows j
                 parallel = abs(direction_cross_product) < 1e-12
 
                 if consecutive:
@@ -97,10 +94,10 @@ class Polygon2D(base.Shape2D):
                         raise ValueError("Polygon cannot be self intersecting (anti-parallel consecutive edges)")
                 else:
                     if parallel:
-                        if (previous - inner_previous).dot(perpendicular_direction) < 1e12:
+                        if abs(between_starts.dot(perpendicular_direction)) < 1e-12:
                             # collinear
                             scaled_direction = direction / direction_abs_squared
-                            t1 = tmp.dot(scaled_direction)
+                            t1 = between_starts.dot(scaled_direction)
                             t2 = t1 + inner_direction.dot(scaled_direction)
 
                             t1, t2 = sorted([t1, t2])
@@ -112,13 +109,12 @@ class Polygon2D(base.Shape2D):
                             # parallel
                             pass
                     else:
-                        tmp /= direction_cross_product
+                        tmp = between_starts / direction_cross_product
 
                         t1 = tmp.dot(inner_perpendicular_direction)
                         t2 = tmp.dot(perpendicular_direction)
 
                         if 0 <= t1 <= 1 and 0 <= t2 <= 1:
-                            print(t1, t2)
                             raise ValueError("Polygon cannot be self intersecting")
 
                 inner_previous = inner_current
