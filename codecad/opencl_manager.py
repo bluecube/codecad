@@ -19,8 +19,11 @@ class CompileUnit:
 
     # Workaround, see OpenCLManager._build_program()
     #def compile(self, context, extra_headers):
-    #    code = "\n".join(itertools.chain(extra_headers, self.pieces))
-    #    return pyopencl.Program(context, code).compile(self.options)
+    #    program = pyopencl.Program(context, self.code(extra_headers))
+    #    return program.compile(self.options)
+
+    def code(self, extra_headers = []):
+        return "\n".join(itertools.chain(extra_headers, self.pieces))
 
     def append_file(self, filename):
         frame = inspect.stack()[1]
