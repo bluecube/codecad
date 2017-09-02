@@ -1,4 +1,8 @@
-from ..compute import program, scheduler
+from .. import nodes
+from .. import opencl_manager
+
+from ..nodes import program
+from ..nodes import scheduler
 
 def render_nodes_graph(shape, resolution, filename):
     shape_node = program.get_shape_nodes(shape)

@@ -3,4 +3,4 @@ from . import shapes
 from .rendering import *
 from . import util
 
-from .compute import compute
+from . import opencl_manager

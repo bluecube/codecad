@@ -1,4 +1,9 @@
+""" Implements nodes of calculation for evaluating the scene.
+Also handles generating the OpenCL code for evaluation """
+
 import collections
+
+from .. import opencl_manager
 
 class Node:
     # Mapping of node names to instruction codes
@@ -44,3 +49,56 @@ class Node:
         return self.name == other.name and \
                self.params == other.params and \
                self.dependencies == other.dependencies
+
+    @classmethod
+    def generate_eval_source_code(cls, register_count):
+        h = opencl_manager.instance.common_header
+        h.append('float4 evaluate(__constant float* program, float3 point);')
+
+        c = opencl_manager.instance.add_compile_unit()
+        c.append('#define EVAL_REGISTER_COUNT {}'.format(register_count))
+        for name in cls._type_map.keys():
+            c.append('uchar {}_op(__constant float* params, float4* output, float4 param1, float4 param2);'.format(name))
+        c.append('''
+float4 evaluate(__constant float* program, float3 point)
+{
+    float4 registers[EVAL_REGISTER_COUNT];
+    registers[0] = as_float4(point);
+
+    while (true)
+    {
+        union
+        {
+            float f;
+            struct
+            {
+                uchar opcode;
+                uchar output;
+                uchar input1;
+                uchar input2;
+            };
+        } instruction;
+
+        instruction.f = *program++;
+
+        switch (instruction.opcode)
+        {
+            case 0:
+                return registers[0];
+                 ''')
+        for name, i in cls._type_map.items():
+            c.append('''
+            case {}:
+                program += {}_op(program,
+                    &registers[instruction.output],
+                    registers[instruction.input1],
+                    registers[instruction.input2]);
+                break;
+                     '''.format(i, name))
+        c.append('''
+       }
+    }
+}
+                 ''')
+
+Node.generate_eval_source_code(32)

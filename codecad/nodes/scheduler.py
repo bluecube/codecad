@@ -3,7 +3,7 @@ import random
 import operator
 import copy
 
-from . import nodes
+from . import node
 
 class _RegisterAllocator:
     def __init__(self):

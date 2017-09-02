@@ -5,7 +5,10 @@ import pyopencl
 from ..util import cl_util
 from .. import util
 from .. import subdivision
-from ..compute import compute
+from .. import opencl_manager
+
+opencl_manager.instance.add_compile_unit().append_file("../grid_eval.cl")
+opencl_manager.instance.add_compile_unit().append_file("polygon.cl")
 
 _link_overflow_mask = 0xfff00000
 
@@ -19,7 +22,7 @@ def triangular_mesh(obj, resolution, subdivision_grid_size=None, debug_subdivisi
                                                                grid_size=subdivision_grid_size)
 
     block = numpy.empty(max_box_size, dtype=numpy.float32)
-    block_buffer = pyopencl.Buffer(compute.ctx, pyopencl.mem_flags.WRITE_ONLY, block.nbytes)
+    block_buffer = pyopencl.Buffer(opencl_manager.instance.context, pyopencl.mem_flags.WRITE_ONLY, block.nbytes)
 
     for i, (box_size, box_corner, box_resolution, *_) in enumerate(boxes):
         if debug_subdivision_boxes:
@@ -37,11 +40,11 @@ def triangular_mesh(obj, resolution, subdivision_grid_size=None, debug_subdivisi
 
         #with util.status_block("{}/{}".format(i + 1, len(boxes))):
         # TODO: Staggered opencl / python processing the way subdivision does it.
-        ev = compute.program.grid_eval_pymcubes(compute.queue, box_size, None,
-                                                program_buffer,
-                                                box_corner.as_float4(), numpy.float32(box_resolution),
-                                                block_buffer)
-        pyopencl.enqueue_copy(compute.queue, block, block_buffer, wait_for=[ev])
+        ev = opencl_manager.instance.get_program().grid_eval_pymcubes(opencl_manager.instance.queue, box_size, None,
+                                                                      program_buffer,
+                                                                      box_corner.as_float4(), numpy.float32(box_resolution),
+                                                                      block_buffer)
+        pyopencl.enqueue_copy(opencl_manager.instance.queue, block, block_buffer, wait_for=[ev])
 
         vertices, triangles = mcubes.marching_cubes(block, 0)
 
@@ -90,24 +93,24 @@ def polygon(obj, resolution, subdivision_grid_size=None):
     grid_size = (grid_size[0], grid_size[1])
     grid_size_triangles = (grid_size[0] - 1, grid_size[1] - 1, 2)
 
-    corners = pyopencl.Buffer(compute.ctx,
+    corners = pyopencl.Buffer(opencl_manager.instance.context,
                               pyopencl.mem_flags.READ_WRITE | pyopencl.mem_flags.HOST_NO_ACCESS,
                               cl_util.Buffer.quad_dtype(numpy.float32).itemsize * grid_size[0] * grid_size[1])
-    vertices = cl_util.Buffer(compute.queue,
+    vertices = cl_util.Buffer(opencl_manager.instance.queue,
                               cl_util.Buffer.dual_dtype(numpy.float32),
                               grid_size_triangles[0] * grid_size_triangles[1] * grid_size_triangles[2],
                               pyopencl.mem_flags.WRITE_ONLY | pyopencl.mem_flags.HOST_READ_ONLY)
-    links = cl_util.Buffer(compute.queue,
+    links = cl_util.Buffer(opencl_manager.instance.queue,
                            numpy.uint32,
                            grid_size_triangles[0] * grid_size_triangles[1] * grid_size_triangles[2],
                            pyopencl.mem_flags.WRITE_ONLY | pyopencl.mem_flags.HOST_READ_ONLY)
-    starts = cl_util.Buffer(compute.queue,
+    starts = cl_util.Buffer(opencl_manager.instance.queue,
                             numpy.uint32,
                             grid_size_triangles[0] + grid_size_triangles[1],
                                 # Start of chain can happen only on a side and
                                 # each chain takes at least two cells (start and end)
                             pyopencl.mem_flags.WRITE_ONLY | pyopencl.mem_flags.HOST_READ_ONLY)
-    start_counter = cl_util.Buffer(compute.queue,
+    start_counter = cl_util.Buffer(opencl_manager.instance.queue,
                                    numpy.uint32,
                                    1,
                                    pyopencl.mem_flags.READ_WRITE)
@@ -126,16 +129,16 @@ def polygon(obj, resolution, subdivision_grid_size=None):
             int_box_step = None # There will be no open chains if we only visit one box
 
         # TODO: Staggered opencl / python processing the way subdivision does it.
-        corners_ev = compute.program.grid_eval(compute.queue, grid_size, None,
-                                               program_buffer,
-                                               box_corner.as_float4(), numpy.float32(box_resolution),
-                                               corners)
+        corners_ev = opencl_manager.instance.get_program().grid_eval(opencl_manager.instance.queue, grid_size, None,
+                                                                     program_buffer,
+                                                                     box_corner.as_float4(), numpy.float32(box_resolution),
+                                                                     corners)
         fill_ev = start_counter.enqueue_write(numpy.zeros(1, start_counter.dtype))
-        process_ev = compute.program.process_polygon(compute.queue, grid_size_triangles, None,
-                                                     box_corner.as_float2(), numpy.float32(box_resolution),
-                                                     corners,
-                                                     vertices.buffer, links.buffer, starts.buffer, start_counter.buffer,
-                                                     wait_for=[corners_ev, fill_ev])
+        process_ev = opencl_manager.instance.get_program().process_polygon(opencl_manager.instance.queue, grid_size_triangles, None,
+                                                                           box_corner.as_float2(), numpy.float32(box_resolution),
+                                                                           corners,
+                                                                           vertices.buffer, links.buffer, starts.buffer, start_counter.buffer,
+                                                                           wait_for=[corners_ev, fill_ev])
 
         # Everything is read into the internal array of clutil.Buffer
         vertices.read(wait_for=[process_ev])

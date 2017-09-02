@@ -1,24 +1,28 @@
 import struct
-from . import scheduler, nodes
+
+import pyopencl
+
+from . import scheduler, node
+from .. import opencl_manager
 
 class NodeCache:
     def __init__(self):
         self._cache = {}
 
     def make_node(self, name, params, dependencies, extra_data = None):
-        node = nodes.Node(name, params, dependencies, extra_data)
+        n = node.Node(name, params, dependencies, extra_data)
 
         #TODO: Maybe try caching subsets of dependencies of >2-ary nodes?
         try:
-            cached = self._cache[node]
-            assert cached is not node
-            node.disconnect() # Don't let node increase dependencies' refcount
-                              # when we're not using it
+            cached = self._cache[n]
+            assert cached is not n
+            n.disconnect() # Don't let node increase dependencies' refcount
+                           # when we're not using it
             return cached
         except KeyError:
             pass
-        self._cache[node] = node
-        return node
+        self._cache[n] = n
+        return n
 
 def get_shape_nodes(shape):
     cache = NodeCache() # TODO: Figure out how to share cache between shapes?
@@ -26,8 +30,7 @@ def get_shape_nodes(shape):
     return shape.get_node(point, cache)
 
 def _make_program_pieces(shape):
-    node = get_shape_nodes(shape)
-    registers_needed, schedule = scheduler.randomized_scheduler(node)
+    registers_needed, schedule = scheduler.randomized_scheduler(get_shape_nodes(shape))
 
     assert schedule[0].name == "_point"
     assert schedule[0].register == 0
@@ -39,7 +42,7 @@ def _make_program_pieces(shape):
     for n in schedule[1:]:
         assert len(n.dependencies) > 0
         assert len(n.dependencies) <= 2
-        yield instruction_encoder.pack(nodes.Node._type_map[n.name],
+        yield instruction_encoder.pack(node.Node._type_map[n.name],
                                        n.register,
                                        n.dependencies[0].register,
                                        n.dependencies[1].register if len(n.dependencies) > 1 else 0)
@@ -51,3 +54,7 @@ def _make_program_pieces(shape):
 def make_program(shape):
     return b"".join(_make_program_pieces(shape))
 
+def make_program_buffer(shape):
+    return pyopencl.Buffer(opencl_manager.instance.context,
+                           pyopencl.mem_flags.READ_ONLY | pyopencl.mem_flags.COPY_HOST_PTR,
+                           hostbuf=make_program(shape))

@@ -3,7 +3,12 @@ import numpy
 
 from .. import util
 from . import base
-from . import mixins
+from . import common
+from .. import opencl_manager
+
+_c_file = opencl_manager.instance.add_compile_unit()
+_c_file.append_file("common.h")
+_c_file.append_file("simple2d.cl")
 
 class Rectangle(base.Shape2D):
     def __init__(self, x = 1, y = None):
@@ -135,27 +140,27 @@ class Polygon2D(base.Shape2D):
                                [point])
 
 
-class Union2D(mixins.UnionMixin, base.Shape2D):
+class Union2D(common.UnionMixin, base.Shape2D):
     pass
 
 
-class Intersection2D(mixins.IntersectionMixin, base.Shape2D):
+class Intersection2D(common.IntersectionMixin, base.Shape2D):
     pass
 
 
-class Subtraction2D(mixins.SubtractionMixin, base.Shape2D):
+class Subtraction2D(common.SubtractionMixin, base.Shape2D):
     pass
 
 
-class Offset2D(mixins.OffsetMixin, base.Shape2D):
+class Offset2D(common.OffsetMixin, base.Shape2D):
     pass
 
 
-class Shell2D(mixins.ShellMixin, base.Shape2D):
+class Shell2D(common.ShellMixin, base.Shape2D):
     pass
 
 
-class Transformation2D(mixins.TransformationMixin, base.Shape2D):
+class Transformation2D(common.TransformationMixin, base.Shape2D):
     def bounding_box(self):
         b = self.s.bounding_box().flattened()
 

@@ -6,7 +6,10 @@ import numpy
 
 from .. import util
 from . import render_params
-from ..compute import compute, program
+from .. import opencl_manager
+from .. import nodes
+
+opencl_manager.instance.add_compile_unit().append_file("ray_caster.cl")
 
 def _zero_if_inf(x):
     if math.isinf(x):
@@ -35,22 +38,20 @@ def render(obj,
     output = numpy.empty([size[1], size[0], 3], dtype=numpy.uint8)
 
     mf = pyopencl.mem_flags
-    program_buffer = pyopencl.Buffer(compute.ctx,
-                                     mf.READ_ONLY | mf.COPY_HOST_PTR,
-                                     hostbuf=program.make_program(obj))
-    output_buffer = pyopencl.Buffer(compute.ctx,
+    program_buffer = nodes.make_program_buffer(obj)
+    output_buffer = pyopencl.Buffer(opencl_manager.instance.context,
                                     mf.WRITE_ONLY,
                                     output.nbytes)
 
-    compute.program.ray_caster(compute.queue, size, None,
-                               program_buffer,
-                               origin.as_float4(), forward.as_float4(), up.as_float4(), right.as_float4(),
-                               render_params.surface.as_float4(), render_params.background.as_float4(),
-                               render_params.light.as_float4(), numpy.float32(render_params.ambient),
-                               numpy.float32(epsilon), numpy.uint32(1000), numpy.float32(min_distance), numpy.float32(max_distance),
-                               output_buffer)
+    opencl_manager.instance.get_program().ray_caster(opencl_manager.instance.queue, size, None,
+                                                     program_buffer,
+                                                     origin.as_float4(), forward.as_float4(), up.as_float4(), right.as_float4(),
+                                                     render_params.surface.as_float4(), render_params.background.as_float4(),
+                                                     render_params.light.as_float4(), numpy.float32(render_params.ambient),
+                                                     numpy.float32(epsilon), numpy.uint32(1000), numpy.float32(min_distance), numpy.float32(max_distance),
+                                                     output_buffer)
 
-    pyopencl.enqueue_copy(compute.queue, output, output_buffer)
+    pyopencl.enqueue_copy(opencl_manager.instance.queue, output, output_buffer)
 
     return output
 

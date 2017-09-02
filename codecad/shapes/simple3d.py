@@ -2,7 +2,12 @@ import math
 
 from .. import util
 from . import base
-from . import mixins
+from . import common
+from .. import opencl_manager
+
+_c_file = opencl_manager.instance.add_compile_unit()
+_c_file.append_file("common.h")
+_c_file.append_file("simple3d.cl")
 
 class Sphere(base.Shape3D):
     def __init__(self, d = 1, r = None):
@@ -29,27 +34,27 @@ class HalfSpace(base.Shape3D):
         return cache.make_node("half_space", [], [point])
 
 
-class Union(mixins.UnionMixin, base.Shape3D):
+class Union(common.UnionMixin, base.Shape3D):
     pass
 
 
-class Intersection(mixins.IntersectionMixin, base.Shape3D):
+class Intersection(common.IntersectionMixin, base.Shape3D):
     pass
 
 
-class Subtraction(mixins.SubtractionMixin, base.Shape3D):
+class Subtraction(common.SubtractionMixin, base.Shape3D):
     pass
 
 
-class Offset(mixins.OffsetMixin, base.Shape3D):
+class Offset(common.OffsetMixin, base.Shape3D):
     pass
 
 
-class Shell(mixins.ShellMixin, base.Shape3D):
+class Shell(common.ShellMixin, base.Shape3D):
     pass
 
 
-class Transformation(mixins.TransformationMixin, base.Shape3D):
+class Transformation(common.TransformationMixin, base.Shape3D):
     def bounding_box(self):
         b = self.s.bounding_box()
 

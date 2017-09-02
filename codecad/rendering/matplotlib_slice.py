@@ -1,10 +1,14 @@
-from .. import util
-from ..compute import compute, program
 import math
 import numpy
 import pyopencl
 import matplotlib
 import matplotlib.pyplot as plt
+
+from .. import util
+from .. import opencl_manager
+from .. import nodes
+
+opencl_manager.instance.add_compile_unit().append_file("matplotlib_slice.cl")
 
 def render_slice(obj,
                  resolution,
@@ -24,20 +28,19 @@ def render_slice(obj,
     corner = box.midpoint() - new_box_size / 2
 
     mf = pyopencl.mem_flags
-    program_buffer = pyopencl.Buffer(compute.ctx,
-                                     mf.READ_ONLY | mf.COPY_HOST_PTR,
-                                     hostbuf=program.make_program(obj))
+    program_buffer = nodes.make_program_buffer(obj)
+
     values = numpy.empty((grid_dimensions[1], grid_dimensions[0], grid_dimensions[2]), dtype=numpy.float32)
 
-    output_buffer = pyopencl.Buffer(compute.ctx,
+    output_buffer = pyopencl.Buffer(opencl_manager.instance.context,
                                     mf.WRITE_ONLY,
                                     values.nbytes)
     with util.status_block("running"):
-        compute.program.matplotlib_slice(compute.queue, (grid_dimensions[0], grid_dimensions[1]), None,
-                                         program_buffer,
-                                         corner.as_float4(), numpy.float32(resolution),
-                                         output_buffer)
-        pyopencl.enqueue_copy(compute.queue, values, output_buffer)
+        opencl_manager.instance.get_program().matplotlib_slice(opencl_manager.instance.queue, (grid_dimensions[0], grid_dimensions[1]), None,
+                                                               program_buffer,
+                                                               corner.as_float4(), numpy.float32(resolution),
+                                                               output_buffer)
+        pyopencl.enqueue_copy(opencl_manager.instance.queue, values, output_buffer)
 
 
     distances = values[:,:,0]

@@ -3,10 +3,12 @@ import math
 import pyopencl
 import numpy
 
+from . import opencl_manager
 from . import util
+from . import nodes
 from .util import cl_util
-from .compute import compute
-from .compute import program
+
+opencl_manager.instance.add_compile_unit().append_file("subdivision.cl")
 
 class _Helper:
     def __init__(self, queue, grid_size, dimension, program_buffer, block_sizes, origin, resolution, final_blocks):
@@ -46,12 +48,12 @@ class _Helper:
         # Enqueue write instead of fill to work around pyopencl bug #168
         fill_ev = self.counter.enqueue_write(numpy.zeros(1, self.counter.dtype))
 
-        return compute.program.subdivision_step(self.queue, grid_dimensions, None,
-                                                self.program_buffer,
-                                                shifted_corner.as_float4(), numpy.float32(box_step),
-                                                numpy.float32(distance_threshold),
-                                                self.counter.buffer, self.list.buffer,
-                                                wait_for=[fill_ev])
+        return opencl_manager.instance.get_program().subdivision_step(self.queue, grid_dimensions, None,
+                                                                      self.program_buffer,
+                                                                      shifted_corner.as_float4(), numpy.float32(box_step),
+                                                                      numpy.float32(distance_threshold),
+                                                                      self.counter.buffer, self.list.buffer,
+                                                                      wait_for=[fill_ev])
 
     def process_result(self, event):
         int_box_step = self.block_sizes[self.level][0]
@@ -151,9 +153,7 @@ def subdivision(shape, resolution, overlap_edge_samples=True, grid_size=None):
     assert grid_size > 1, "Grid needs to be at least 2x2x2"
     assert grid_size <= 256, "Grid size > 256 would cause overflows in returned index list."
 
-    program_buffer = pyopencl.Buffer(compute.ctx,
-                                     pyopencl.mem_flags.READ_ONLY | pyopencl.mem_flags.COPY_HOST_PTR,
-                                     hostbuf=program.make_program(shape))
+    program_buffer = nodes.make_program_buffer(shape)
 
     box = shape.bounding_box().expanded_additive(resolution/2)
     dimension = shape.dimension()
@@ -171,10 +171,10 @@ def subdivision(shape, resolution, overlap_edge_samples=True, grid_size=None):
         return program_buffer, block_sizes[0][1], [(block_sizes[0][1], box.a, resolution, util.Vector(0, 0, 0), 1)]
 
     final_blocks = []
-    helper1 = _Helper(compute.queue, grid_size, dimension,
+    helper1 = _Helper(opencl_manager.instance.queue, grid_size, dimension,
                       program_buffer, block_sizes, box.a, resolution,
                       final_blocks)
-    helper2 = _Helper(compute.queue, grid_size, dimension,
+    helper2 = _Helper(opencl_manager.instance.queue, grid_size, dimension,
                       program_buffer, block_sizes, box.a, resolution,
                       final_blocks)
 

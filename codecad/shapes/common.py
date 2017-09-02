@@ -1,6 +1,8 @@
 import functools
 
 from .. import util
+from .. import opencl_manager
+opencl_manager.instance.add_compile_unit().append_file("common.cl")
 
 class UnionMixin:
     def __init__(self, shapes, r = -1):
