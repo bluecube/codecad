@@ -10,7 +10,7 @@ setup(name = "codecad",
       license = "GPL",
       packages = find_packages(),
       package_data = {
-        "": "*.cl",
+        "": ["*.cl", "*.h"],
         },
       install_requires = [
         "numpy",
