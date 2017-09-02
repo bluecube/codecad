@@ -3,7 +3,7 @@ import random
 import operator
 import copy
 
-from . import node
+from .node import Node
 
 class _RegisterAllocator:
     def __init__(self):
@@ -37,9 +37,9 @@ def _contiguous_schedule_recursive(node, ordering_selector, allocator):
 
         node.disconnect()
 
-        n = nodes.Node(name, params, dependencies[:2], extra_data)
+        n = Node(name, params, dependencies[:2], extra_data)
         for dep in dependencies[2:-1]:
-            n = nodes.Node(name, params, (n, dep), extra_data)
+            n = Node(name, params, (n, dep), extra_data)
 
         dependencies = (n, dependencies[-1])
 
