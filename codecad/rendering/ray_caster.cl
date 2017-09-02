@@ -4,15 +4,17 @@
 // Tracing starts at minDistance and ends at maxDistance.
 // nearest outputs the evaluation result at a point where the cone got maximally
 // obstructed, nearestDistance returns distance along the ray of this event
-static float cast_ray(__constant float* scene,
+static float cast_ray(__constant float* restrict scene,
                       float3 origin, float3 direction,
                       float epsilon, uint maxSteps, float minDistance, float maxDistance,
-                      float4* nearestResult, float* nearestDistance)
+                      float4* restrict nearestResult,
+                      float* restrict nearestDistance,
+                      uint* restrict stepsUsed)
 {
     float tanApexAngle = 1; //INFINITY;
     float distance = minDistance;
     nearestResult->w = INFINITY;
-    for (size_t i = 0; i < maxSteps; ++i)
+    for (*stepsUsed = 1; *stepsUsed <= maxSteps; ++*stepsUsed)
     {
         float3 point = origin + distance * direction;
         float4 evalResult = evaluate(scene, point);
@@ -39,7 +41,7 @@ static float cast_ray(__constant float* scene,
     return tanApexAngle;
 }
 
-static float light_contribution(__constant float* scene,
+static float light_contribution(__constant float* restrict scene,
                                 float3 point, float3 normal, float3 toLight,
                                 float epsilon, uint maxSteps, float maxDistance)
 {
@@ -50,19 +52,21 @@ static float light_contribution(__constant float* scene,
 
     float4 hitResult;
     float hitDistance;
+    uint stepsUsed;
     float lightVisibility = cast_ray(scene, point, toLight,
                                      epsilon, maxSteps, epsilon, maxDistance,
-                                     &hitResult, &hitDistance);
+                                     &hitResult, &hitDistance, &stepsUsed);
 
     return lightVisibility * surfaceToLightDotProduct;
 }
 
-__kernel void ray_caster(__constant float* scene,
+__kernel void ray_caster(__constant float* restrict scene,
                          float4 origin, float4 forward, float4 up, float4 right,
                          float4 surfaceColor, float4 backgroundColor,
                          float4 light, float ambient,
                          float epsilon, uint maxSteps, float minDistance, float maxDistance,
-                         __global uchar* output)
+                         uint renderOptions,
+                         __global uchar* restrict output)
 {
     size_t x = get_global_id(0);
     size_t y = get_global_id(1);
@@ -80,27 +84,38 @@ __kernel void ray_caster(__constant float* scene,
     float4 hitResult;
     float hitDistance;
     float4 color;
+    uint stepsUsed;
+    float coneAngle = cast_ray(scene, origin.xyz, direction,
+                               epsilon, maxSteps, minDistance, maxDistance,
+                               &hitResult, &hitDistance, &stepsUsed);
 
-    if (cast_ray(scene, origin.xyz, direction,
-                 epsilon, maxSteps, minDistance, maxDistance,
-                 &hitResult, &hitDistance) == 0)
+    if (renderOptions & RENDER_OPTIONS_FALSE_COLOR)
     {
-        float lightness = ambient;
-        float3 normal = hitResult.xyz;
-
-        float3 point = origin.xyz + direction * (hitDistance - 2 * epsilon);// + normal * hitResult.w;
-
-        lightness += light_contribution(scene, point, normal, -light.xyz,
-                                        epsilon, maxSteps, maxDistance);
-
-        color = lightness * surfaceColor;
+        output[index + 0] = clamp(stepsUsed, (uint)0, (uint)255);
+        output[index + 1] = 0;
+        output[index + 2] = 0;
     }
     else
-        color = backgroundColor;
+    {
+        if (coneAngle == 0)
+        {
+            float lightness = ambient;
+            float3 normal = hitResult.xyz;
 
-    output[index + 0] = clamp(color.x, 0.0f, 255.0f);
-    output[index + 1] = clamp(color.y, 0.0f, 255.0f);
-    output[index + 2] = clamp(color.z, 0.0f, 255.0f);
+            float3 point = origin.xyz + direction * (hitDistance - 2 * epsilon);// + normal * hitResult.w;
+
+            lightness += light_contribution(scene, point, normal, -light.xyz,
+                                            epsilon, maxSteps, maxDistance);
+
+            color = lightness * surfaceColor;
+        }
+        else
+            color = backgroundColor;
+
+        output[index + 0] = clamp(color.x, 0.0f, 255.0f);
+        output[index + 1] = clamp(color.y, 0.0f, 255.0f);
+        output[index + 2] = clamp(color.z, 0.0f, 255.0f);
+    }
 }
 
 // vim: filetype=c

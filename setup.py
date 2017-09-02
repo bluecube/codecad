@@ -18,6 +18,7 @@ setup(name = "codecad",
         "pillow",
         "pymcubes",
         "numpy-stl",
+        "py-flags",
         ],
       setup_requires = [
         "pytest-runner",

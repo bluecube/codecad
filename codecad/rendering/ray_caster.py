@@ -3,13 +3,20 @@ import math
 import PIL
 import pyopencl
 import numpy
+import flags
 
 from .. import util
 from . import render_params
 from .. import opencl_manager
 from .. import nodes
 
-opencl_manager.instance.add_compile_unit().append_file("ray_caster.cl")
+class RenderOptions(flags.Flags):
+    false_color = ()
+
+_c_file = opencl_manager.instance.add_compile_unit()
+for flag in RenderOptions:
+    _c_file.append("#define RENDER_OPTIONS_{} {}".format(flag.to_simple_str().upper(), int(flag)))
+_c_file.append_file("ray_caster.cl")
 
 def _zero_if_inf(x):
     if math.isinf(x):
@@ -19,7 +26,8 @@ def _zero_if_inf(x):
 
 def render(obj,
            origin, direction, up, focal_length,
-           size, epsilon):
+           size, epsilon,
+           options = RenderOptions.no_flags):
 
     box = obj.bounding_box()
     obj.check_dimension(required = 3)
@@ -49,9 +57,12 @@ def render(obj,
                                               render_params.surface.as_float4(), render_params.background.as_float4(),
                                               render_params.light.as_float4(), numpy.float32(render_params.ambient),
                                               numpy.float32(epsilon), numpy.uint32(1000), numpy.float32(min_distance), numpy.float32(max_distance),
+                                              numpy.uint32(options),
                                               output_buffer)
 
     pyopencl.enqueue_copy(opencl_manager.instance.queue, output, output_buffer, wait_for=[ev])
+
+    print("Render took", (ev.profile.end - ev.profile.start) / 1e9)
 
     return output
 

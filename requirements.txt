@@ -1,6 +1,7 @@
 # Core:
 numpy==1.11.0
 pyopencl==2017.1.1
+py-flags==1.1.2
 
 # Image export:
 Pillow==3.4.0
