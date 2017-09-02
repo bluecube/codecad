@@ -36,11 +36,11 @@ def render_slice(obj,
                                     mf.WRITE_ONLY,
                                     values.nbytes)
     with util.status_block("running"):
-        opencl_manager.instance.k.matplotlib_slice((grid_dimensions[0], grid_dimensions[1]), None,
-                                                   program_buffer,
-                                                   corner.as_float4(), numpy.float32(resolution),
-                                                   output_buffer)
-        pyopencl.enqueue_copy(opencl_manager.instance.queue, values, output_buffer)
+        ev = opencl_manager.instance.k.matplotlib_slice((grid_dimensions[0], grid_dimensions[1]), None,
+                                                        program_buffer,
+                                                        corner.as_float4(), numpy.float32(resolution),
+                                                        output_buffer)
+        pyopencl.enqueue_copy(opencl_manager.instance.queue, values, output_buffer, wait_for=[ev])
 
 
     distances = values[:,:,0]

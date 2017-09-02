@@ -63,8 +63,8 @@ class OpenCLManager:
         for dev in self.context.devices:
             print("Device", dev.name)
 
-        self.queue = pyopencl.CommandQueue(self.context)#,
-                                           #properties=pyopencl.command_queue_properties.OUT_OF_ORDER_EXEC_MODE_ENABLE)
+        self.queue = pyopencl.CommandQueue(self.context,
+                                           properties=pyopencl.command_queue_properties.OUT_OF_ORDER_EXEC_MODE_ENABLE)
 
         self._compile_units = []
         self.common_header = CompileUnit()
