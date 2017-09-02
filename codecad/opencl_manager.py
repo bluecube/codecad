@@ -1,5 +1,6 @@
 import inspect
 import itertools
+import functools
 import warnings
 import os.path
 
@@ -42,6 +43,18 @@ class CompileUnit:
         self.pieces.append('#line {} "{}"'.format(line, frame[1])) # TODO: Escape filename
         self.pieces.append(code)
 
+class _Kernels:
+    def __init__(self, manager):
+        self.manager = manager
+
+    def __getattr__(self, name):
+        kernel = getattr(self.manager.get_program(), name)
+
+        @functools.wraps(kernel)
+        def ret(*args, **kwargs):
+            return kernel(self.manager.queue, *args, **kwargs)
+
+        return ret
 
 class OpenCLManager:
     def __init__(self):
@@ -55,7 +68,10 @@ class OpenCLManager:
 
         self._compile_units = []
         self.common_header = CompileUnit()
+
         self._program = None
+
+        self.k = _Kernels(self)
 
     def add_compile_unit(self, *args, **kwargs):
         ret = CompileUnit(*args, **kwargs)

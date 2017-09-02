@@ -48,12 +48,12 @@ class _Helper:
         # Enqueue write instead of fill to work around pyopencl bug #168
         fill_ev = self.counter.enqueue_write(numpy.zeros(1, self.counter.dtype))
 
-        return opencl_manager.instance.get_program().subdivision_step(self.queue, grid_dimensions, None,
-                                                                      self.program_buffer,
-                                                                      shifted_corner.as_float4(), numpy.float32(box_step),
-                                                                      numpy.float32(distance_threshold),
-                                                                      self.counter.buffer, self.list.buffer,
-                                                                      wait_for=[fill_ev])
+        return opencl_manager.instance.k.subdivision_step(grid_dimensions, None,
+                                                          self.program_buffer,
+                                                          shifted_corner.as_float4(), numpy.float32(box_step),
+                                                          numpy.float32(distance_threshold),
+                                                          self.counter.buffer, self.list.buffer,
+                                                          wait_for=[fill_ev])
 
     def process_result(self, event):
         int_box_step = self.block_sizes[self.level][0]

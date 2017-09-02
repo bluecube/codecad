@@ -133,13 +133,13 @@ class _Helper:
         fill_ev = self.index_sums.enqueue_write(numpy.zeros(10, self.index_sums.dtype))
         fill_ev = self.counter.enqueue_write(numpy.zeros(1, self.counter.dtype), wait_for=[fill_ev])
 
-        return opencl_manager.instance.get_program().mass_properties(self.queue, grid_dimensions, None,
-                                                                     self.program_buffer,
-                                                                     shifted_corner.as_float4(), numpy.float32(box_step),
-                                                                     numpy.float32(distance_threshold),
-                                                                     self.index_sums.buffer,
-                                                                     self.counter.buffer, self.list.buffer,
-                                                                     wait_for=[fill_ev])
+        return opencl_manager.instance.k.mass_properties(grid_dimensions, None,
+                                                         self.program_buffer,
+                                                         shifted_corner.as_float4(), numpy.float32(box_step),
+                                                         numpy.float32(distance_threshold),
+                                                         self.index_sums.buffer,
+                                                         self.counter.buffer, self.list.buffer,
+                                                         wait_for=[fill_ev])
 
     def process_result(self, event):
         intersecting_count = self.counter.read(wait_for=[event])[0]

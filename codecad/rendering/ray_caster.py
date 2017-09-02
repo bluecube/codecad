@@ -43,13 +43,13 @@ def render(obj,
                                     mf.WRITE_ONLY,
                                     output.nbytes)
 
-    opencl_manager.instance.get_program().ray_caster(opencl_manager.instance.queue, size, None,
-                                                     program_buffer,
-                                                     origin.as_float4(), forward.as_float4(), up.as_float4(), right.as_float4(),
-                                                     render_params.surface.as_float4(), render_params.background.as_float4(),
-                                                     render_params.light.as_float4(), numpy.float32(render_params.ambient),
-                                                     numpy.float32(epsilon), numpy.uint32(1000), numpy.float32(min_distance), numpy.float32(max_distance),
-                                                     output_buffer)
+    opencl_manager.instance.k.ray_caster(size, None,
+                                         program_buffer,
+                                         origin.as_float4(), forward.as_float4(), up.as_float4(), right.as_float4(),
+                                         render_params.surface.as_float4(), render_params.background.as_float4(),
+                                         render_params.light.as_float4(), numpy.float32(render_params.ambient),
+                                         numpy.float32(epsilon), numpy.uint32(1000), numpy.float32(min_distance), numpy.float32(max_distance),
+                                         output_buffer)
 
     pyopencl.enqueue_copy(opencl_manager.instance.queue, output, output_buffer)
 

@@ -40,10 +40,10 @@ def triangular_mesh(obj, resolution, subdivision_grid_size=None, debug_subdivisi
 
         #with util.status_block("{}/{}".format(i + 1, len(boxes))):
         # TODO: Staggered opencl / python processing the way subdivision does it.
-        ev = opencl_manager.instance.get_program().grid_eval_pymcubes(opencl_manager.instance.queue, box_size, None,
-                                                                      program_buffer,
-                                                                      box_corner.as_float4(), numpy.float32(box_resolution),
-                                                                      block_buffer)
+        ev = opencl_manager.instance.k.grid_eval_pymcubes(box_size, None,
+                                                          program_buffer,
+                                                          box_corner.as_float4(), numpy.float32(box_resolution),
+                                                          block_buffer)
         pyopencl.enqueue_copy(opencl_manager.instance.queue, block, block_buffer, wait_for=[ev])
 
         vertices, triangles = mcubes.marching_cubes(block, 0)
@@ -129,16 +129,16 @@ def polygon(obj, resolution, subdivision_grid_size=None):
             int_box_step = None # There will be no open chains if we only visit one box
 
         # TODO: Staggered opencl / python processing the way subdivision does it.
-        corners_ev = opencl_manager.instance.get_program().grid_eval(opencl_manager.instance.queue, grid_size, None,
-                                                                     program_buffer,
-                                                                     box_corner.as_float4(), numpy.float32(box_resolution),
-                                                                     corners)
+        corners_ev = opencl_manager.instance.k.grid_eval(grid_size, None,
+                                                         program_buffer,
+                                                         box_corner.as_float4(), numpy.float32(box_resolution),
+                                                         corners)
         fill_ev = start_counter.enqueue_write(numpy.zeros(1, start_counter.dtype))
-        process_ev = opencl_manager.instance.get_program().process_polygon(opencl_manager.instance.queue, grid_size_triangles, None,
-                                                                           box_corner.as_float2(), numpy.float32(box_resolution),
-                                                                           corners,
-                                                                           vertices.buffer, links.buffer, starts.buffer, start_counter.buffer,
-                                                                           wait_for=[corners_ev, fill_ev])
+        process_ev = opencl_manager.instance.k.process_polygon(grid_size_triangles, None,
+                                                               box_corner.as_float2(), numpy.float32(box_resolution),
+                                                               corners,
+                                                               vertices.buffer, links.buffer, starts.buffer, start_counter.buffer,
+                                                               wait_for=[corners_ev, fill_ev])
 
         # Everything is read into the internal array of clutil.Buffer
         vertices.read(wait_for=[process_ev])
