@@ -11,6 +11,7 @@ uchar sphere_op(__constant float* params, float4* output, float4 coords, float4 
 
 uchar half_space_op(__constant float* params, float4* output, float4 coords, float4 unused) {
     *output = (float4)(0, -1, 0, -coords.y);
+    return 0;
 }
 
 uchar extrusion_op(__constant float* params, float4* output, float4 coords, float4 input) {
