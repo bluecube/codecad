@@ -27,6 +27,7 @@ setup(name = "codecad",
         "pytest",
         "trimesh",
         ],
+      python_requires = "~=3.4",
 
       zip_safe = False,
       )
