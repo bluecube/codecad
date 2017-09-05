@@ -35,15 +35,16 @@ class CompileUnit:
             self.pieces.append(fp.read())
 
     def append(self, code):
-        frame = inspect.stack()[1]
+        frame = inspect.currentframe().f_back
+        frameinfo = inspect.getframeinfo(frame, context=0)
         lines = code.count("\n")
-        line = frame[2] - lines
+        line = frameinfo.lineno - lines
 
         while code.startswith("\n"):
             code = code[1:]
             line += 1
 
-        self.pieces.append('#line {} "{}"'.format(line, frame[1])) # TODO: Escape filename
+        self.pieces.append('#line {} "{}"'.format(line, frameinfo.filename)) # TODO: Escape filename
         self.pieces.append(code)
 
 class _Kernels:
@@ -98,7 +99,8 @@ class OpenCLManager:
 
     def get_program(self):
         if self._program is None:
-            self._program = self._build_program()
+            with util.status_block("compiling"):
+                self._program = self._build_program()
         return self._program
 
 instance = OpenCLManager()
