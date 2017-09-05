@@ -2,32 +2,57 @@
 Also handles generating the OpenCL code for evaluation """
 
 import collections
+import itertools
 
-from .. import opencl_manager
+_Variable = object()
 
 class Node:
-    # Mapping of node names to instruction codes
+    # Mapping of node name to tuple (number of parameters, number of input nodes, instruction code)
     # These also need to be implemented in opencl.
-    _type_map = collections.OrderedDict((name, i + 2) for i, name in enumerate([
-        "rectangle", "circle", "polygon2d", # 2D shapes
-        "sphere", "extrusion", "revolution_to", "revolution_from", # 3D shapes
-        "union", "intersection", "subtraction", "offset", "shell", # Common operations
-        "transformation_to", "transformation_from", # Transform
-        "repetition", "half_space", "involute_gear"])) # Misc
+    _node_types = collections.OrderedDict((name, (params, arity, i + 2))
+                                          for i, (name, params, arity)
+                                          in enumerate([
+        # Unary nodes:
+        # 2D shapes:
+        ("rectangle", 2, 1), ("circle", 1, 1), ("polygon2d", _Variable, 1),
+        # 3D shapes:
+        ("sphere", 1, 1), ("half_space", 0, 1), ("revolution_to", 0, 1),
+        # Common:
+        ("transformation_to", 7, 1), ("transformation_from", 4, 1),
+        ("offset", 1, 1), ("shell", 1, 1),
+        # Misc:
+        ("repetition", 3, 1), ("involute_gear", 2, 1),
+
+        # Binary nodes:
+        # 3D shapes:
+        ("extrusion", 1, 2), ("revolution_from", 0, 2),
+        # Common:
+        ("union", 1, 2), ("intersection", 1, 2), ("subtraction", 1, 2),
+        ]))
 
     def __init__(self, name, params, dependencies, extra_data = None):
         # Note: If dependency count > 2, then we assume that the node is  both
         # associative and commutative and that it can be safely broken binary
         # nodes of the same type in any order
-        assert name in self._type_map or name.startswith("_")
+
+        if name.startswith("_"):
+            expected_param_count = 0
+            expected_dependency_count = 0
+        else:
+            expected_param_count, expected_dependency_count, _ = self._node_types[name]
+
         self.name = name
+
         self.params = tuple(params)
+        assert len(self.params) == expected_param_count or expected_param_count is _Variable
+
         self.dependencies = ()
         self.extra_data = extra_data
         self._hash = hash((name, self.params, self.dependencies))
 
         self.refcount = 0 # How many times is this node referenced by other node
         self.connect(dependencies)
+        assert len(self.dependencies) == expected_dependency_count
 
         self.register = None # Register allocated for output of this node
 
@@ -49,56 +74,3 @@ class Node:
         return self.name == other.name and \
                self.params == other.params and \
                self.dependencies == other.dependencies
-
-    @classmethod
-    def generate_eval_source_code(cls, register_count):
-        h = opencl_manager.instance.common_header
-        h.append('float4 evaluate(__constant float* program, float3 point);')
-
-        c = opencl_manager.instance.add_compile_unit()
-        c.append('#define EVAL_REGISTER_COUNT {}'.format(register_count))
-        for name in cls._type_map.keys():
-            c.append('uchar {}_op(__constant float* params, float4* output, float4 param1, float4 param2);'.format(name))
-        c.append('''
-float4 evaluate(__constant float* program, float3 point)
-{
-    float4 registers[EVAL_REGISTER_COUNT];
-    registers[0] = as_float4(point);
-
-    while (true)
-    {
-        union
-        {
-            float f;
-            struct
-            {
-                uchar opcode;
-                uchar output;
-                uchar input1;
-                uchar input2;
-            };
-        } instruction;
-
-        instruction.f = *program++;
-
-        switch (instruction.opcode)
-        {
-            case 0:
-                return registers[0];
-                 ''')
-        for name, i in cls._type_map.items():
-            c.append('''
-            case {}:
-                program += {}_op(program,
-                    &registers[instruction.output],
-                    registers[instruction.input1],
-                    registers[instruction.input2]);
-                break;
-                     '''.format(i, name))
-        c.append('''
-       }
-    }
-}
-                 ''')
-
-Node.generate_eval_source_code(32)

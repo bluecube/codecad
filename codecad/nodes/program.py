@@ -42,7 +42,7 @@ def _make_program_pieces(shape):
     for n in schedule[1:]:
         assert len(n.dependencies) > 0
         assert len(n.dependencies) <= 2
-        yield instruction_encoder.pack(node.Node._type_map[n.name],
+        yield instruction_encoder.pack(node.Node._node_types[n.name][2],
                                        n.register,
                                        n.dependencies[0].register,
                                        n.dependencies[1].register if len(n.dependencies) > 1 else 0)

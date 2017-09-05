@@ -70,54 +70,46 @@ float4 rounded_union(float r, float4 obj1, float4 obj2) {
         return obj2;
 }
 
-uchar union_op(__constant float* params, float4* output, float4 obj1, float4 obj2) {
-    *output = rounded_union(params[0], obj1, obj2);
-    return 1;
+void union_op(float r, float4 obj1, float4 obj2, float4* output) {
+    *output = rounded_union(r, obj1, obj2);
 }
 
-uchar intersection_op(__constant float* params, float4* output, float4 obj1, float4 obj2) {
-    *output = -rounded_union(params[0], -obj1, -obj2);
-    return 1;
+void intersection_op(float r, float4 obj1, float4 obj2, float4* output) {
+    *output = -rounded_union(r, -obj1, -obj2);
 }
 
-uchar subtraction_op(__constant float* params, float4* output, float4 obj1, float4 obj2) {
-    *output = -rounded_union(params[0], -obj1, obj2);
-    return 1;
+void subtraction_op(float r, float4 obj1, float4 obj2, float4* output) {
+    *output = -rounded_union(r, -obj1, obj2);
 }
 
-uchar transformation_to_op(__constant float* params, float4* output, float4 point, float4 unused) {
-    float4 quaternion = vload4(0, params);
-    float3 offset = vload3(0, params + 4);
+void transformation_to_op(float qx, float qy, float qz, float qw,
+                          float ox, float oy, float oz,
+                          float4 point, float4* output) {
+    float4 quaternion = (float4)(qx, qy, qz, qw);
+    float3 offset = (float3)(ox, oy, oz);
 
     float3 transformed = quaternion_transform(quaternion, as_float3(point)) + offset;
 
     *output = as_float4(transformed);
-
-    return 7;
 }
 
-uchar transformation_from_op(__constant float* params, float4* output, float4 input, float4 unused) {
-    float4 quaternion = vload4(0, params);
+void transformation_from_op(float qx, float qy, float qz, float qw,
+                            float4 input, float4* output) {
+    float4 quaternion = (float4)(qx, qy, qz, qw);
 
     float scale = quaternion_scale(quaternion);
     float3 transformed = quaternion_transform(quaternion, as_float3(input));
 
     *output = as_float4(transformed / scale);
     output->w = input.w * scale;
-
-    return 4;
 }
 
-uchar offset_op(__constant float* params, float4* output, float4 input, float4 unused) {
-    float distance = params[0];
+void offset_op(float distance, float4 input, float4* output) {
     *output = input - distance;
-    return 1;
 }
 
-uchar shell_op(__constant float* params, float4* output, float4 input, float4 unused) {
-    float half_thickness = params[0];
-    *output = fabs(input) - half_thickness;
-    return 1;
+void shell_op(float halfThickness, float4 input, float4* output) {
+    *output = fabs(input) - halfThickness;
 }
 
 // vim: filetype=c

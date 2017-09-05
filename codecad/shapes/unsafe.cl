@@ -1,6 +1,5 @@
-uchar repetition_op(__constant float* params, float4* output, float4 coords, float4 unused) {
-    output->x = remainder(coords.x, params[0]);
-    output->y = remainder(coords.y, params[1]);
-    output->z = remainder(coords.z, params[2]);
-    return 3;
+void repetition_op(float ox, float oy, float oz, float4 coords, float4* output) {
+    output->x = remainder(coords.x, ox);
+    output->y = remainder(coords.y, oy);
+    output->z = remainder(coords.z, oz);
 }

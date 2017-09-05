@@ -1,7 +1,4 @@
-uchar involute_gear_op(__constant float* params, float4* output, float4 coords, float4 unused) {
-    uint toothCount = params[0];
-    float pressureAngle = params[1];
-
+void involute_gear_op(float toothCount, float pressureAngle, float4 coords, float4* output) {
     float baseRadius = cos(pressureAngle);
     float toothAngle = M_PI / toothCount;
 
@@ -42,8 +39,6 @@ uchar involute_gear_op(__constant float* params, float4* output, float4 coords, 
 
         *output = (float4)(normal.x, normal.y, 0, distance);
     }
-
-    return 2;
 }
 
 // vim: filetype=c

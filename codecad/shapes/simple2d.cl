@@ -1,13 +1,9 @@
-uchar rectangle_op(__constant float* params, float4* output, float4 coords, float4 unused) {
-    float halfW = params[0];
-    float halfH = params[1];
+void rectangle_op(float halfW, float halfH, float4 coords, float4* output) {
     *output = perpendicular_intersection(slab_x(halfW, coords),
                                          slab_y(halfH, coords));
-    return 2;
 }
 
-uchar circle_op(__constant float* params, float4* output, float4 coords, float4 unused) {
-    float r = params[0];
+void circle_op(float r, float4 coords, float4* output) {
     float2 flat = (float2)(coords.x, coords.y);
     float absFlat = length(flat);
     if (absFlat == 0) // TODO: Check this
@@ -15,10 +11,9 @@ uchar circle_op(__constant float* params, float4* output, float4 coords, float4 
     else
         flat /= absFlat;
     *output = (float4)(flat.x, flat.y, 0, absFlat - r);
-    return 1;
 }
 
-uchar polygon2d_op(__constant float* params, float4* output, float4 coords, float4 unused) {
+uint polygon2d_op(__constant float* params, float4 coords, float4* output) {
     uint pointCount = *(params++);
 
     float2 query = (float2)(coords.x, coords.y);
