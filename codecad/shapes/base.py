@@ -189,7 +189,7 @@ class Shape3D(ShapeBase):
                                                        util.Vector(0, 0, 0))
         else:
             angle_step = angle / n
-            return Union([self.rotated(vector, (1 + i) * angle_step) for i in range(n)])
+            return simple3d.Union([self.rotated(vector, (1 + i) * angle_step) for i in range(n)])
 
     def scaled(self, s):
         """ Returns current shape scaled by given ratio """

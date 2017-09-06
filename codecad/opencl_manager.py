@@ -6,6 +6,8 @@ import os.path
 
 import pyopencl
 
+from . import util
+
 _default_compiler_options = ["-Werror",
                              "-cl-single-precision-constant",
                              "-cl-denorms-are-zero",

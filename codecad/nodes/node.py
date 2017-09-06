@@ -52,7 +52,8 @@ class Node:
 
         self.refcount = 0 # How many times is this node referenced by other node
         self.connect(dependencies)
-        assert len(self.dependencies) == expected_dependency_count
+        assert len(self.dependencies) == expected_dependency_count or \
+               len(self.dependencies) > expected_dependency_count == 2
 
         self.register = None # Register allocated for output of this node
 
