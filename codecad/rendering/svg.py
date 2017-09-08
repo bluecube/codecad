@@ -6,8 +6,6 @@ import numpy
 from . import render_params
 from . import mesh
 
-def _interp(a, b):
-    return -a / (b - a)
 
 def _html_color(c):
     return "#" + hex(c.x << 16 | c.y << 8 | c.z)[2:]
