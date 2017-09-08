@@ -70,7 +70,8 @@ class OpenCLManager:
             print("Device", dev.name)
 
         self.queue = pyopencl.CommandQueue(self.context,
-                                           properties=pyopencl.command_queue_properties.OUT_OF_ORDER_EXEC_MODE_ENABLE)
+                                           properties=pyopencl.command_queue_properties.OUT_OF_ORDER_EXEC_MODE_ENABLE |
+                                           pyopencl.command_queue_properties.PROFILING_ENABLE)
 
         self._compile_units = []
         self.common_header = CompileUnit()
