@@ -11,12 +11,13 @@ _c_file = opencl_manager.instance.add_compile_unit()
 _c_file.append_file("common.h")
 _c_file.append_file("unsafe.cl")
 
+
 class _RepetitionMixin:
     """ Infinite repetition of an object along X, Y and Z axis.
     If spacing along an axis is not infinite, then the object should be symmetrical
     about a plane perpendicular to that axis going through origin, and its
     bounding box size should be smaller than the spacing along that axis. """
-    #TODO: At least minimal checks generating warnings
+    # TODO: At least minimal checks generating warnings
 
     def __init__(self, s, spacing):
         """

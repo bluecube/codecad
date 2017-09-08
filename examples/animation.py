@@ -12,4 +12,4 @@ bouncing = rotating.translated(0,
                                codecad.util.sin(codecad.util.radians(720 * animation_progress)) * 100)
 
 if __name__ == "__main__":
-    codecad.commandline_render(bouncing, 1, default_renderer = "gif", duration=duration)
+    codecad.commandline_render(bouncing, 1, default_renderer="gif", duration=duration)

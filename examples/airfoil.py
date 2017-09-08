@@ -16,7 +16,7 @@ base = airfoil.scaled(chord).extruded(2 * span)
 mask = codecad.shapes.box(2 * chord, 2 * chord, 2 * span).translated(0, 0, span)
 
 unmasked_inside = secret_project.mesh(spacing, rod_size, -1) & base
-unmasked_skin = base.offset(-wall/2).shell(wall)
+unmasked_skin = base.offset(-wall / 2).shell(wall)
 
 o = (unmasked_inside + unmasked_skin) & mask
 

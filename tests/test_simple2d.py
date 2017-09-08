@@ -21,10 +21,12 @@ invalid_polygon_cases = {"edge_crossing": [(0, 0), (3, 0), (0, 3), (3, 3)],
                          "duplicate_point": [(0, 0), (2, 0), (2, 0), (4, 3)],
                          "duplicate_point_at_start": [(0, 0), (3, 0), (3, 2), (0, 0)]}
 
+
 @pytest.mark.parametrize("points", [pytest.param(v, id=k) for k, v in sorted(valid_polygon_cases.items())] +
                                    [pytest.param(list(reversed(v)), id="reversed_" + k) for k, v in sorted(valid_polygon_cases.items())])
 def test_valid_polygon_construction(points):
-    codecad.shapes.simple2d.Polygon2D(points) # Just check that it constructs without complaining
+    codecad.shapes.simple2d.Polygon2D(points)  # Just check that it constructs without complaining
+
 
 @pytest.mark.parametrize("points", [pytest.param(v, id=k) for k, v in sorted(invalid_polygon_cases.items())] +
                                    [pytest.param(list(reversed(v)), id="reversed_" + k) for k, v in sorted(invalid_polygon_cases.items())])

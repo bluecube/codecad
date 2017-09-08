@@ -12,23 +12,28 @@ from . import unsafe
 from . import gears
 from . import airfoils
 
-def rectangle(x = 1, y = None):
+
+def rectangle(x=1, y=None):
     if y is None:
         y = x
     return _s2.Rectangle(x, y)
 
-def circle(d = 1, r = None):
+
+def circle(d=1, r=None):
     if r is not None:
         d = 2 * r
     return _s2.Circle(d)
 
+
 def half_plane():
     return _s2.HalfPlane()
+
 
 def polygon2d(points):
     return _s2.Polygon2D(points)
 
-def box(x = 1, y = None, z = None):
+
+def box(x=1, y=None, z=None):
     if (y is None) != (z is None):
         raise ValueError("y and z must either both be None, or both be number")
     if y is None:
@@ -36,24 +41,27 @@ def box(x = 1, y = None, z = None):
         z = x
     return rectangle(x, y).extruded(z)
 
-def sphere(d = 1, r = None):
+
+def sphere(d=1, r=None):
     if r is not None:
         d = 2 * r
     return _s3.Sphere(d)
 
-def cylinder(h = 1, d = 1, r = None, symmetrical = True):
-    return circle(d = d, r = r).extruded(h, symmetrical)
+
+def cylinder(h=1, d=1, r=None, symmetrical=True):
+    return circle(d=d, r=r).extruded(h, symmetrical)
+
 
 def half_space():
     return _s3.HalfSpace()
 
+
 def _group_op_helper(shapes, name, op2, op3, r):
     """ Check that shapes is not empty and that dimensions match """
     shapes = list(shapes)
-    l = len(shapes)
-    if l == 0:
+    if len(shapes) == 0:
         raise ValueError(name + " of empty set objects doesn't make much sense, does it?")
-    elif l == 1:
+    elif len(shapes) == 1:
         return shapes[0]
     else:
         dim = shapes[0].dimension()
@@ -61,12 +69,14 @@ def _group_op_helper(shapes, name, op2, op3, r):
             raise ValueError(name + " needs shapes of identical dimensions")
 
         if dim == 2:
-            return op2(shapes, r = r)
+            return op2(shapes, r=r)
         if dim == 3:
-            return op3(shapes, r = r)
+            return op3(shapes, r=r)
 
-def union(shapes, r = -1):
+
+def union(shapes, r=-1):
     return _group_op_helper(shapes, "Union", _s2.Union2D, _s3.Union, r)
 
-def intersection(shapes, r = -1):
+
+def intersection(shapes, r=-1):
     return _group_op_helper(shapes, "Intersection", _s2.Intersection2D, _s3.Intersection, r)

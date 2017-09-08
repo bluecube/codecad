@@ -10,13 +10,16 @@ from . import render_params
 from .. import opencl_manager
 from .. import nodes
 
+
 class RenderOptions(flags.Flags):
     false_color = ()
+
 
 _c_file = opencl_manager.instance.add_compile_unit()
 for flag in RenderOptions:
     _c_file.append("#define RENDER_OPTIONS_{} {}".format(flag.to_simple_str().upper(), int(flag)))
 _c_file.append_file("ray_caster.cl")
+
 
 def _zero_if_inf(x):
     if math.isinf(x):
@@ -24,13 +27,14 @@ def _zero_if_inf(x):
     else:
         return x
 
+
 def render(obj,
            origin, direction, up, focal_length,
            size, epsilon,
-           options = RenderOptions.no_flags):
+           options=RenderOptions.no_flags):
 
     box = obj.bounding_box()
-    obj.check_dimension(required = 3)
+    obj.check_dimension(required=3)
 
     forward = direction.normalized()
     up = up - forward * up.dot(forward)
@@ -66,13 +70,14 @@ def render(obj,
 
     return output
 
+
 def get_camera_params(box, size, view_angle):
     box_size = box.size()
 
     size_diagonal = math.hypot(*size)
 
     if view_angle is None:
-        focal_length = size_diagonal # Normal lens by default
+        focal_length = size_diagonal  # Normal lens by default
     else:
         focal_length = size_diagonal / (2 * math.tan(math.radians(view_angle) / 2))
 
@@ -82,7 +87,7 @@ def get_camera_params(box, size, view_angle):
     if distance == 0:
         distance = 1
 
-    distance *= 1.2 # 20% margin around the object
+    distance *= 1.2  # 20% margin around the object
 
     origin = box.midpoint() - util.Vector(0, distance + _zero_if_inf(box_size.y) / 2, 0)
     direction = util.Vector(0, 1, 0)
@@ -90,12 +95,13 @@ def get_camera_params(box, size, view_angle):
 
     return (origin, direction, up, focal_length)
 
-def render_image(obj, size = (1024, 768), view_angle=None, resolution = None):
+
+def render_image(obj, size=(1024, 768), view_angle=None, resolution=None):
     box = obj.bounding_box()
     box_size = box.size()
 
     if resolution is None:
-        epsilon = min(1, box_size.x, box_size.y, box_size.z) / 10000;
+        epsilon = min(1, box_size.x, box_size.y, box_size.z) / 10000
     else:
         epsilon = resolution / 10
 
@@ -103,4 +109,3 @@ def render_image(obj, size = (1024, 768), view_angle=None, resolution = None):
 
     pixels = render(obj, size=size, epsilon=epsilon, *camera_params)
     return PIL.Image.fromarray(pixels)
-

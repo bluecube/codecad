@@ -9,8 +9,9 @@ _c_file = opencl_manager.instance.add_compile_unit()
 _c_file.append_file("common.h")
 _c_file.append_file("simple3d.cl")
 
+
 class Sphere(base.Shape3D):
-    def __init__(self, d = 1, r = None):
+    def __init__(self, d=1, r=None):
         if r is None:
             self.r = d / 2
         else:
@@ -28,7 +29,7 @@ class HalfSpace(base.Shape3D):
     """ Half space y > 0. """
     def bounding_box(self):
         return util.BoundingBox(util.Vector(-float("inf"), 0, -float("inf")),
-                                util.Vector.splat(float("inf")));
+                                util.Vector.splat(float("inf")))
 
     def get_node(self, point, cache):
         return cache.make_node("half_space", [], [point])
@@ -83,6 +84,7 @@ class Extrusion(base.Shape3D):
             return sub_node
         else:
             return cache.make_node("extrusion", [self.h / 2], [point, sub_node])
+
 
 class Revolution(base.Shape3D):
     def __init__(self, s):

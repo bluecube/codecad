@@ -6,12 +6,14 @@ import pytest
 import codecad
 import codecad.subdivision
 
+
 def set_has_approx_item(s1, i2, *args, **kwargs):
     for i1 in s1:
         if i1 == pytest.approx(i2, *args, **kwargs):
             return True
 
     return False
+
 
 class set_approx_equals:
     def __init__(self, s1, s2, *args, **kwargs):
@@ -32,6 +34,7 @@ class set_approx_equals:
         return " ".join(["Extra values in s1:", str(self.s1_extra),
                          "Extra values in s2:", str(self.s2_extra)])
 
+
 @pytest.mark.parametrize('box_size', [codecad.util.Vector(10, 20, 30), codecad.util.Vector(16, 16, 16)])
 @pytest.mark.parametrize('dimension', [2, 3])
 @pytest.mark.parametrize('resolution', [1, 0.1])
@@ -50,12 +53,11 @@ def test_block_sizes(box_size, dimension, resolution, grid_size, overlap):
             assert level_size[2] == 1, "2D blocks must have just a single layer in Z"
         assert level_size[0] > 1 or level_size[1] > 1 or level_size[2] > 1, "All levels must have more than one sub-blocks"
 
-
     real_block_size = bs[0][0] * resolution
     if overlap and len(bs) == 1:
         for i in range(dimension):
             assert bs[0][1][i] >= box_size[i] / real_block_size + 1, "Top level block must cover the whole box (overlap)"
-            assert box_size[i] /real_block_size + 1 > (bs[0][1][i] - 1), "Top level block must not be too large (overlap)"
+            assert box_size[i] / real_block_size + 1 > (bs[0][1][i] - 1), "Top level block must not be too large (overlap)"
     else:
         for i in range(dimension):
             assert bs[0][1][i] >= box_size[i] / (bs[0][0] * resolution), "Top level block must cover the whole box"
@@ -68,6 +70,7 @@ def test_block_sizes(box_size, dimension, resolution, grid_size, overlap):
             else:
                 assert level_resolution == prev_level_resolution * prev_level_size[i], "Each level must exactly cover the next one"
 
+
 def test_block_corners_cube():
     _, _, blocks = codecad.subdivision.subdivision(codecad.shapes.box(10),
                                                    1,
@@ -77,17 +80,17 @@ def test_block_corners_cube():
     assert blocks[0][2] == 1
     assert blocks[0][4] == 1
 
-    corners = { block[1] for block in blocks }
-    expected = { codecad.util.Vector(*coords) for coords in itertools.product([-5.5, -2.5, 0.5, 3.5], repeat=3) } - \
-               { codecad.util.Vector(*coords) for coords in itertools.product([-2.5, 0.5], repeat=3) }
-        # Subdivision skips blocks inside the shape
+    corners = {block[1] for block in blocks}
+    expected = {codecad.util.Vector(*coords) for coords in itertools.product([-5.5, -2.5, 0.5, 3.5], repeat=3)} - \
+               {codecad.util.Vector(*coords) for coords in itertools.product([-2.5, 0.5], repeat=3)}
 
     assert corners == expected
 
+
 def test_block_corners_circle():
-    resolution = 0.1 # Size of single cell
+    resolution = 0.1  # Size of single cell
     grid_size = 8
-    step = resolution * (grid_size - 1) #size of the inner block
+    step = resolution * (grid_size - 1)  # Size of the inner block
     diameter = grid_size * step - resolution
     radius = diameter / 2
     threshold = math.sqrt(2) * step / 2
@@ -104,12 +107,12 @@ def test_block_corners_circle():
     for i in range(grid_size):
         r.append(-radius - 0.5 * resolution + i * step)
 
-    corners = { block[1] for block in blocks }
+    corners = {block[1] for block in blocks}
 
     expected = set()
     for coords in itertools.product(r, repeat=2):
         corner = codecad.util.Vector(*coords)
-        center = corner + codecad.util.Vector(step/2, step/2, 0)
+        center = corner + codecad.util.Vector(step / 2, step / 2, 0)
         if radius - threshold < abs(center) < radius + threshold:
             expected.add(corner)
 

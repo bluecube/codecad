@@ -5,6 +5,7 @@ import importlib
 
 import PIL.Image
 
+
 def commandline_render(shape, resolution, default_renderer=None, **kwargs):
     """ Reads commandline arguments, chooses a renderer and passes the parameters to it. """
 
@@ -40,7 +41,8 @@ def commandline_render(shape, resolution, default_renderer=None, **kwargs):
 
     _renderers[renderer][0](shape, filename=output, resolution=resolution, **kwargs)
 
-def _register(name, module_name, extensions, default_extension = None):
+
+def _register(name, module_name, extensions, default_extension=None):
     try:
         module = importlib.import_module("." + module_name, __name__)
     except ImportError as e:
@@ -55,6 +57,7 @@ def _register(name, module_name, extensions, default_extension = None):
 
     setattr(sys.modules[__name__], module_name, module)
     _renderers[name] = (getattr(module, "render_" + name), default_extension)
+
 
 _renderers = {}
 _extensions = {}

@@ -7,7 +7,8 @@ import math
 import itertools
 import datetime
 
-class Joint: # TODO: Use an assembly once they are ready
+
+class Joint:  # TODO: Use an assembly once they are ready
     """ Representation of the robot arm joint.
     This is a class to allow reusing the code for optimization of gear ratios """
 
@@ -26,11 +27,11 @@ class Joint: # TODO: Use an assembly once they are ready
     min_floor_thickness = layer_height * math.ceil(0.6 / layer_height)
 
     # Some general gear parameters
-    min_module = 1 # Minimum gear module for most gears in the system
-    min_module_ring = 1.5 # Minimum module for the ring gear, to maximize transferable torque
+    min_module = 1  # Minimum gear module for most gears in the system
+    min_module_ring = 1.5  # Minimum module for the ring gear, to maximize transferable torque
     tip_clearance = 0.5
     backlash = 0.1
-    profile_shift = 0.15 # Profile shift in modules
+    profile_shift = 0.15  # Profile shift in modules
 
     motor_gear_thickness = 7
     ring_thickness = 15
@@ -58,13 +59,13 @@ class Joint: # TODO: Use an assembly once they are ready
     bearing_shoulder_size = 1.5
     bearing_clearance = 0
 
-    #M3 screw
+    # M3 screw
     screw_diameter = 3
 
     motor_shaft_diameter = 3
 
     @classmethod
-    def optimize(cls, n = 20):
+    def optimize(cls, n=20):
         """ Go through plausible looking combinations of tooth counts and print
         n combinations with highest transmission ratios. """
         best_ratio = 1
@@ -78,7 +79,7 @@ class Joint: # TODO: Use an assembly once they are ready
                 return range(a, b + 1)
 
         # There is just a single option for the motor gears, since we can find
-        # the optimal values (or close to it) manually easily and don't have to 
+        # the optimal values (or close to it) manually easily and don't have to
         # slow the rest down
         ranges = [r(11, 11), r(60, 60), r(10, 15), r(20, 80), r(10, 30), r(30, 70)]
         candidate_count = 1
@@ -134,19 +135,19 @@ class Joint: # TODO: Use an assembly once they are ready
         assert self.module_ring >= self.min_module_ring
 
         # The gears themselves
-        self.motor_gear1 =  s.gears.InvoluteGear(n_motor_gear1, self.module_motor, 1 + self.profile_shift, 1 - self.profile_shift,
-                                                 backlash = self.backlash, clearance = self.tip_clearance)
-        self.motor_gear2 =  s.gears.InvoluteGear(n_motor_gear2, self.module_motor, 1 - self.profile_shift, 1 + self.profile_shift,
-                                                 backlash = self.backlash, clearance = self.tip_clearance)
+        self.motor_gear1 = s.gears.InvoluteGear(n_motor_gear1, self.module_motor, 1 + self.profile_shift, 1 - self.profile_shift,
+                                                backlash=self.backlash, clearance=self.tip_clearance)
+        self.motor_gear2 = s.gears.InvoluteGear(n_motor_gear2, self.module_motor, 1 - self.profile_shift, 1 + self.profile_shift,
+                                                backlash=self.backlash, clearance=self.tip_clearance)
 
-        self.sun_gear =     s.gears.InvoluteGear(n_sun_gear, self.module_sun, 1 + self.profile_shift, 1 - self.profile_shift,
-                                                 backlash = self.backlash, clearance = self.tip_clearance)
+        self.sun_gear = s.gears.InvoluteGear(n_sun_gear, self.module_sun, 1 + self.profile_shift, 1 - self.profile_shift,
+                                             backlash=self.backlash, clearance=self.tip_clearance)
         self.planet_gear1 = s.gears.InvoluteGear(n_planet_gear1, self.module_sun, 1 - self.profile_shift, 1 + self.profile_shift,
-                                                 backlash = self.backlash, clearance = self.tip_clearance)
+                                                 backlash=self.backlash, clearance=self.tip_clearance)
         self.planet_gear2 = s.gears.InvoluteGear(n_planet_gear2, self.module_ring, 1 + self.profile_shift, 1 - self.profile_shift,
-                                                 backlash = self.backlash, clearance = self.tip_clearance)
-        self.ring_gear =    s.gears.InvoluteGear(n_ring_gear, self.module_ring, 1 - self.profile_shift, 1 + self.profile_shift, internal = True,
-                                                 backlash = self.backlash, clearance = self.tip_clearance)
+                                                 backlash=self.backlash, clearance=self.tip_clearance)
+        self.ring_gear = s.gears.InvoluteGear(n_ring_gear, self.module_ring, 1 - self.profile_shift, 1 + self.profile_shift, internal=True,
+                                              backlash=self.backlash, clearance=self.tip_clearance)
 
         # Fit the ring gear into the intended max housing diameter
         assert self.ring_gear.root_diameter + 2 * self.min_wall_thickness < self.joint_od
@@ -184,14 +185,15 @@ class Joint: # TODO: Use an assembly once they are ready
         assert 2 * self.planet_radius + self.planet_gear1.outside_diameter <= self.joint_od - self.min_wall_thickness - self.tip_clearance
 
         # Some often needed shapes
-        self.bearing_hole = s.cylinder(d = self.bearing_od + 2 * self.bearing_clearance,
-                                       h = 2 * self.bearing_thickness, symmetrical=False) + \
-                            s.cylinder(d = self.bearing_od - 2 * self.bearing_shoulder_size,
-                                       h = float("inf"))
-        self.screw_holes = s.cylinder(h = float("inf"),
-                                      d = self.screw_diameter).translated(self.outer_carrier_screw_radius, 0, 0).rotated((0, 0, 1), 180 / self.planet_count).rotated((0, 0, 1), 360, self.planet_count)
-        self.shaft_hole = s.cylinder(h = float("inf"),
-                                     d = self.bearing_id + 2 * self.shaft_clearance)
+        self.bearing_hole = \
+            s.cylinder(d=self.bearing_od + 2 * self.bearing_clearance,
+                       h=2 * self.bearing_thickness, symmetrical=False) + \
+            s.cylinder(d=self.bearing_od - 2 * self.bearing_shoulder_size,
+                       h=float("inf"))
+        self.screw_holes = s.cylinder(h=float("inf"),
+                                      d=self.screw_diameter).translated(self.outer_carrier_screw_radius, 0, 0).rotated((0, 0, 1), 180 / self.planet_count).rotated((0, 0, 1), 360, self.planet_count)
+        self.shaft_hole = s.cylinder(h=float("inf"),
+                                     d=self.bearing_id + 2 * self.shaft_clearance)
         self.outer_circle = s.circle(self.joint_od)
 
     @staticmethod
@@ -202,7 +204,7 @@ class Joint: # TODO: Use an assembly once they are ready
         assert fractions.gcd(g1.n, g2.n) == 1
 
     @classmethod
-    def _check_gear_on_shaft(cls, g, shaft_diameter = None):
+    def _check_gear_on_shaft(cls, g, shaft_diameter=None):
         if shaft_diameter is None:
             shaft_diameter = cls.bearing_id
         assert g.root_diameter >= shaft_diameter + 2 * (cls.min_wall_thickness + cls.shaft_clearance)
@@ -221,26 +223,26 @@ class Joint: # TODO: Use an assembly once they are ready
     def make_planet(self):
         # Gears are profile shifted by 0.5 module (smaller gear has larger addendum)
         h = self.sun_thickness
-        gear1 = self.planet_gear1.extruded(h, symmetrical = False)
+        gear1 = self.planet_gear1.extruded(h, symmetrical=False)
 
         h += self.clearance
         h += self.ring_thickness
-        gear2 = self.planet_gear2.extruded(h, symmetrical = False)
+        gear2 = self.planet_gear2.extruded(h, symmetrical=False)
 
         h += self.clearance
-        spacer = s.cylinder(h, self.bearing_id + 2 * self.bearing_shoulder_size, symmetrical = False)
+        spacer = s.cylinder(h, self.bearing_id + 2 * self.bearing_shoulder_size, symmetrical=False)
 
         return s.union([gear1, gear2, spacer]) - self.shaft_hole
 
     def make_sun(self):
         h = self.motor_gear_thickness
-        gear1 = self.motor_gear2.extruded(h, symmetrical = False)
+        gear1 = self.motor_gear2.extruded(h, symmetrical=False)
 
         h += self.bearing_wall_thickness + self.clearance
         spacer1 = s.cylinder(h, self.sun_gear.outside_diameter, symmetrical=False)
 
         h += self.sun_thickness + 2 * self.clearance
-        gear2 = self.sun_gear.extruded(h, symmetrical = False)
+        gear2 = self.sun_gear.extruded(h, symmetrical=False)
 
         h += self.ring_thickness + self.clearance
         spacer2 = s.cylinder(h, self.bearing_id + 2 * self.bearing_shoulder_size, symmetrical=False)
@@ -249,10 +251,10 @@ class Joint: # TODO: Use an assembly once they are ready
 
     def make_carrier_inner(self):
         shroud_skip = self.shroud_overlap + self.clearance
-        side = (self.outer_circle - s.circle(self.joint_od - 2 * self.wall_thickness)).extruded(self.inner_carrier_half_length - shroud_skip, symmetrical = False).translated(0, 0, shroud_skip)
-        cap = s.circle(self.joint_od - 2 * (self.min_wall_thickness + self.clearance)).extruded(self.bearing_wall_thickness + self.clearance + self.sun_thickness, symmetrical = False)
+        side = (self.outer_circle - s.circle(self.joint_od - 2 * self.wall_thickness)).extruded(self.inner_carrier_half_length - shroud_skip, symmetrical=False).translated(0, 0, shroud_skip)
+        cap = s.circle(self.joint_od - 2 * (self.min_wall_thickness + self.clearance)).extruded(self.bearing_wall_thickness + self.clearance + self.sun_thickness, symmetrical=False)
 
-        sun_hole = s.cylinder(d = self.sun_gear.outside_diameter + 2 * self.clearance, h = float("inf"))
+        sun_hole = s.cylinder(d=self.sun_gear.outside_diameter + 2 * self.clearance, h=float("inf"))
         cap -= sun_hole
 
         moved_bearing_hole = self.bearing_hole.rotated((1, 0, 0), 180).translated(0, 0, self.bearing_thickness + self.sun_thickness + self.clearance)
@@ -267,17 +269,17 @@ class Joint: # TODO: Use an assembly once they are ready
         return side + cap
 
     def make_carrier_outer(self):
-        side = s.cylinder(h = self.outer_carrier_length, d = self.outer_carrier_od, symmetrical = False)
-        cap = s.cylinder(h = self.bearing_wall_thickness, d = self.outer_carrier_od, symmetrical = False)
+        side = s.cylinder(h=self.outer_carrier_length, d=self.outer_carrier_od, symmetrical=False)
+        cap = s.cylinder(h=self.bearing_wall_thickness, d=self.outer_carrier_od, symmetrical=False)
 
-        sun_hole = s.cylinder(h = float("inf"), d = self.outer_carrier_od - 2 * self.wall_thickness)
+        sun_hole = s.cylinder(h=float("inf"), d=self.outer_carrier_od - 2 * self.wall_thickness)
         side -= sun_hole
 
-        screw_tubes = s.cylinder(h = self.outer_carrier_length,
-                                 d = self.screw_diameter + 2 * self.wall_thickness,
+        screw_tubes = s.cylinder(h=self.outer_carrier_length,
+                                 d=self.screw_diameter + 2 * self.wall_thickness,
                                  symmetrical=False).translated(self.outer_carrier_screw_radius, 0, 0) \
-                                   .rotated((0, 0, 1), 180 / self.planet_count) \
-                                   .rotated((0, 0, 1), 360, self.planet_count)
+            .rotated((0, 0, 1), 180 / self.planet_count) \
+            .rotated((0, 0, 1), 360, self.planet_count)
         side += screw_tubes
 
         moved_bearing_hole = self.bearing_hole.translated(0, 0, self.bearing_shoulder_thickness)
@@ -289,7 +291,7 @@ class Joint: # TODO: Use an assembly once they are ready
         side -= planet_hole.translated(self.planet_radius, 0, self.outer_carrier_length).rotated((0, 0, 1), 360, self.planet_count)
 
         body = side + cap
-            #TODO: Rounded unions
+        # TODO: Rounded unions
 
         body -= self.screw_holes
 
@@ -297,7 +299,7 @@ class Joint: # TODO: Use an assembly once they are ready
 
     def make_ring(self):
         h = self.bearing_wall_thickness
-        cap = s.cylinder(h = h, d = self.joint_od, symmetrical = False)
+        cap = s.cylinder(h=h, d=self.joint_od, symmetrical=False)
         cap -= self.bearing_hole.translated(0, 0, self.bearing_shoulder_thickness)
 
         h += self.bearing_wall_thickness
@@ -306,7 +308,7 @@ class Joint: # TODO: Use an assembly once they are ready
 
         h += self.ring_thickness
         h += self.clearance
-        gear = (self.outer_circle - self.ring_gear).extruded(h, symmetrical = False)
+        gear = (self.outer_circle - self.ring_gear).extruded(h, symmetrical=False)
 
         h += self.clearance
         h += self.shroud_overlap
@@ -335,9 +337,9 @@ class Joint: # TODO: Use an assembly once they are ready
 
         return (o & s.half_space()).rotated((1, 0, 0), 30)
 
+
 if __name__ == "__main__":
-    #Joint.optimize()
+    # Joint.optimize()
     j = Joint(11, 60, 13, 41, 18, 53)
     j.print_details()
     codecad.commandline_render(j.make_overview(), 0.1)
-

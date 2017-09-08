@@ -3,10 +3,11 @@ import collections
 import itertools
 import numpy
 
+
 class Vector(collections.namedtuple("Vector", "x y z")):
     __slots__ = ()
 
-    def __new__(cls, x, y, z = 0):
+    def __new__(cls, x, y, z=0):
         return super().__new__(cls, x, y, z)
 
     @classmethod
@@ -89,6 +90,7 @@ class Vector(collections.namedtuple("Vector", "x y z")):
     def as_matrix(self):
         return numpy.matrix([[self.x], [self.y], [self.z], [1]])
 
+
 class BoundingBox(collections.namedtuple("BoundingBox", "a b")):
     __slots__ = ()
 
@@ -138,12 +140,13 @@ class BoundingBox(collections.namedtuple("BoundingBox", "a b")):
     def flattened(self):
         return BoundingBox(self.a.flattened(), self.b.flattened())
 
+
 class Quaternion(collections.namedtuple("Quaternion", "v w")):
     # http://www.cs.ucr.edu/~vbz/resources/quatut.pdf
     __slots__ = ()
 
     @classmethod
-    def from_degrees(cls, axis, angle, scale = 1):
+    def from_degrees(cls, axis, angle, scale=1):
         phi = math.radians(angle) / 2
         mul = math.sqrt(scale)
         axis = Vector(*axis)

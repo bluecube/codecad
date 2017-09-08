@@ -12,14 +12,15 @@ opencl_manager.instance.add_compile_unit().append_file("polygon.cl")
 
 _link_overflow_mask = 0xfff00000
 
-def triangular_mesh(obj, resolution, subdivision_grid_size=None, debug_subdivision_boxes = False):
+
+def triangular_mesh(obj, resolution, subdivision_grid_size=None, debug_subdivision_boxes=False):
     """ Generate a triangular mesh representing a surface of 3D shape.
     Yields tuples (vertices, indices). """
-    obj.check_dimension(required = 3)
+    obj.check_dimension(required=3)
 
     program_buffer, max_box_size, boxes = subdivision.subdivision(obj,
-                                                               resolution,
-                                                               grid_size=subdivision_grid_size)
+                                                                  resolution,
+                                                                  grid_size=subdivision_grid_size)
 
     block = numpy.empty(max_box_size, dtype=numpy.float32)
     block_buffer = pyopencl.Buffer(opencl_manager.instance.context, pyopencl.mem_flags.WRITE_ONLY, block.nbytes)
@@ -38,7 +39,6 @@ def triangular_mesh(obj, resolution, subdivision_grid_size=None, debug_subdivisi
             yield vertices, triangles
             continue
 
-        #with util.status_block("{}/{}".format(i + 1, len(boxes))):
         # TODO: Staggered opencl / python processing the way subdivision does it.
         ev = opencl_manager.instance.k.grid_eval_pymcubes(box_size, None,
                                                           program_buffer,
@@ -59,6 +59,7 @@ def triangular_mesh(obj, resolution, subdivision_grid_size=None, debug_subdivisi
 
         yield vertices, triangles
 
+
 def _collect_polygon(vertices, links, starting_index, chain):
     """ Follow links starting at starting_index and apend outputs onto chain.
     Returns the overflow spec of the last (invalid) link. """
@@ -72,6 +73,7 @@ def _collect_polygon(vertices, links, starting_index, chain):
 
     return i & _link_overflow_mask
 
+
 def _step_from_overflow_spec(spec):
     step_direction = -1 if spec & 0x20000000 else 1
     if spec & 0x40000000:
@@ -79,9 +81,10 @@ def _step_from_overflow_spec(spec):
     else:
         return util.Vector(step_direction, 0)
 
+
 def polygon(obj, resolution, subdivision_grid_size=None):
     """ Generate polygons representing the boundaries of a 2D shape. """
-    obj.check_dimension(required = 2)
+    obj.check_dimension(required=2)
 
     program_buffer, grid_size, boxes = subdivision.subdivision(obj,
                                                                resolution,
@@ -107,8 +110,8 @@ def polygon(obj, resolution, subdivision_grid_size=None):
     starts = cl_util.Buffer(opencl_manager.instance.queue,
                             numpy.uint32,
                             grid_size_triangles[0] + grid_size_triangles[1],
-                                # Start of chain can happen only on a side and
-                                # each chain takes at least two cells (start and end)
+                            # Start of chain can happen only on a side and
+                            # each chain takes at least two cells (start and end)
                             pyopencl.mem_flags.WRITE_ONLY | pyopencl.mem_flags.HOST_READ_ONLY)
     start_counter = cl_util.Buffer(opencl_manager.instance.queue,
                                    numpy.uint32,
@@ -126,7 +129,7 @@ def polygon(obj, resolution, subdivision_grid_size=None):
             assert box_size[0] == box_size[1]
             int_box_step = int_box_resolution * (box_size[0] - 1)
         else:
-            int_box_step = None # There will be no open chains if we only visit one box
+            int_box_step = None  # There will be no open chains if we only visit one box
 
         # TODO: Staggered opencl / python processing the way subdivision does it.
         corners_ev = opencl_manager.instance.k.grid_eval(grid_size, None,
@@ -152,7 +155,6 @@ def polygon(obj, resolution, subdivision_grid_size=None):
         for starting_index in starts[:start_counter[0]]:
             overflow_spec = starting_index & _link_overflow_mask
             starting_index = starting_index & (~_link_overflow_mask)
-
 
             # Find existing chain in open chains that can be continued here, or
             # create a new one
@@ -195,7 +197,7 @@ def polygon(obj, resolution, subdivision_grid_size=None):
                 continue
             polygon = []
             _collect_polygon(vertices, links, starting_index, polygon)
-            yield polygon # Closed chains can be yielded directly
+            yield polygon  # Closed chains can be yielded directly
 
     assert len(open_chain_beginnings) == 0
     assert len(open_chain_ends) == 0

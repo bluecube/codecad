@@ -10,6 +10,7 @@ from .util import cl_util
 
 opencl_manager.instance.add_compile_unit().append_file("subdivision.cl")
 
+
 class _Helper:
     def __init__(self, queue, grid_size, dimension, program_buffer, block_sizes, origin, resolution, final_blocks):
         self.queue = queue
@@ -79,6 +80,7 @@ class _Helper:
         else:
             return ((int_pos, level) for int_pos in int_intersecting_pos)
 
+
 def calculate_block_sizes(box, dimension, resolution, grid_size, overlap):
     # Figure out the layout of grids for processing.
     # There shouldn't ever be more than ~10 levels.
@@ -109,10 +111,11 @@ def calculate_block_sizes(box, dimension, resolution, grid_size, overlap):
 
     block_sizes[-1] = (cell_size,
                        util.Vector(*(util.clamp(math.ceil(x) + overlap_delta, 1, s)
-                             for x, s in zip(box_int_size / cell_size, level_size))))
+                                   for x, s in zip(box_int_size / cell_size, level_size))))
 
     block_sizes.reverse()
     return block_sizes
+
 
 def subdivision(shape, resolution, overlap_edge_samples=True, grid_size=None):
     """

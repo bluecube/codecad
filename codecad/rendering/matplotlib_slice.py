@@ -10,9 +10,10 @@ from .. import nodes
 
 opencl_manager.instance.add_compile_unit().append_file("matplotlib_slice.cl")
 
+
 def render_slice(obj,
                  resolution,
-                 filename=None # For interface compatibility with other renderers
+                 filename=None  # For interface compatibility with other renderers
                  ):
 
     assert resolution > 0
@@ -42,8 +43,7 @@ def render_slice(obj,
                                                         output_buffer)
         pyopencl.enqueue_copy(opencl_manager.instance.queue, values, output_buffer, wait_for=[ev])
 
-
-    distances = values[:,:,0]
+    distances = values[:, :, 0]
     distance_range = numpy.max(numpy.abs(distances))
 
     with util.status_block("plotting"):
@@ -55,7 +55,6 @@ def render_slice(obj,
                        "extent": (corner.x, corner.x + (values.shape[1] - 1) * resolution,
                                   corner.y, corner.y + (values.shape[0] - 1) * resolution)}
 
-
         plt.imshow(distances,
                    cmap=plt.get_cmap("viridis"),
                    interpolation="none",
@@ -63,15 +62,15 @@ def render_slice(obj,
         plt.colorbar()
         plt.contour(distances,
                     colors="black",
-                   **common_args)
+                    **common_args)
 
         quiver_thinning = 10
         quiver_x = numpy.arange(0, grid_dimensions[0], quiver_thinning) * resolution + corner.x
         quiver_y = numpy.arange(0, grid_dimensions[1], quiver_thinning) * resolution + corner.y
         plt.quiver(quiver_x,
                    quiver_y,
-                   values[::quiver_thinning,::quiver_thinning,1],
-                   values[::quiver_thinning,::quiver_thinning,2],
+                   values[::quiver_thinning, ::quiver_thinning, 1],
+                   values[::quiver_thinning, ::quiver_thinning, 2],
                    color="white",
                    angles="xy",
                    scale_units="xy",

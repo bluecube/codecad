@@ -2,7 +2,6 @@ import contextlib
 import time
 import sys
 
-#TODO: Performance: Parallelization friendly version of reduce? Probably won't help, though.
 
 @contextlib.contextmanager
 def status_block(title):
@@ -15,6 +14,7 @@ def status_block(title):
         elapsed = time.perf_counter() - start
         print(" {:0.2f} s".format(elapsed))
 
+
 class Concatenate:
     def __init__(self, *iterables):
         self._iterables = iterables
@@ -22,6 +22,7 @@ class Concatenate:
     def __iter__(self):
         for iterable in self._iterables:
             yield from iterable
+
 
 def clamp(v, lower, upper):
     return max(lower, min(v, upper))

@@ -4,8 +4,9 @@ from .. import util
 from .. import opencl_manager
 opencl_manager.instance.add_compile_unit().append_file("common.cl")
 
+
 class UnionMixin:
-    def __init__(self, shapes, r = -1):
+    def __init__(self, shapes, r=-1):
         self.shapes = list(shapes)
         self.check_dimension(*self.shapes)
         self.r = r
@@ -21,7 +22,7 @@ class UnionMixin:
 
 
 class IntersectionMixin:
-    def __init__(self, shapes, r = -1):
+    def __init__(self, shapes, r=-1):
         self.shapes = list(shapes)
         self.check_dimension(*self.shapes)
         self.r = r
@@ -50,6 +51,7 @@ class SubtractionMixin:
                                [-1],
                                [self.s1.get_node(point, cache), self.s2.get_node(point, cache)])
 
+
 class TransformationMixin:
     def __init__(self, s, quaternion, translation):
         self.check_dimension(s)
@@ -66,7 +68,7 @@ class TransformationMixin:
         return t
 
     def get_node(self, point, cache):
-        #TODO: Merge transformation nodes
+        # TODO: Merge transformation nodes
         inverse_transformation = self.transformation.inverse()
         new_point = cache.make_node("transformation_to",
                                     inverse_transformation.as_list(),

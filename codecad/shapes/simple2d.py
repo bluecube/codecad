@@ -10,8 +10,9 @@ _c_file = opencl_manager.instance.add_compile_unit()
 _c_file.append_file("common.h")
 _c_file.append_file("simple2d.cl")
 
+
 class Rectangle(base.Shape2D):
-    def __init__(self, x = 1, y = None):
+    def __init__(self, x=1, y=None):
         if y is None:
             y = x
         self.half_size = util.Vector(x, y) / 2
@@ -22,8 +23,9 @@ class Rectangle(base.Shape2D):
     def get_node(self, point, cache):
         return cache.make_node("rectangle", [self.half_size.x, self.half_size.y], [point])
 
+
 class Circle(base.Shape2D):
-    def __init__(self, d = 1, r = None):
+    def __init__(self, d=1, r=None):
         if r is None:
             self.r = d / 2
         else:
@@ -41,7 +43,7 @@ class HalfPlane(base.Shape2D):
     """ Half space y > 0. """
     def bounding_box(self):
         return util.BoundingBox(util.Vector(-float("inf"), 0, -float("inf")),
-                                util.Vector.splat(float("inf")));
+                                util.Vector.splat(float("inf")))
 
     def get_node(self, point, cache):
         return cache.make_node("half_space", [], [point])
@@ -69,8 +71,8 @@ class Polygon2D(base.Shape2D):
             direction_abs_squared = direction.abs_squared()
             perpendicular_direction = direction.perpendicular2d()
 
+            # TODO: Use better precision sum once we have it coded
             area += direction.x * (previous.y + current.y) / 2
-                # TODO: Use better precision sum once we have it coded
 
             minimum = minimum.min(current)
             maximum = maximum.max(current)
@@ -89,7 +91,7 @@ class Polygon2D(base.Shape2D):
                 direction_cross_product = inner_direction.dot(perpendicular_direction)
                 between_starts = (previous - inner_previous)
 
-                consecutive = j == 0 or j == len(points) - 2 # i precedes or follows j
+                consecutive = j == 0 or j == len(points) - 2  # i precedes or follows j
                 parallel = abs(direction_cross_product) < 1e-12
 
                 if consecutive:

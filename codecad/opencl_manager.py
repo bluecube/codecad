@@ -14,17 +14,18 @@ _default_compiler_options = ["-Werror",
                              "-cl-no-signed-zeros",
                              "-cl-fast-relaxed-math"]
 
+
 class CompileUnit:
-    def __init__(self, options = _default_compiler_options):
+    def __init__(self, options=_default_compiler_options):
         self.pieces = []
         self.options = _default_compiler_options
 
     # Workaround, see OpenCLManager._build_program()
-    #def compile(self, context, extra_headers):
-    #    program = pyopencl.Program(context, self.code(extra_headers))
-    #    return program.compile(self.options)
+    # def compile(self, context, extra_headers):
+    #     program = pyopencl.Program(context, self.code(extra_headers))
+    #     return program.compile(self.options)
 
-    def code(self, extra_headers = []):
+    def code(self, extra_headers=[]):
         return "\n".join(itertools.chain(extra_headers, self.pieces))
 
     def append_file(self, filename):
@@ -32,7 +33,7 @@ class CompileUnit:
 
         abs_filename = os.path.join(os.path.dirname(frame[1]), filename)
 
-        self.pieces.append('#line 1 "{}"'.format(abs_filename)) # TODO: Escape filename
+        self.pieces.append('#line 1 "{}"'.format(abs_filename))  # TODO: Escape filename
         with open(abs_filename, "r") as fp:
             self.pieces.append(fp.read())
 
@@ -46,8 +47,9 @@ class CompileUnit:
             code = code[1:]
             line += 1
 
-        self.pieces.append('#line {} "{}"'.format(line, frameinfo.filename)) # TODO: Escape filename
+        self.pieces.append('#line {} "{}"'.format(line, frameinfo.filename))  # TODO: Escape filename
         self.pieces.append(code)
+
 
 class _Kernels:
     def __init__(self, manager):
@@ -61,6 +63,7 @@ class _Kernels:
             return kernel(self.manager.queue, *args, **kwargs)
 
         return ret
+
 
 class OpenCLManager:
     def __init__(self):
@@ -87,7 +90,7 @@ class OpenCLManager:
 
     def _build_program(self):
         code = "\n".join(itertools.chain(self.common_header.pieces,
-                                       itertools.chain.from_iterable(cu.pieces for cu in self._compile_units)))
+                                         itertools.chain.from_iterable(cu.pieces for cu in self._compile_units)))
         program = pyopencl.Program(self.context, code)
         with warnings.catch_warnings():
             # Intel OpenCL generates non empty output and that causes warnings
@@ -96,8 +99,8 @@ class OpenCLManager:
             return program.build(options=_default_compiler_options)
 
         # Working around bug in pyopencl.Program.compile in pyopencl 2017.1.1
-        #compiled_units = [unit.compile(self.context, self.common_header.pieces)
-        #                  for unit in self._compile_units]
+        # compiled_units = [unit.compile(self.context, self.common_header.pieces)
+        #                   for unit in self._compile_units]
         # return pyopencl.link_program(self.context, compiled_units)
 
     def get_program(self):
@@ -105,6 +108,7 @@ class OpenCLManager:
             with util.status_block("compiling"):
                 self._program = self._build_program()
         return self._program
+
 
 instance = OpenCLManager()
 

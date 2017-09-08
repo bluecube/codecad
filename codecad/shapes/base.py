@@ -5,6 +5,7 @@ import io
 from .. import util
 # simple2d and simple3d are imported in functions to break circular dependencies
 
+
 class ShapeBase(metaclass=abc.ABCMeta):
     """ Abstract base class for 2D and 3D shapes """
 
@@ -34,7 +35,7 @@ class ShapeBase(metaclass=abc.ABCMeta):
     def dimension():
         """ Returns dimension of the shape (2 or 3) """
 
-    def check_dimension(self, *shapes, required = None):
+    def check_dimension(self, *shapes, required=None):
         if required is None:
             required = self.dimension()
         if not len(shapes):
@@ -80,7 +81,7 @@ class Shape2D(ShapeBase):
         from . import simple2d
         return simple2d.Subtraction2D(self, second)
 
-    def translated(self, x, y = None):
+    def translated(self, x, y=None):
         """ Returns current shape translated by a given offset """
         if isinstance(x, util.Vector):
             if y is not None:
@@ -96,7 +97,7 @@ class Shape2D(ShapeBase):
                                                      util.Quaternion.from_degrees(util.Vector(0, 0, 1), 0),
                                                      o)
 
-    def rotated(self, angle, n = 1):
+    def rotated(self, angle, n=1):
         """ Returns current shape rotated by given angle.
 
         If n > 1, returns an union of n copies of self, rotated in regular intervals
@@ -162,7 +163,7 @@ class Shape3D(ShapeBase):
         from . import simple3d
         return simple3d.Subtraction(self, second)
 
-    def translated(self, x, y = None, z = None):
+    def translated(self, x, y=None, z=None):
         """ Returns current shape translated by a given offset """
         if isinstance(x, util.Vector):
             if y is not None or z is not None:
@@ -175,7 +176,7 @@ class Shape3D(ShapeBase):
                                                    util.Quaternion.from_degrees(util.Vector(0, 0, 1), 0),
                                                    o)
 
-    def rotated(self, vector, angle, n = 1):
+    def rotated(self, vector, angle, n=1):
         """ Returns current shape rotated by an angle around the vector.
 
         If n > 1, returns an union of n copies of self, rotated in regular intervals

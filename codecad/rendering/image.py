@@ -2,27 +2,29 @@ import PIL
 
 from . import ray_caster
 
-def render_image(obj, filename, size = (1024, 768), view_angle = None, resolution=None):
+
+def render_image(obj, filename, size=(1024, 768), view_angle=None, resolution=None):
     ray_caster.render_image(obj, size, view_angle, resolution).save(filename)
 
-def render_gif(obj, filename, size = (640, 480),
-               view_angle = None,
-               duration = 5,
-               fps = 20,
-               loop = True,
+
+def render_gif(obj, filename, size=(640, 480),
+               view_angle=None,
+               duration=5,
+               fps=20,
+               loop=True,
                resolution=None):
 
     with util.status_block("calculating bounding box"):
         box = obj.bounding_box().eval({animation.time: 0})
 
     if resolution is None:
-        epsilon = min(box_size.x, box_size.y, box_size.z) / 10000;
+        epsilon = min(box_size.x, box_size.y, box_size.z) / 10000
     else:
         epsilon = resolution / 10
 
     camera_params = ray_caster.get_camera_params(box, size, view_angle)
 
-    frame_duration = int(1000 / fps) # Frame duration in milliseconds
+    frame_duration = int(1000 / fps)  # Frame duration in milliseconds
     count = round(1000 * duration / frame_duration)
 
     frames = []
@@ -39,7 +41,7 @@ def render_gif(obj, filename, size = (640, 480),
             argv["loop"] = 0
 
         frames[0].save(filename,
-                       append_images = frames[1:],
-                       save_all = True,
-                       duration = frame_duration,
+                       append_images=frames[1:],
+                       save_all=True,
+                       duration=frame_duration,
                        **argv)

@@ -7,7 +7,7 @@ import codecad
 
 sphere = codecad.shapes.sphere(130)
 cube = codecad.shapes.box(100)
-cylinder = codecad.shapes.cylinder(d = 40, h=200)
+cylinder = codecad.shapes.cylinder(d=40, h=200)
 
 holes = cylinder + \
         cylinder.rotated((1, 0, 0), 90) + \

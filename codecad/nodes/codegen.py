@@ -1,6 +1,7 @@
 from .. import opencl_manager
 from . import node
 
+
 def generate_eval_source_code(node_class, register_count):
     h = opencl_manager.instance.common_header
     h.append('float4 evaluate(__constant float* program, float3 point);')
@@ -44,6 +45,7 @@ float4 evaluate(__constant float* program, float3 point)
 }
              ''')
 
+
 def _generate_op_decl(c_file, name, params, arity, code):
     if params is node._Variable:
         c_file.append('''
@@ -61,6 +63,7 @@ void {}_op('''.format(name))
     float4 input{},'''.format(i + 1))
     c_file.append('''
     float4* output);''')
+
 
 def _generate_op_handler(c_file, name, params, arity, code):
     c_file.append('''

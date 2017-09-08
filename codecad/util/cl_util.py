@@ -1,6 +1,7 @@
 import numpy
 import pyopencl
 
+
 class Buffer:
     """ A simple wrapper around pyopencl buffer that handles the corresponding
     numpy arrays and transfers. """
@@ -56,19 +57,19 @@ class Buffer:
                                      wait_for=wait_for, is_blocking=False)
 
     # This is broken now
-    #@contextlib.contextmanager
-    #def map(self, map_flags, wait_for=None):
-    #    """ Context manager that maps the buffer data as a numpy array.
-    #    `wait_for` can be either None or list of opencl.Event. """
+    # @contextlib.contextmanager
+    # def map(self, map_flags, wait_for=None):
+    #     """ Context manager that maps the buffer data as a numpy array.
+    #     `wait_for` can be either None or list of opencl.Event. """
     #
-    #    print("map", self.dtype);
+    #     print("map", self.dtype);
     #
-    #    array, event = pyopencl.enqueue_map_buffer(self.queue, self.buffer, map_flags,
-    #                                               0, (self.size,), self.dtype,
-    #                                               wait_for=wait_for, is_blocking=True)
-    #    with array.base:
-    #        print("array", array.dtype);
-    #        yield array
+    #     array, event = pyopencl.enqueue_map_buffer(self.queue, self.buffer, map_flags,
+    #                                                0, (self.size,), self.dtype,
+    #                                                wait_for=wait_for, is_blocking=True)
+    #     with array.base:
+    #         print("array", array.dtype);
+    #         yield array
 
     def __getitem__(self, key):
         return self.array[key]
@@ -116,4 +117,5 @@ def interleave(initial_jobs, helper1, helper2):
             else:
                 break
 
-        wrapped_helper1, wrapped_helper2 = wrapped_helper2, wrapped_helper1 # Swap them for the next iteration
+        # Swap them for the next iteration
+        wrapped_helper1, wrapped_helper2 = wrapped_helper2, wrapped_helper1

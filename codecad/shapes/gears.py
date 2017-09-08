@@ -9,20 +9,22 @@ _c_file = opencl_manager.instance.add_compile_unit()
 _c_file.append_file("common.h")
 _c_file.append_file("gears.cl")
 
+
 class InvoluteGearBase(base.Shape2D):
     def __init__(self, tooth_count, pressure_angle):
         self.tooth_count = tooth_count
         self.pressure_angle = math.radians(pressure_angle)
 
     def bounding_box(self):
-        #TODO: Calculate corect bounding box
+        # TODO: Calculate corect bounding box
         return util.BoundingBox(util.Vector(-1.5, -1.5),
                                 util.Vector(1.5, 1.5))
 
     def get_node(self, point, cache):
         return cache.make_node("involute_gear",
-                                [self.tooth_count, self.pressure_angle],
-                                [point])
+                               [self.tooth_count, self.pressure_angle],
+                               [point])
+
 
 class InvoluteGear(simple2d.Union2D):
     """ A 2D shape of a external or internal involute gear.
@@ -33,12 +35,12 @@ class InvoluteGear(simple2d.Union2D):
     pitch_diameter, root_circle_diameter, addendum_circle_diameter """
 
     def __init__(self, n, module,
-                 addendum_modules = 1,
-                 dedendum_modules = 1,
-                 pressure_angle = 20,
-                 backlash = 0,
-                 clearance = 0,
-                 internal = False):
+                 addendum_modules=1,
+                 dedendum_modules=1,
+                 pressure_angle=20,
+                 backlash=0,
+                 clearance=0,
+                 internal=False):
 
         self.n = n
         self.module = module

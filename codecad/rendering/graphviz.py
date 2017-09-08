@@ -4,14 +4,15 @@ from .. import opencl_manager
 from ..nodes import program
 from ..nodes import scheduler
 
+
 def render_nodes_graph(shape, resolution, filename):
     shape_node = program.get_shape_nodes(shape)
 
     _, ordered = scheduler.randomized_scheduler(shape_node)
 
     with open(filename, "w") as fp:
-        fp.write("digraph Nodes {\n");
-        fp.write("  graph[concentrate=true];\n");
+        fp.write("digraph Nodes {\n")
+        fp.write("  graph[concentrate=true];\n")
         stack = [shape_node]
 
         for i, node in enumerate(ordered):

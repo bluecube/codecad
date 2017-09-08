@@ -6,12 +6,14 @@ import itertools
 
 _Variable = object()
 
+
 class Node:
     # Mapping of node name to tuple (number of parameters, number of input nodes, instruction code)
     # These also need to be implemented in opencl.
     _node_types = collections.OrderedDict((name, (params, arity, i + 2))
                                           for i, (name, params, arity)
                                           in enumerate([
+        # noqa
         # Unary nodes:
         # 2D shapes:
         ("rectangle", 2, 1), ("circle", 1, 1), ("polygon2d", _Variable, 1),
@@ -30,7 +32,7 @@ class Node:
         ("union", 1, 2), ("intersection", 1, 2), ("subtraction", 1, 2),
         ]))
 
-    def __init__(self, name, params, dependencies, extra_data = None):
+    def __init__(self, name, params, dependencies, extra_data=None):
         # Note: If dependency count > 2, then we assume that the node is  both
         # associative and commutative and that it can be safely broken binary
         # nodes of the same type in any order
@@ -50,12 +52,12 @@ class Node:
         self.extra_data = extra_data
         self._hash = hash((name, self.params, self.dependencies))
 
-        self.refcount = 0 # How many times is this node referenced by other node
+        self.refcount = 0  # How many times is this node referenced by other node
         self.connect(dependencies)
         assert len(self.dependencies) == expected_dependency_count or \
-               len(self.dependencies) > expected_dependency_count == 2
+            len(self.dependencies) > expected_dependency_count == 2
 
-        self.register = None # Register allocated for output of this node
+        self.register = None  # Register allocated for output of this node
 
     def disconnect(self):
         for dep in self.dependencies:

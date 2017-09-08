@@ -12,12 +12,14 @@ from . import nodes
 
 opencl_manager.instance.add_compile_unit().append_file("mass_properties.cl")
 
+
 class MassProperties(collections.namedtuple("MassProperties", "volume centroid inertia_tensor")):
     """
     Contains volume of a body, position of its centroid and its inertia tensor.
     The inertia tensor is referenced to the centroid, not origin!
     """
     __slots__ = ()
+
 
 def mass_properties(shape, resolution, grid_size=None):
     # Inertia tensor info:
@@ -31,7 +33,7 @@ def mass_properties(shape, resolution, grid_size=None):
     assert resolution > 0, "Non-positive resolution makes no sense"
     assert grid_size > 1, "Grid needs to be at least 2x2x2"
     assert grid_size**5 <= 2**32, "Centroid coordinate sums would overflow"
-        # TODO: Increase this limit, use 64bit or figure out something else ...
+    # TODO: Increase this limit, use 64bit or figure out something else ...
 
     program_buffer = nodes.make_program_buffer(shape)
 
@@ -91,6 +93,7 @@ def mass_properties(shape, resolution, grid_size=None):
                                   [I_xz, I_yz, I_zz]])
     return MassProperties(volume, centroid, inertia_tensor)
 
+
 class _Helper:
     def __init__(self, queue, grid_size, program_buffer, block_sizes):
         self.queue = queue
@@ -143,7 +146,7 @@ class _Helper:
 
     def process_result(self, event):
         intersecting_count = self.counter.read(wait_for=[event])[0]
-        intersecting_indices = self.list.read() # TODO: This read could run in the background
+        intersecting_indices = self.list.read()  # TODO: This read could run in the background
 
         # For all the functions in question, convert `sum f(I)` (where I are indices
         # of occupied cells) to `integral f(X)` over all occupied cells.

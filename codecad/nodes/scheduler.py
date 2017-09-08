@@ -5,6 +5,7 @@ import copy
 
 from .node import Node
 
+
 class _RegisterAllocator:
     def __init__(self):
         self._allocations = {}
@@ -45,11 +46,11 @@ def _contiguous_schedule_recursive(node, ordering_selector, allocator):
 
         node.connect(dependencies)
 
-
     # Calculate all dependencies first
     for dep in dependencies:
         if dep.register is not None:
-            continue # This node has already been processed
+            # This node has already been processed
+            continue
 
         order.extend(_contiguous_schedule_recursive(dep, ordering_selector, allocator))
 
@@ -65,25 +66,29 @@ def _contiguous_schedule_recursive(node, ordering_selector, allocator):
 
     return order
 
+
 def _contiguous_schedule(node, ordering_selector):
     allocator = _RegisterAllocator()
     order = _contiguous_schedule_recursive(copy.deepcopy(node),
                                            ordering_selector,
                                            allocator)
 
-    #print("needs {} registers with selector {}".format(allocator.registers_needed, str(ordering_selector)))
+    # print("needs {} registers with selector {}".format(allocator.registers_needed, str(ordering_selector)))
 
     return allocator.registers_needed, order
 
+
 def _identity(x):
     return x
+
 
 def _shuffled(x):
     l = list(x)
     random.shuffle(l)
     return l
 
-def randomized_scheduler(node, random_passes = 100):
+
+def randomized_scheduler(node, random_passes=100):
     return min((_contiguous_schedule(node, selector)
                 for selector in
                 [_identity, reversed] + [_shuffled] * random_passes),

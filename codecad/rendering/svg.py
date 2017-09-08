@@ -12,6 +12,7 @@ def _interp(a, b):
 def _html_color(c):
     return "#" + hex(c.x << 16 | c.y << 8 | c.z)[2:]
 
+
 def render_svg(obj, resolution, filename):
     polygons = mesh.polygon(obj, resolution)
 

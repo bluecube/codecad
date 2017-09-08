@@ -3,7 +3,7 @@
 import codecad
 
 rectangle = codecad.shapes.rectangle(5, 100).translated(50, 0)
-circle = codecad.shapes.circle(r = 20).translated(50, 50)
+circle = codecad.shapes.circle(r=20).translated(50, 50)
 
 hole = codecad.shapes.rectangle(20).translated(50, 50)
 notch = codecad.shapes.rectangle(15, 10).translated(55, 0)

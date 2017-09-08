@@ -10,6 +10,7 @@ import codecad.mass_properties
 
 drunk_box_matrix = codecad.util.Quaternion.from_degrees((7, 11, 13), 17).as_matrix()[:3, :3]
 
+
 # Names added so that test failures have clear identification of the shape
 @pytest.mark.parametrize("shape, volume, centroid, inertia_tensor", [
     pytest.param(codecad.shapes.box(1),
@@ -48,10 +49,10 @@ drunk_box_matrix = codecad.util.Quaternion.from_degrees((7, 11, 13), 17).as_matr
                  2 * 3 * 5, codecad.util.Vector(0, 0, 0),
                  drunk_box_matrix * (numpy.diag([3**2 + 5**2, 2**2 + 5**2, 2**2 + 3**2]) * 2 * 3 * 5 / 12) * drunk_box_matrix.T,
                  id="drunk_box"),
-    ])
+])
 def test_mass_properties(shape, volume, centroid, inertia_tensor):
     precision = 2e-3
-    result = codecad.mass_properties.mass_properties(shape, 10 * precision) # Just experimentally selected value
+    result = codecad.mass_properties.mass_properties(shape, 10 * precision)  # Just experimentally selected value
 
     assert result.volume == approx(volume, abs=1e-4, rel=precision)
     assert result.centroid == approx(centroid, abs=1e-4, rel=precision)

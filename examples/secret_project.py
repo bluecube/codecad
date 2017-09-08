@@ -3,7 +3,8 @@
 import codecad
 import math
 
-def mesh(spacing, diameter, rounding = None):
+
+def mesh(spacing, diameter, rounding=None):
     if rounding is None:
         rounding = 2 * diameter
 
@@ -31,7 +32,6 @@ def mesh(spacing, diameter, rounding = None):
     grid_list.append(yz_grid)
     grid_list.append(yz_grid.rotated((1, 0, 0), 90))
 
-
     grids = codecad.shapes.union(grid_list)
 
     if rounding > 0:
@@ -47,7 +47,7 @@ wall = 0.5
 spacing = 10
 rod_size = 0.8
 
-base = (codecad.shapes.cylinder(h=(h - r) * 2, r=r) + \
+base = (codecad.shapes.cylinder(h=(h - r) * 2, r=r) +
         codecad.shapes.sphere(r=r).translated(0, 0, h - r)).offset(-wall / 2)
 mask = codecad.shapes.box(4 * r, 4 * r, h).translated(0, 0, h / 2)
 
