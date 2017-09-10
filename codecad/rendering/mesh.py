@@ -7,7 +7,6 @@ from .. import util
 from .. import subdivision
 from .. import opencl_manager
 
-opencl_manager.instance.add_compile_unit().append_file("../grid_eval.cl")
 opencl_manager.instance.add_compile_unit().append_file("polygon.cl")
 
 _link_overflow_mask = 0xfff00000
