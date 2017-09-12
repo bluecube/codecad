@@ -33,10 +33,15 @@ class Buffer:
                                       self.nbytes)
         self.array = None
 
+    def create_host_side_array(self):
+        """ Create numpy array of appropriate size and dtype, assign it to buffer's
+        internal `array` field and return it """
+        self.array = numpy.empty(self.nitems, dtype=self.dtype)
+
     def _process_array(self, array):
         if array is None:
             if self.array is None:
-                self.array = numpy.empty(self.nitems, dtype=self.dtype)
+                self.create_host_side_array()
             return self.array
         else:
             return array
