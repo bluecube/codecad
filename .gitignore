@@ -3,6 +3,7 @@
 /.coverage
 /.eggs/
 /*.egg-info/
+/htmlcov/
 __pycache__/
 *.swp
 *.swo
