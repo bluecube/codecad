@@ -17,8 +17,17 @@ class Buffer:
     def __init__(self, queue, dtype, size, mem_flags):
         self.queue = queue
         self.dtype = numpy.dtype(dtype)
-        self.size = size
-        self.nbytes = size * self.dtype.itemsize
+        self.nitems = 1
+
+        try:
+            for s in size:
+                self.nitems *= s
+            self.size = size
+        except TypeError:
+            self.nitems = size
+            self.size = (size,)
+
+        self.nbytes = self.nitems * self.dtype.itemsize
         self.buffer = pyopencl.Buffer(self.queue.context,
                                       mem_flags | pyopencl.mem_flags.ALLOC_HOST_PTR,
                                       self.nbytes)
@@ -27,14 +36,14 @@ class Buffer:
     def _process_array(self, array):
         if array is None:
             if self.array is None:
-                self.array = numpy.empty((self.size,), dtype=self.dtype)
+                self.array = numpy.empty(self.nitems, dtype=self.dtype)
             return self.array
         else:
             return array
 
     def read(self, out=None, wait_for=None):
         """ Read contents of the buffer either into `self.array`, or to `out`.
-        `wait_for` can be either None or list of opencl.Event. """
+        `wait_for` can be either None or list of pyopencl.Event. """
 
         array = self._process_array(out)
         if array.nbytes < self.nbytes:
@@ -71,14 +80,28 @@ class Buffer:
     #         print("array", array.dtype);
     #         yield array
 
+    def _index(self, key):
+        try:
+            iter(key)
+        except TypeError:
+            key = (key,)
+
+        if len(key) != len(self.size):
+            raise ValueError("Wrong number of indices for buffer")
+
+        index = 0
+        for k, s in zip(reversed(key), reversed(self.size)):
+            index = index * s + k
+        return index
+
     def __getitem__(self, key):
-        return self.array[key]
+        return self.array[self._index(key)]
 
     def __setitem__(self, key, value):
-        self.array[key] = value
+        self.array[self._index(key)] = value
 
     def __len__(self):
-        return self.size
+        return self.nitems
 
 
 class _InterleavingHelperWrapper:
