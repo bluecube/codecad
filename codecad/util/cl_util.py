@@ -1,3 +1,5 @@
+import contextlib
+
 import numpy
 import pyopencl
 
@@ -70,20 +72,16 @@ class Buffer:
         return pyopencl.enqueue_copy(self.queue, self.buffer, array,
                                      wait_for=wait_for, is_blocking=False)
 
-    # This is broken now
-    # @contextlib.contextmanager
-    # def map(self, map_flags, wait_for=None):
-    #     """ Context manager that maps the buffer data as a numpy array.
-    #     `wait_for` can be either None or list of opencl.Event. """
-    #
-    #     print("map", self.dtype);
-    #
-    #     array, event = pyopencl.enqueue_map_buffer(self.queue, self.buffer, map_flags,
-    #                                                0, (self.size,), self.dtype,
-    #                                                wait_for=wait_for, is_blocking=True)
-    #     with array.base:
-    #         print("array", array.dtype);
-    #         yield array
+    @contextlib.contextmanager
+    def map(self, map_flags, wait_for=None):
+        """ Context manager that maps the buffer data as a numpy array.
+        `wait_for` can be either None or list of opencl.Event. """
+
+        array, event = pyopencl.enqueue_map_buffer(self.queue, self.buffer, map_flags,
+                                                   0, (self.nitems,), self.dtype,
+                                                   wait_for=wait_for, is_blocking=True)
+        with array.base:
+            yield array.view(self.dtype)
 
     def _index(self, key):
         try:
