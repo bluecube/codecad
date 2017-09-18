@@ -105,11 +105,12 @@ void transformation_from_op(float qx, float qy, float qz, float qw,
 }
 
 void offset_op(float distance, float4 input, float4* output) {
-    *output = input - distance;
+    *output = (float4)(input.x, input.y, input.z, input.w - distance);
 }
 
 void shell_op(float halfThickness, float4 input, float4* output) {
-    *output = fabs(input) - halfThickness;
+    float4 surface = (input.w >= 0) ? input : -input;
+    offset_op(halfThickness, surface, output);
 }
 
 // vim: filetype=c
