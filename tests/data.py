@@ -5,9 +5,9 @@ from codecad.shapes import *
 import test_simple2d  # For polygons
 
 nonconvex = polygon2d([(0, 0), (4, 6), (4, -2), (-4, -2), (-4, 6)])
-csg_thing = cylinder(h=5, d=2, symmetrical=False).rotated((1, 2, 3), 15) & \
-            sphere(d=3) + \
-            box(2).translated(2, 0, 0)
+csg_thing = (cylinder(h=5, d=2, symmetrical=False).rotated((1, 2, 3), 15) &
+             sphere(d=3)) + \
+            box(2).translated(.5, 0, -.5)
 
 shapes_2d = {"rectangle": rectangle(2, 4),
              "circle": circle(4),

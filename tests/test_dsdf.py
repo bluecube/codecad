@@ -19,6 +19,7 @@ codecad.opencl_manager.instance.add_compile_unit().append_file("test_dsdf.cl")
 with_2d_shapes = pytest.mark.parametrize("dsdf_common", data.params_2d, indirect=True)
 with_all_shapes = pytest.mark.parametrize("dsdf_common", data.params_2d + data.params_3d, indirect=True)
 
+
 @pytest.fixture(scope="module")
 def dsdf_common(request):
     shape = request.param
