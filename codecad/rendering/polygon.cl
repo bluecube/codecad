@@ -39,21 +39,25 @@ static float2 place_vertex(float2 cornerPositions[3],
     // Instead of mass point we use average of corner positions weighted by
     // (1/(1 + distance)) It's much simpler and gives only a tiny bit worse result.
     float2 average = (float2)(0, 0);
+    float2 center = (float2)(0, 0);
     float weight = 0;
     for (int i = 0; i < 3; ++i)
     {
         float w = 1 / (1 + fabs(cornerValues[i].w));
         average += cornerPositions[i] * w;
+        center += cornerPositions[i];
         weight += w;
     }
     average /= weight;
+    center /= 3;
 
     // Run gradient search with fixed number of iterations
     float2 p = average; // The candidate point
     for (int i = 0; i < 8; ++i)
     {
-        float2 gradient = (float2)(0, 0);
-        float residualSum = 0;
+        float2 toCenter = p - average;
+        float2 gradient = 2 * toCenter;
+        float residualSum = dot(toCenter, toCenter);
         for (int j = 0; j < 3; ++j)
         {
             float2 surfaceNormal = cornerValues[j].xy;
