@@ -3,8 +3,23 @@ import PIL
 from . import ray_caster
 
 
+def render_PIL_image(obj, size=(1024, 768), view_angle=None, resolution=None):
+    box = obj.bounding_box()
+    box_size = box.size()
+
+    if resolution is None:
+        epsilon = min(1, box_size.x, box_size.y, box_size.z) / 10000
+    else:
+        epsilon = resolution / 10
+
+    camera_params = ray_caster.get_camera_params(box, size, view_angle)
+
+    pixels = ray_caster.render(obj, size=size, epsilon=epsilon, *camera_params)
+    return PIL.Image.fromarray(pixels)
+
+
 def render_image(obj, filename, size=(1024, 768), view_angle=None, resolution=None):
-    ray_caster.render_image(obj, size, view_angle, resolution).save(filename)
+    render_PIL_image(obj, size, view_angle, resolution).save(filename)
 
 
 def render_gif(obj, filename, size=(640, 480),

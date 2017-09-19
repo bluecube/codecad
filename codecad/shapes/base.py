@@ -210,7 +210,7 @@ class Shape3D(ShapeBase):
         return simple3d.Shell(self, wall_thickness)
 
     def _repr_png_(self):
-        from ..rendering import ray_caster
+        from ..rendering import image
         with io.BytesIO() as fp:
-            ray_caster.render_image(self, size=(800, 400)).save(fp, format="png")
+            image.render_PIL_image(self, size=(800, 400)).save(fp, format="png")
             return fp.getvalue()
