@@ -6,46 +6,18 @@ Test that the directed signed distance function behaves as expected.
 # could inject their data into these tests
 
 import pytest
-
 import pyopencl
 import pyopencl.cltypes
 import numpy
 
 import codecad
 
-import test_simple2d
+import data
 
 codecad.opencl_manager.instance.add_compile_unit().append_file("test_dsdf.cl")
 
-nonconvex = codecad.shapes.polygon2d([(0, 0), (4, 6), (4, -2), (-4, -2), (-4, 6)])
-csg_thing = codecad.shapes.cylinder(h=5, d=2, symmetrical=False).rotated((1, 2, 3), 15) & \
-            codecad.shapes.sphere(d=3) + \
-            codecad.shapes.box(2).translated(2, 0, 0)
-
-shapes_2d = {"rectangle": codecad.shapes.rectangle(2, 4),
-             "circle": codecad.shapes.circle(4),
-             "nonconvex_offset_outside": nonconvex.offset(2),
-             "nonconvex_offset_inside1": nonconvex.offset(-0.9),
-             "nonconvex_offset_inside2": nonconvex.offset(-1.1),  # This one separates into two volumes
-             "nonconvex_shell1": nonconvex.shell(1),
-             "nonconvex_shell2": nonconvex.shell(2.5),  # Has two holes
-             "gear": codecad.shapes.gears.InvoluteGear(20, 0.5),
-             }
-shapes_2d.update(("polygon2d_" + k, codecad.shapes.polygon2d(v)) for k, v in test_simple2d.valid_polygon_cases.items())
-params_2d = [pytest.param(v, id=k) for k, v in sorted(shapes_2d.items())]
-
-shapes_3d = {"sphere": codecad.shapes.sphere(4),
-             "box": codecad.shapes.box(2, 3, 5),
-             "drunk_box": codecad.shapes.box(2, 3, 5).rotated((7, 11, 13), 17),
-             "translated_cylinder": codecad.shapes.cylinder(d=3, h=5).translated(0, 1, -1),
-             "csg_thing": csg_thing,
-             "torus": codecad.shapes.circle(d=4).translated(3, 0).revolved(),
-             "empty_intersection": codecad.shapes.sphere() & codecad.shapes.sphere().translated(5, 0, 0)}
-params_3d = [pytest.param(v, id=k) for k, v in sorted(shapes_3d.items())]
-
-with_2d_shapes = pytest.mark.parametrize("dsdf_common", params_2d, indirect=True)
-with_all_shapes = pytest.mark.parametrize("dsdf_common", params_2d + params_3d, indirect=True)
-
+with_2d_shapes = pytest.mark.parametrize("dsdf_common", data.params_2d, indirect=True)
+with_all_shapes = pytest.mark.parametrize("dsdf_common", data.params_2d + data.params_3d, indirect=True)
 
 @pytest.fixture(scope="module")
 def dsdf_common(request):
