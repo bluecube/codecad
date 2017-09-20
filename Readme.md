@@ -7,7 +7,7 @@ computing power.
 ## Roadmap
 
 ### Version 1.0.0
-- September 2017
+- ETA October 2017
 - Feature set comparable to OpenSCAD
 - Modeling in IPython or with standalone scripts
 - No performance optimizations yet
