@@ -3,6 +3,8 @@ from . import node
 
 
 def generate_eval_source_code(node_class, register_count):
+    opencl_manager.instance.max_register_count = register_count
+
     h = opencl_manager.instance.common_header
     h.append('float4 evaluate(__constant float* program, float3 point);')
 

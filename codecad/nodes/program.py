@@ -35,6 +35,7 @@ def get_shape_nodes(shape):
 def _make_program_pieces(shape):
     registers_needed, schedule = scheduler.randomized_scheduler(get_shape_nodes(shape))
 
+    assert registers_needed <= opencl_manager.instance.max_register_count
     assert schedule[0].name == "_point"
     assert schedule[0].register == 0
     assert schedule[-1].register == 0

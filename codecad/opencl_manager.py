@@ -83,6 +83,10 @@ class OpenCLManager:
 
         self.k = _Kernels(self)
 
+        self.max_register_count = 0
+        # TODO: Having max register count here is a bit of an abstraction leak
+        # We should move it somewhere else once node rematerialization is implemented
+
     def add_compile_unit(self, *args, **kwargs):
         ret = CompileUnit(*args, **kwargs)
         self._compile_units.append(ret)
