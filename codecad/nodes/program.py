@@ -16,14 +16,14 @@ class NodeCache:
         # TODO: Maybe try caching subsets of dependencies of >2-ary nodes?
         try:
             cached = self._cache[n]
+        except KeyError:
+            self._cache[n] = n
+            return n
+        else:
             assert cached is not n
             # Don't let node increase dependencies' refcount when we're not using it
             n.disconnect()
             return cached
-        except KeyError:
-            pass
-        self._cache[n] = n
-        return n
 
 
 def get_shape_nodes(shape):
