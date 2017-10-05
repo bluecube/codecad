@@ -26,6 +26,6 @@ shapes_3d = {"sphere": sphere(4),
              "drunk_box": box(2, 3, 5).rotated((7, 11, 13), 17),
              "translated_cylinder": cylinder(d=3, h=5).translated(0, 1, -1),
              "csg_thing": csg_thing,
-             "torus": circle(d=4).translated(3, 0).revolved(),
-             "empty_intersection": sphere().translated(-2, 0, 0) & sphere().translated(2, 0, 0)}
+             "torus": circle(d=4).translated_x(3).revolved(),
+             "empty_intersection": sphere().translated_x(-2) & sphere().translated_x(2)}
 params_3d = [pytest.param(v, id=k) for k, v in sorted(shapes_3d.items())]
