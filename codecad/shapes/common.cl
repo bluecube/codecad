@@ -98,9 +98,7 @@ void transformation_from_op(float qx, float qy, float qz, float qw,
     float4 quaternion = (float4)(qx, qy, qz, qw);
 
     float scale = quaternion_scale(quaternion);
-    float3 transformed = quaternion_transform(quaternion, as_float3(input));
-
-    *output = as_float4(transformed / scale);
+    output->xyz = quaternion_transform(quaternion, input.xyz) / scale;
     output->w = input.w * scale;
 }
 
