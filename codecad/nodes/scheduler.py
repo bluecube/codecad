@@ -25,6 +25,20 @@ class _RegisterAllocator:
             del self._allocations[reg]
 
 
+def calculate_node_refcounts(node):
+    """ Recursively go through all nodes reachable in graph and update their
+    reference counts. This must be called before the scheduler is used"""
+
+    assert node.refcount is None
+    node.refcount = 1
+
+    for dep in node.dependencies:
+        if dep.refcount is None:
+            calculate_node_refcounts(dep)
+        else:
+            dep.refcount += 1
+
+
 def _contiguous_schedule_recursive(node, ordering_selector, allocator):
     order = []
 
@@ -39,8 +53,10 @@ def _contiguous_schedule_recursive(node, ordering_selector, allocator):
         node.disconnect()
 
         n = Node(name, params, dependencies[:2], extra_data)
+        n.refcount = 1
         for dep in dependencies[2:-1]:
             n = Node(name, params, (n, dep), extra_data)
+            n.refcount = 1
 
         dependencies = (n, dependencies[-1])
 
@@ -59,6 +75,7 @@ def _contiguous_schedule_recursive(node, ordering_selector, allocator):
     for dep in dependencies:
         allocator.decref(dep.register)
 
+    assert node.refcount is not None, "Call calculate_node_refcounts() first!"
     node.register = allocator.allocate(node.refcount)
 
     # Finally output the schedule entry for this node

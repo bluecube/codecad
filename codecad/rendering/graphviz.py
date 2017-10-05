@@ -7,7 +7,7 @@ from ..nodes import scheduler
 
 def render_nodes_graph(shape, resolution, filename):
     shape_node = program.get_shape_nodes(shape)
-
+    scheduler.calculate_node_refcounts(shape_node)
     _, ordered = scheduler.randomized_scheduler(shape_node)
 
     with open(filename, "w") as fp:

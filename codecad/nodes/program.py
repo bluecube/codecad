@@ -21,8 +21,6 @@ class NodeCache:
             return n
         else:
             assert cached is not n
-            # Don't let node increase dependencies' refcount when we're not using it
-            n.disconnect()
             return cached
 
 
@@ -33,7 +31,9 @@ def get_shape_nodes(shape):
 
 
 def _make_program_pieces(shape):
-    registers_needed, schedule = scheduler.randomized_scheduler(get_shape_nodes(shape))
+    nodes = get_shape_nodes(shape)
+    scheduler.calculate_node_refcounts(nodes)
+    registers_needed, schedule = scheduler.randomized_scheduler(nodes)
 
     assert registers_needed <= opencl_manager.instance.max_register_count
     assert schedule[0].name == "_point"

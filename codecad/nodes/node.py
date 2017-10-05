@@ -52,23 +52,21 @@ class Node:
         self.extra_data = extra_data
         self._hash = hash((name, self.params, self.dependencies))
 
-        self.refcount = 0  # How many times is this node referenced by other node
         self.connect(dependencies)
         assert len(self.dependencies) == expected_dependency_count or \
             len(self.dependencies) > expected_dependency_count == 2
 
+        # Values calculated during scheduling:
+        self.refcount = None  # How many times is this node referenced by other node
         self.register = None  # Register allocated for output of this node
 
     def disconnect(self):
-        for dep in self.dependencies:
-            dep.refcount -= 1
+        """ Disconnect this node from all its dependencies """
         self.dependencies = ()
 
     def connect(self, dependencies):
         assert len(self.dependencies) == 0
         self.dependencies = tuple(dependencies)
-        for dep in self.dependencies:
-            dep.refcount += 1
 
     def __hash__(self):
         return self._hash
