@@ -199,6 +199,8 @@ class Transformation(collections.namedtuple("Transformation", "quaternion offset
                    Vector(*offset))
 
     def __mul__(self, other):
+        """ Combines two transformations into one,
+        order is "second * first" """
         return Transformation(self.quaternion * other.quaternion,
                               self.offset + self.quaternion.transform_vector(other.offset))
 

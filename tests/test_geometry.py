@@ -15,6 +15,10 @@ from codecad.util.geometry import Vector, Quaternion, Transformation
         (1, 0, 0), (0.5, math.sqrt(0.5), 0.5)),
     (Transformation.from_degrees((0, 0, 1), 90, 1, (5, 5, 5)), (1, 1, 1), (4, 6, 6)),
     (Transformation.from_degrees((0, 0, 1), 90, 2, (1, 0, 1)), (1, 1, 1), (-1, 2, 3)),
+    (Transformation.from_degrees((1, 0, 0), 0, 1, (1, 0, 0)) * Transformation.from_degrees((0, 0, 1), 90, 1, (0, 0, 0)),
+        (0, 0, 0), (1, 0, 0)),
+    (Transformation.from_degrees((0, 0, 1), 90, 1, (0, 0, 0)) * Transformation.from_degrees((1, 0, 0), 0, 1, (1, 0, 0)),
+        (0, 0, 0), (0, 1, 0)),
 ])
 def test_transformation(transformation, v, target):
     v = codecad.util.Vector(*v)
