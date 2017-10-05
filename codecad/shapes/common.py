@@ -58,27 +58,36 @@ class TransformationMixin:
         self.s = s
         self.transformation = util.Transformation(quaternion, translation)
 
-    @classmethod
-    def make_merged(cls, s, quaternion, translation):
-        t = cls(s, quaternion, translation)
-        if isinstance(s, cls):
-            t.s = s.s
-            t.transformation = t.transformation * s.transformation
-
-        return t
-
     def get_node(self, point, cache):
-        # TODO: Merge transformation nodes
         inverse_transformation = self.transformation.inverse()
+        if point.name == "transformation_to":
+            # Merge transformation_to nodes
+            inverse_transformation = inverse_transformation * point.extra_data
+            if len(point.dependencies) != 1:
+                print(len(point.dependencies))
+            assert len(point.dependencies) == 1
+            point = point.dependencies[0]
+
         new_point = cache.make_node("transformation_to",
                                     inverse_transformation.as_list(),
                                     [point],
                                     inverse_transformation)
-        distance = self.s.get_node(new_point, cache)
+
+        inner_result = self.s.get_node(new_point, cache)
+
+        quat = self.transformation.quaternion
+        if inner_result.name == "transformation_from":
+            # Merge transformation_from nodes
+            quat = quat * inner_result.extra_data
+            if len(inner_result.dependencies) != 1:
+                print(len(inner_result.dependencies))
+            assert len(inner_result.dependencies) == 1
+            inner_result = inner_result.dependencies[0]
+
         return cache.make_node("transformation_from",
-                               self.transformation.quaternion.as_list(),
-                               [distance],
-                               self.transformation.quaternion)
+                               quat.as_list(),
+                               [inner_result],
+                               quat)
 
 
 class OffsetMixin:

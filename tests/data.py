@@ -27,5 +27,7 @@ shapes_3d = {"sphere": sphere(4),
              "translated_cylinder": cylinder(d=3, h=5).translated(0, 1, -1),
              "csg_thing": csg_thing,
              "torus": circle(d=4).translated_x(3).revolved(),
-             "empty_intersection": sphere().translated_x(-2) & sphere().translated_x(2)}
+             "empty_intersection": sphere().translated_x(-2) & sphere().translated_x(2),
+             "nested_transformations": (box().translated_z(-2) + sphere().translated_x(2)).rotated_y(45).rotated_x(45),
+             }
 params_3d = [pytest.param(v, id=k) for k, v in sorted(shapes_3d.items())]

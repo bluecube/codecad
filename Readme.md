@@ -59,7 +59,7 @@ computing power.
   - [ ] Test examples
 
 ## Optimization ideas
-- [ ] Merge `transformation_to` and `transformation_from` blocks
+- [X] Merge `transformation_to` and `transformation_from` blocks
 - [ ] Don't output no-op transformations
 - [ ] Pass scaling operations through into the primitives
   - [ ] Turn sphere and circle rotations into no-ops

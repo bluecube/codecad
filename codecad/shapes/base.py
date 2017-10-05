@@ -93,9 +93,9 @@ class Shape2D(ShapeBase):
             o = util.Vector(x, y)
 
         from . import simple2d
-        return simple2d.Transformation2D.make_merged(self,
-                                                     util.Quaternion.from_degrees(util.Vector(0, 0, 1), 0),
-                                                     o)
+        return simple2d.Transformation2D(self,
+                                         util.Quaternion.from_degrees(util.Vector(0, 0, 1), 0),
+                                         o)
 
     def translated_x(self, distance):
         """ Translate along X axis by given angle.
@@ -116,9 +116,9 @@ class Shape2D(ShapeBase):
         and 180 degrees. """
         from . import simple2d
         if n == 1:
-            return simple2d.Transformation2D.make_merged(self,
-                                                         util.Quaternion.from_degrees(util.Vector(0, 0, 1), angle),
-                                                         util.Vector(0, 0, 0))
+            return simple2d.Transformation2D(self,
+                                             util.Quaternion.from_degrees(util.Vector(0, 0, 1), angle),
+                                             util.Vector(0, 0, 0))
         else:
             angle_step = angle / n
             return simple2d.Union2D([self.rotated((1 + i) * angle_step) for i in range(n)])
@@ -126,9 +126,9 @@ class Shape2D(ShapeBase):
     def scaled(self, s):
         """ Returns current shape scaled by given ratio """
         from . import simple2d
-        return simple2d.Transformation2D.make_merged(self,
-                                                     util.Quaternion.from_degrees(util.Vector(0, 0, 1), 0, s),
-                                                     util.Vector(0, 0, 0))
+        return simple2d.Transformation2D(self,
+                                         util.Quaternion.from_degrees(util.Vector(0, 0, 1), 0, s),
+                                         util.Vector(0, 0, 0))
 
     def offset(self, d):
         """ Returns current shape offset by given distance (positive is outside) """
@@ -182,9 +182,9 @@ class Shape3D(ShapeBase):
         else:
             o = util.Vector(x, y, z)
         from . import simple3d
-        return simple3d.Transformation.make_merged(self,
-                                                   util.Quaternion.from_degrees(util.Vector(0, 0, 1), 0),
-                                                   o)
+        return simple3d.Transformation(self,
+                                       util.Quaternion.from_degrees(util.Vector(0, 0, 1), 0),
+                                       o)
 
     def translated_x(self, distance):
         """ Translate along X axis by given angle.
@@ -210,9 +210,9 @@ class Shape3D(ShapeBase):
         and 180 degrees."""
         from . import simple3d
         if n == 1:
-            return simple3d.Transformation.make_merged(self,
-                                                       util.Quaternion.from_degrees(util.Vector(*vector), angle),
-                                                       util.Vector(0, 0, 0))
+            return simple3d.Transformation(self,
+                                           util.Quaternion.from_degrees(util.Vector(*vector), angle),
+                                           util.Vector(0, 0, 0))
         else:
             angle_step = angle / n
             return simple3d.Union([self.rotated(vector, (1 + i) * angle_step) for i in range(n)])
@@ -235,9 +235,9 @@ class Shape3D(ShapeBase):
     def scaled(self, s):
         """ Returns current shape scaled by given ratio """
         from . import simple3d
-        return simple3d.Transformation.make_merged(self,
-                                                   util.Quaternion.from_degrees(util.Vector(0, 0, 1), 0, s),
-                                                   util.Vector(0, 0, 0))
+        return simple3d.Transformation(self,
+                                       util.Quaternion.from_degrees(util.Vector(0, 0, 1), 0, s),
+                                       util.Vector(0, 0, 0))
 
     def offset(self, d):
         """ Returns current shape offset by given distance (positive increases size) """
