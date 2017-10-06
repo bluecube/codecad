@@ -17,8 +17,11 @@ _default_compiler_options = ["-Werror",
 
 class CompileUnit:
     def __init__(self, options=_default_compiler_options):
-        self.pieces = []
         self.options = _default_compiler_options
+        self.clear()
+
+    def clear(self):
+        self.pieces = []
 
     # Workaround, see OpenCLManager._build_program()
     # def compile(self, context, extra_headers):
