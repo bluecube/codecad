@@ -14,6 +14,10 @@ class Vector(collections.namedtuple("Vector", "x y z")):
     def splat(cls, value):
         return cls(value, value, value)
 
+    @classmethod
+    def zero(cls):
+        return cls(0, 0, 0)
+
     def __add__(self, other):
         return Vector(self.x + other.x, self.y + other.y, self.z + other.z)
 
@@ -153,6 +157,10 @@ class Quaternion(collections.namedtuple("Quaternion", "v w")):
         return cls(axis.normalized() * math.sin(phi) * mul,
                    math.cos(phi) * mul)
 
+    @classmethod
+    def zero(cls):
+        return cls(Vector.zero(), 1)
+
     def __mul__(self, other):
         return Quaternion(self.v * other.w + other.v * self.w + self.v.cross(other.v),
                           self.w * other.w - self.v.dot(other.v))
@@ -197,6 +205,10 @@ class Transformation(collections.namedtuple("Transformation", "quaternion offset
     def from_degrees(cls, axis, angle, scale, offset):
         return cls(Quaternion.from_degrees(axis, angle, scale),
                    Vector(*offset))
+
+    @classmethod
+    def zero(cls):
+        return cls(Quaternion.zero(), Vector.zero())
 
     def __mul__(self, other):
         """ Combines two transformations into one,

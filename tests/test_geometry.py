@@ -8,6 +8,7 @@ from codecad.util.geometry import Vector, Quaternion, Transformation
 
 
 @pytest.mark.parametrize("transformation, v, target", [
+    (Transformation.zero(), (9, 8, 7), (9, 8, 7)),
     (Transformation.from_degrees((0, 0, 1), 0, 1, (0, 0, 0)), (2, 3, 4), (2, 3, 4)),
     (Quaternion.from_degrees((0, 0, 1), 90, 1), (1, 1, 1), (-1, 1, 1)),
     (Quaternion.from_degrees((0, 0, 1), 90, 2), (1, 1, 1), (-2, 2, 2)),
