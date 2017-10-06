@@ -2,6 +2,7 @@ import struct
 
 import pyopencl
 
+from .. import util
 from . import scheduler, node
 from .. import opencl_manager
 
@@ -25,8 +26,12 @@ class NodeCache:
 
 
 def get_shape_nodes(shape):
-    cache = NodeCache()  # TODO: Figure out how to share cache between shapes?
-    point = cache.make_node("_point", (), ())
+    cache = NodeCache()
+    zero_transform = util.Transformation.zero()
+    point = cache.make_node("initial_transformation_to",
+                            zero_transform.as_list(),
+                            (),
+                            zero_transform)
     return shape.get_node(point, cache)
 
 
@@ -36,19 +41,15 @@ def _make_program_pieces(shape):
     registers_needed, schedule = scheduler.randomized_scheduler(nodes)
 
     assert registers_needed <= opencl_manager.instance.max_register_count
-    assert schedule[0].name == "_point"
-    assert schedule[0].register == 0
-    assert schedule[-1].register == 0
 
     parameter_encoder = struct.Struct("f")  # TODO Endian
     instruction_encoder = struct.Struct("BBBB")
 
     for n in schedule[1:]:
-        assert len(n.dependencies) > 0
         assert len(n.dependencies) <= 2
         yield instruction_encoder.pack(node.Node._node_types[n.name][2],
                                        n.register,
-                                       n.dependencies[0].register,
+                                       n.dependencies[0].register if len(n.dependencies) > 0 else 0,
                                        n.dependencies[1].register if len(n.dependencies) > 1 else 0)
         for param in n.params:
             yield parameter_encoder.pack(param)

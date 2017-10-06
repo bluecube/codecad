@@ -82,13 +82,24 @@ void subtraction_op(float r, float4 obj1, float4 obj2, float4* output) {
     *output = -rounded_union(r, -obj1, obj2);
 }
 
+void initial_transformation_to_op(float qx, float qy, float qz, float qw,
+                                  float ox, float oy, float oz,
+                                  float3 point, float4* output) {
+    float4 quaternion = (float4)(qx, qy, qz, qw);
+    float3 offset = (float3)(ox, oy, oz);
+
+    float3 transformed = quaternion_transform(quaternion, point) + offset;
+
+    *output = as_float4(transformed);
+}
+
 void transformation_to_op(float qx, float qy, float qz, float qw,
                           float ox, float oy, float oz,
                           float4 point, float4* output) {
     float4 quaternion = (float4)(qx, qy, qz, qw);
     float3 offset = (float3)(ox, oy, oz);
 
-    float3 transformed = quaternion_transform(quaternion, as_float3(point)) + offset;
+    float3 transformed = quaternion_transform(quaternion, point.xyz) + offset;
 
     *output = as_float4(transformed);
 }

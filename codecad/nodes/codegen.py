@@ -35,10 +35,10 @@ float4 evaluate(__constant float* program, float3 point)
         instruction.f = *program++;
 
         switch (instruction.opcode)
-        {
-            case 0:
-                return registers[0];
-                 ''')
+        {''')
+    c.append('''
+            case {}:
+                return registers[instruction.input1];'''.format(node_class._node_types["_return"][2]))
     for name, (params, arity, code) in node_class._node_types.items():
         _generate_op_handler(c, name, params, arity, code)
     c.append('''
@@ -49,6 +49,9 @@ float4 evaluate(__constant float* program, float3 point)
 
 
 def _generate_op_decl(c_file, name, params, arity, code):
+    if name[0] == "_":
+        return  # Underscore nodes have hard coded implementation
+
     if params is node._Variable:
         c_file.append('''
 uint {}_op(
@@ -59,15 +62,22 @@ void {}_op('''.format(name))
         for i in range(params):
             c_file.append('''
     float parameter{},'''.format(i + 1))
-    assert 1 <= arity <= 2
-    for i in range(arity):
+    if arity == 0:
         c_file.append('''
+    float3 point,''')
+    else:
+        assert 1 <= arity <= 2
+        for i in range(arity):
+            c_file.append('''
     float4 input{},'''.format(i + 1))
     c_file.append('''
     float4* output);''')
 
 
 def _generate_op_handler(c_file, name, params, arity, code):
+    if name[0] == "_":
+        return  # Underscore nodes don't need declaration
+
     c_file.append('''
             case {}:'''.format(code))
     if params is node._Variable:
@@ -80,9 +90,13 @@ def _generate_op_handler(c_file, name, params, arity, code):
         for i in range(params):
             c_file.append('''
                     program[{}],'''.format(i))
-    assert 1 <= arity <= 2
-    for i in range(arity):
+    if arity == 0:
         c_file.append('''
+                    point,''')
+    else:
+        assert 1 <= arity <= 2
+        for i in range(arity):
+            c_file.append('''
                     registers[instruction.input{}],'''.format(i + 1))
     c_file.append('''
                     &registers[instruction.output]);''')
