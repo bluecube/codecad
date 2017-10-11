@@ -4,11 +4,8 @@
 /.eggs/
 /*.egg-info/
 /htmlcov/
+/output.*
+/*error.png
 __pycache__/
 *.swp
 *.swo
-output.stl
-output.png
-output.dot
-output.gif
-output.svg
