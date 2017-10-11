@@ -45,7 +45,7 @@ def _make_program_pieces(shape):
     parameter_encoder = struct.Struct("f")  # TODO Endian
     instruction_encoder = struct.Struct("BBBB")
 
-    for n in schedule[1:]:
+    for n in schedule:
         assert len(n.dependencies) <= 2
         yield instruction_encoder.pack(node.Node._node_types[n.name][2],
                                        n.register,
