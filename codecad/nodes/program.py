@@ -32,7 +32,11 @@ def get_shape_nodes(shape):
                             zero_transform.as_list(),
                             (),
                             zero_transform)
-    return shape.get_node(point, cache)
+    return_node = cache.make_node("_return",
+                                  (),
+                                  (shape.get_node(point, cache),))
+
+    return return_node
 
 
 def _make_program_pieces(shape):
@@ -53,8 +57,6 @@ def _make_program_pieces(shape):
                                        n.dependencies[1].register if len(n.dependencies) > 1 else 0)
         for param in n.params:
             yield parameter_encoder.pack(param)
-
-    yield instruction_encoder.pack(0, 0, 0, 0)
 
 
 def make_program(shape):
