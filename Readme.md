@@ -10,7 +10,7 @@ computing power.
 - ETA October 2017
 - Feature set comparable to OpenSCAD
 - Modeling in IPython or with standalone scripts
-- No performance optimizations yet
+- Minimal performance optimizations
 - Features required:
   - [ ] Extrusion with scaling
   - [ ] Twisted extrusion
