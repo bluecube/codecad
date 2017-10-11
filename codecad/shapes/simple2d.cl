@@ -1,20 +1,22 @@
-void rectangle_op(float halfW, float halfH, float4 coords, float4* output) {
-    *output = perpendicular_intersection(slab_x(halfW, coords),
-                                         slab_y(halfH, coords));
+float4 rectangle_op(float halfW, float halfH, float4 coords) {
+    return perpendicular_intersection(slab_x(halfW, coords),
+                                      slab_y(halfH, coords));
 }
 
-void circle_op(float r, float4 coords, float4* output) {
+float4 circle_op(float r, float4 coords) {
     float2 flat = (float2)(coords.x, coords.y);
     float absFlat = length(flat);
     if (absFlat == 0) // TODO: Check this
         flat = (float2)(1, 0);
     else
         flat /= absFlat;
-    *output = (float4)(flat.x, flat.y, 0, absFlat - r);
+    return (float4)(flat.x, flat.y, 0, absFlat - r);
 }
 
-uint polygon2d_op(__constant float* params, float4 coords, float4* output) {
-    uint pointCount = *(params++);
+float4 polygon2d_op(__constant float* restrict* restrict params, float4 coords) {
+    uint pointCount = **params;
+
+    ++*params;
 
     float2 query = (float2)(coords.x, coords.y);
 
@@ -23,12 +25,12 @@ uint polygon2d_op(__constant float* params, float4 coords, float4* output) {
     bool nearestIsVertex;
     float outside = 1;
 
-    float2 currentPoint = vload2((pointCount - 1), params);
+    float2 currentPoint = vload2((pointCount - 1), *params);
     float2 previousPoint;
     for (uint i = 0; i < pointCount; ++i)
     {
         previousPoint = currentPoint;
-        currentPoint = vload2(i, params);
+        currentPoint = vload2(i, *params);
 
         float2 direction = currentPoint - previousPoint;
         float2 toQuery = query - previousPoint;
@@ -81,9 +83,9 @@ uint polygon2d_op(__constant float* params, float4 coords, float4* output) {
     else
         normal = normalize(nearestNormal);
 
-    *output = (float4)(normal.x, normal.y, 0, distance);
+    *params += 2 * pointCount;
 
-    return 2 * pointCount + 1;
+    return (float4)(normal.x, normal.y, 0, distance);
 }
 
 // vim: filetype=c

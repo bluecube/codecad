@@ -1,5 +1,6 @@
-void repetition_op(float ox, float oy, float oz, float4 coords, float4* output) {
-    output->x = remainder(coords.x, ox);
-    output->y = remainder(coords.y, oy);
-    output->z = remainder(coords.z, oz);
+float4 repetition_op(float ox, float oy, float oz, float4 coords) {
+    return (float4)(remainder(coords.x, ox),
+                    remainder(coords.y, oy),
+                    remainder(coords.z, oz),
+                    0);
 }

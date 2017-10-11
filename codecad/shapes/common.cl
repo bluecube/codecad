@@ -10,8 +10,8 @@ float quaternion_scale(float4 quaternion)
     return dot(quaternion, quaternion);
 }
 
-// Calculate intersection gradient and distance given two gradient/distance pairs
-// with perpendicular gradients
+// Calculate intersection direction and distance given two direction/distance pairs
+// with perpendicular directions
 float4 perpendicular_intersection(float4 input1, float4 input2)
 {
     if (input1.w > 0 && input2.w > 0)
@@ -70,56 +70,59 @@ float4 rounded_union(float r, float4 obj1, float4 obj2) {
         return obj2;
 }
 
-void union_op(float r, float4 obj1, float4 obj2, float4* output) {
-    *output = rounded_union(r, obj1, obj2);
+float4 union_op(float r, float4 obj1, float4 obj2) {
+    return rounded_union(r, obj1, obj2);
 }
 
-void intersection_op(float r, float4 obj1, float4 obj2, float4* output) {
-    *output = -rounded_union(r, -obj1, -obj2);
+float4 intersection_op(float r, float4 obj1, float4 obj2) {
+    return -rounded_union(r, -obj1, -obj2);
 }
 
-void subtraction_op(float r, float4 obj1, float4 obj2, float4* output) {
-    *output = -rounded_union(r, -obj1, obj2);
+float4 subtraction_op(float r, float4 obj1, float4 obj2) {
+    return -rounded_union(r, -obj1, obj2);
 }
 
-void initial_transformation_to_op(float qx, float qy, float qz, float qw,
-                                  float ox, float oy, float oz,
-                                  float3 point, float4* output) {
+float4 initial_transformation_to_op(float qx, float qy, float qz, float qw,
+                                    float ox, float oy, float oz,
+                                    float3 point) {
     float4 quaternion = (float4)(qx, qy, qz, qw);
     float3 offset = (float3)(ox, oy, oz);
 
     float3 transformed = quaternion_transform(quaternion, point) + offset;
 
-    *output = as_float4(transformed);
+    return as_float4(transformed);
 }
 
-void transformation_to_op(float qx, float qy, float qz, float qw,
-                          float ox, float oy, float oz,
-                          float4 point, float4* output) {
+float4 transformation_to_op(float qx, float qy, float qz, float qw,
+                            float ox, float oy, float oz,
+                            float4 point) {
     float4 quaternion = (float4)(qx, qy, qz, qw);
     float3 offset = (float3)(ox, oy, oz);
 
     float3 transformed = quaternion_transform(quaternion, point.xyz) + offset;
 
-    *output = as_float4(transformed);
+    return as_float4(transformed);
 }
 
-void transformation_from_op(float qx, float qy, float qz, float qw,
-                            float4 input, float4* output) {
+float4 transformation_from_op(float qx, float qy, float qz, float qw,
+                              float4 input) {
     float4 quaternion = (float4)(qx, qy, qz, qw);
 
     float scale = quaternion_scale(quaternion);
-    output->xyz = quaternion_transform(quaternion, input.xyz) / scale;
-    output->w = input.w * scale;
+
+    float4 ret;
+    ret.xyz = quaternion_transform(quaternion, input.xyz) / scale;
+    ret.w = input.w * scale;
+    return ret;
 }
 
-void offset_op(float distance, float4 input, float4* output) {
-    *output = (float4)(input.x, input.y, input.z, input.w - distance);
+float4 offset_op(float distance, float4 input) {
+    return (float4)(input.x, input.y, input.z, input.w - distance);
 }
 
-void shell_op(float halfThickness, float4 input, float4* output) {
+float4 shell_op(float halfThickness, float4 input) {
     float4 surface = (input.w >= 0) ? input : -input;
-    offset_op(halfThickness, surface, output);
+    return offset_op(halfThickness, surface);
 }
 
 // vim: filetype=c

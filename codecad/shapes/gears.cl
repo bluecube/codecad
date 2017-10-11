@@ -1,4 +1,4 @@
-void involute_gear_op(float toothCount, float pressureAngle, float4 coords, float4* output) {
+float4 involute_gear_op(float toothCount, float pressureAngle, float4 coords) {
     float baseRadius = cos(pressureAngle);
     float toothAngle = M_PI / toothCount;
 
@@ -16,7 +16,7 @@ void involute_gear_op(float toothCount, float pressureAngle, float4 coords, floa
         if (wrappedAlpha > toothAngle)
             normal = -normal;
         float angularDistance = fabs(wrappedAlpha - toothAngle) - halfToothBaseAngle;
-        *output = (float4)(normal.x, normal.y, 0, angularDistance * len);
+        return (float4)(normal.x, normal.y, 0, angularDistance * len);
     }
     else {
         float phi = involuteAlpha + acos(baseRadius / len); // Curve parameter
@@ -37,7 +37,7 @@ void involute_gear_op(float toothCount, float pressureAngle, float4 coords, floa
 
         float distance = sqrt(len * len - baseRadius * baseRadius) - baseRadius * phi;
 
-        *output = (float4)(normal.x, normal.y, 0, distance);
+        return (float4)(normal.x, normal.y, 0, distance);
     }
 }
 
