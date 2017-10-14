@@ -1,6 +1,6 @@
-import struct
-
+import numpy
 import pyopencl
+import pyopencl.cltypes
 
 from .. import util
 from . import scheduler, node
@@ -46,21 +46,27 @@ def _make_program_pieces(shape):
 
     assert registers_needed <= opencl_manager.instance.max_register_count
 
-    parameter_encoder = struct.Struct("f")  # TODO Endian
-    instruction_encoder = struct.Struct("BBBB")
-
     for n in schedule:
         assert len(n.dependencies) <= 2
-        yield instruction_encoder.pack(node.Node._node_types[n.name][2],
-                                       n.register,
-                                       n.dependencies[0].register if len(n.dependencies) > 0 else 0,
-                                       n.dependencies[1].register if len(n.dependencies) > 1 else 0)
-        for param in n.params:
-            yield parameter_encoder.pack(param)
+
+        opcode = node.Node._node_types[n.name][2]
+        if n.name in ("_load", "_store"):
+            secondaryRegister = n.register
+        elif len(n.dependencies) >= 2:
+            secondaryRegister = n.dependencies[1].register
+        else:
+            secondaryRegister = 0
+        instruction = opcode * opencl_manager.instance.max_register_count + secondaryRegister
+
+        assert int(numpy.float32(instruction)) == instruction
+
+        yield instruction
+        yield from n.params
 
 
 def make_program(shape):
-    return b"".join(_make_program_pieces(shape))
+    """ Returns numpy array containing the eval instructions for eval """
+    return numpy.fromiter(_make_program_pieces(shape), pyopencl.cltypes.float)
 
 
 def make_program_buffer(shape):

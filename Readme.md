@@ -59,6 +59,8 @@ computing power.
   - [ ] Test examples
 
 ## Optimization ideas
+- [ ] Rematerialization of values in evaluate.
+- [ ] Include bounding volumes in instruction stream and use it to clip the computation
 - [X] Merge `transformation_to` and `transformation_from` blocks
 - [ ] Don't output no-op transformations
 - [ ] Pass scaling operations through into the primitives
@@ -66,7 +68,6 @@ computing power.
 - [ ] Separate translation only and rotation only transformations
 - [ ] Separate 2d transformations
 - [ ] Convert 90° rotations and -1 scaling to vector component shuffling and negations
-- [ ] Include bounding volumes in instruction stream and use it to clip the computation
 - [ ] Try speeding up subdivision code (and others) with prefix sums
 - [ ] Caching instruction buffers
 - [ ] Try putting `restrict` everywhere in OpenCL

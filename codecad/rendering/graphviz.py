@@ -13,16 +13,20 @@ def render_nodes_graph(shape, resolution, filename):
     with open(filename, "w") as fp:
         fp.write("digraph Nodes {\n")
         fp.write("  graph[concentrate=true];\n")
-        stack = [shape_node]
 
         for i, node in enumerate(ordered):
-            fp.write('  node{} [label="{}\\n{}({})\\nrefcount {}\\n->r{}"];\n'.format(id(node),
-                                                                                      i,
-                                                                                      node.name,
-                                                                                      ", ".join(str(p) for p in node.params),
-                                                                                      node.refcount,
-                                                                                      node.register))
-            for dep in node.dependencies:
-                fp.write('  node{} -> node{};\n'.format(id(dep), id(node)))
+            if node.name in ("_store", "_load"):
+                fp.write('  node{} [label="{}\\n{}\\nrefcount {}\\n->r{}",style="filled"];\n'.format(id(node),
+                                                                                                     i,
+                                                                                                     node.name,
+                                                                                                     node.refcount,
+                                                                                                     node.register))
+            else:
+                fp.write('  node{} [label="{}\\n{}({})"];\n'.format(id(node),
+                                                                       i,
+                                                                       node.name,
+                                                                       ", ".join(str(p) for p in node.params)))
+            for dep, direction in zip(node.dependencies, ["nw", "ne"]):
+                fp.write('  node{}:s -> node{}:{};\n'.format(id(dep), id(node), direction))
 
         fp.write("}")

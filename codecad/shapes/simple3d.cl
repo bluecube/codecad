@@ -15,7 +15,7 @@ float4 half_space_op(float4 coords) {
     return (float4)(0, -1, 0, -coords.y);
 }
 
-float4 extrusion_op(float halfH, float4 coords, float4 input) {
+float4 extrusion_op(float halfH, float4 input, float4 coords) {
     return perpendicular_intersection(slab_z(halfH, coords),
                                       input);
 }
@@ -25,7 +25,7 @@ float4 revolution_to_op(float4 coord) {
     return (float4)(x, coord.y, 0, 0);
 }
 
-float4 revolution_from_op(float4 coords, float4 flat) {
+float4 revolution_from_op(float4 flat, float4 coords) {
     float length = hypot(coords.x, coords.z);
     float multiplier;
     if (length == 0) {

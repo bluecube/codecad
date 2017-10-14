@@ -83,7 +83,7 @@ class Extrusion(base.Shape3D):
         if math.isinf(self.h):
             return sub_node
         else:
-            return cache.make_node("extrusion", [self.h / 2], [point, sub_node])
+            return cache.make_node("extrusion", [self.h / 2], [sub_node, point])
 
 
 class Revolution(base.Shape3D):
@@ -104,4 +104,4 @@ class Revolution(base.Shape3D):
         sub_node = self.s.get_node(new_point, cache)
         return cache.make_node("revolution_from",
                                [],
-                               [point, sub_node])
+                               [sub_node, point])

@@ -14,8 +14,8 @@ class Node:
                                           for i, (name, params, arity)
                                           in enumerate([
         # noqa
-        # Special node:
-        ("_return", 0, 1),
+        # Special nodes:
+        ("_return", 0, 1), ("_store", 0, 1), ("_load", 0, 1),
 
         # Unary nodes:
         # 2D shapes:
@@ -59,6 +59,7 @@ class Node:
         # Values calculated during scheduling:
         self.refcount = None  # How many times is this node referenced by other node
         self.register = None  # Register allocated for output of this node
+        self.store_node = None # Node that stores this node's output value, for visualisation
 
     def disconnect(self):
         """ Disconnect this node from all its dependencies """
@@ -66,7 +67,7 @@ class Node:
 
     def connect(self, dependencies):
         assert len(self.dependencies) == 0
-        self.dependencies = tuple(dependencies)
+        self.dependencies = list(dependencies)
 
     def __hash__(self):
         return self._hash
