@@ -66,7 +66,7 @@ def render(obj,
 
     pyopencl.enqueue_copy(opencl_manager.instance.queue, output, output_buffer, wait_for=[ev])
 
-    # print("Render took", (ev.profile.end - ev.profile.start) / 1e9)
+    print("Render took", (ev.profile.end - ev.profile.start) / 1e9)
 
     return output
 
