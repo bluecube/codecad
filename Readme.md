@@ -14,12 +14,10 @@ computing power.
 - Features required:
   - [ ] Extrusion with scaling
   - [ ] Twisted extrusion
-  - [ ] Projection to plane
   - [ ] Polygonal model
     - [ ] STL import
-  - [ ] Rounded unions
-  - [ ] Boundary conditions -- unions of touching objects
   - [ ] Svg export
+  - [ ] Assemblies (operations on combined shapes, simple BOM)
 
 ## Ideas
 - Primitives
@@ -29,8 +27,6 @@ computing power.
   - [ ] Slice by a plane (Correct one, not just set Z to 0)
   - [ ] 2D closed spline
   - [ ] Swipe 3D object (allows extrusion from or up to a general surface)
-- [ ] Assemblies (operations on combined shapes that propagate back to components) :four:
-  - [ ] Exploded view
 - [ ] Modules (pieces of geometry with both positive and negative space)
 - Fancy raycaster effects
     - [ ] Axes
@@ -46,7 +42,7 @@ computing power.
   - [ ] Multiprecision? `float` for initial approximation, `double` for final details
 - [ ] Colors / materials
 - [ ] Asynchronous API
-- [ ] Get rid of PyMCubes use GPU for triangulation (dual contouring?) :four:
+- [ ] Get rid of PyMCubes use GPU for triangulation (dual contouring?)
 - [ ] Clean up progress reporting and script/application/notebook interfaces
 - [X] Mass properties separated from subdivision
  - [X] Volume
@@ -57,6 +53,9 @@ computing power.
   - [ ] Setup Travis
   - [ ] Doctests
   - [ ] Test examples
+- [ ] Projection to plane
+- [ ] Rounded unions
+- [ ] Boundary conditions -- unions of touching objects
 
 ## Optimization ideas
 - [ ] Rematerialization of values in evaluate.
