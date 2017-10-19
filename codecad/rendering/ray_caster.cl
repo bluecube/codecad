@@ -1,46 +1,3 @@
-// Cast a ray through scene.
-// Returns estimated tan(apex angle of unobstructed cone) (0 if the ray hit the geometry,
-// 1 if it went directly away from the scene, INFINITY if there never was any scene).
-// Tracing starts at minDistance and ends at maxDistance.
-// nearest outputs the evaluation result at a point where the cone got maximally
-// obstructed, nearestDistance returns distance along the ray of this event
-static float cast_ray(__constant float* restrict scene,
-                      float3 origin, float3 direction,
-                      float epsilon, uint maxSteps, float minDistance, float maxDistance,
-                      float4* restrict nearestResult,
-                      float* restrict nearestDistance,
-                      uint* restrict stepsUsed)
-{
-    float tanApexAngle = 1; //INFINITY;
-    float distance = minDistance;
-    nearestResult->w = INFINITY;
-    for (*stepsUsed = 1; *stepsUsed <= maxSteps; ++*stepsUsed)
-    {
-        float3 point = origin + distance * direction;
-        float4 evalResult = evaluate(scene, point);
-
-        tanApexAngle = min(tanApexAngle, evalResult.w / distance);
-
-        if (evalResult.w < nearestResult->w)
-        {
-            *nearestResult = evalResult;
-            *nearestDistance = distance;
-        }
-
-        if (evalResult.w < epsilon)
-            return 0;
-        else
-        {
-            distance += evalResult.w;
-
-            if (distance > maxDistance)
-                break;
-        }
-    }
-
-    return tanApexAngle;
-}
-
 static float light_contribution(__constant float* restrict scene,
                                 float3 point, float3 normal, float3 toLight,
                                 float epsilon, uint maxSteps, float maxDistance)
@@ -50,12 +7,21 @@ static float light_contribution(__constant float* restrict scene,
     if (surfaceToLightDotProduct <= 0)
         return 0;
 
-    float4 hitResult;
-    float hitDistance;
-    uint stepsUsed;
-    float lightVisibility = cast_ray(scene, point, toLight,
-                                     epsilon, maxSteps, epsilon, maxDistance,
-                                     &hitResult, &hitDistance, &stepsUsed);
+    float lightVisibility = 1;
+    float distance = epsilon;
+    for (uint i = 0; i < maxSteps; ++i)
+    {
+        float evalResult = evaluate(scene, point + distance * toLight).w;
+        lightVisibility = min(lightVisibility, evalResult / distance);
+
+        if (evalResult < epsilon)
+            break;
+
+        distance += evalResult;
+
+        if (distance > maxDistance)
+            break;
+    }
 
     return lightVisibility * surfaceToLightDotProduct;
 }
@@ -81,41 +47,48 @@ __kernel void ray_caster(__constant float* restrict scene,
                                  as_float3(right) * filmx -
                                  as_float3(up) * filmy);
 
-    float4 hitResult;
-    float hitDistance;
+    float distance = minDistance;
+    float4 evalResult;
+    bool hit;
+    uint stepCount = 0;
+    for (stepCount = 0; stepCount < maxSteps; ++stepCount)
+    {
+        evalResult = evaluate(scene, origin.xyz + distance * direction);
+        hit = evalResult.w < epsilon;
+
+        if (hit)
+            break;
+
+        distance += evalResult.w;
+
+        if (distance > maxDistance)
+            break;
+    }
+
     float4 color;
-    uint stepsUsed;
-    float coneAngle = cast_ray(scene, origin.xyz, direction,
-                               epsilon, maxSteps, minDistance, maxDistance,
-                               &hitResult, &hitDistance, &stepsUsed);
 
     if (renderOptions & RENDER_OPTIONS_FALSE_COLOR)
     {
-        output[index + 0] = clamp(stepsUsed, (uint)0, (uint)255);
-        output[index + 1] = 0;
-        output[index + 2] = 0;
+        color = (float4)(stepCount, 0, 0, 0);
+    }
+    else if (hit)
+    {
+        float lightness = ambient;
+        float3 normal = evalResult.xyz;
+
+        float3 point = origin.xyz + direction * (distance - 2 * epsilon);// + normal * hitResult.w;
+
+        lightness += light_contribution(scene, point, normal, -light.xyz,
+                                        epsilon, maxSteps, maxDistance);
+
+        color = lightness * surfaceColor;
     }
     else
-    {
-        if (coneAngle == 0)
-        {
-            float lightness = ambient;
-            float3 normal = hitResult.xyz;
+        color = backgroundColor;
 
-            float3 point = origin.xyz + direction * (hitDistance - 2 * epsilon);// + normal * hitResult.w;
-
-            lightness += light_contribution(scene, point, normal, -light.xyz,
-                                            epsilon, maxSteps, maxDistance);
-
-            color = lightness * surfaceColor;
-        }
-        else
-            color = backgroundColor;
-
-        output[index + 0] = clamp(color.x, 0.0f, 255.0f);
-        output[index + 1] = clamp(color.y, 0.0f, 255.0f);
-        output[index + 2] = clamp(color.z, 0.0f, 255.0f);
-    }
+    output[index + 0] = clamp(color.x, 0.0f, 255.0f);
+    output[index + 1] = clamp(color.y, 0.0f, 255.0f);
+    output[index + 2] = clamp(color.z, 0.0f, 255.0f);
 }
 
 // vim: filetype=c
