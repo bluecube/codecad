@@ -1,7 +1,7 @@
 // Enhanced Sphere Tracing by Keinert et al. is a gold mine!
 
 // Some constants that don't depend on the geometry
-#define OVER_RELAXATION_CONSTANT 1.2
+#define OVER_RELAXATION_CONSTANT 0.5f
 
 static float light_contribution(__constant float* restrict scene,
                                 float3 point, float3 normal, float3 toLight,
@@ -75,7 +75,17 @@ __kernel void ray_caster(__constant float* restrict scene,
             break;
 
         fallbackDistance = distance + evalResult.w;
-        distance = distance + evalResult.w * OVER_RELAXATION_CONSTANT;
+
+        // Control over-relaxation by the distance field direction.
+        // This gives about 20% speedup over `overRelaxation = 0`.
+        // Setting `overRelaxation` to any constant > 0 actually makes it slower on
+        // on complex models.
+        // Surprisingly this linear model works better than actually approximating
+        // the surface with a plane and using distance to the plane to drive
+        // the step length
+        float overRelaxation = OVER_RELAXATION_CONSTANT * \
+                               min(1.0f, 1.0f + dot(direction, evalResult.xyz));
+        distance = distance + evalResult.w * (1 + overRelaxation);
 
         if (distance > maxDistance)
             break;
