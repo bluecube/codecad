@@ -1,3 +1,8 @@
+// Enhanced Sphere Tracing by Keinert et al. is a gold mine!
+
+// Some constants that don't depend on the geometry
+#define OVER_RELAXATION_CONSTANT 1.2
+
 static float light_contribution(__constant float* restrict scene,
                                 float3 point, float3 normal, float3 toLight,
                                 float epsilon, uint maxSteps, float maxDistance)
@@ -48,18 +53,29 @@ __kernel void ray_caster(__constant float* restrict scene,
                                  as_float3(up) * filmy);
 
     float distance = minDistance;
+    float fallbackDistance = minDistance;
     float4 evalResult;
     bool hit;
     uint stepCount = 0;
     for (stepCount = 0; stepCount < maxSteps; ++stepCount)
     {
         evalResult = evaluate(scene, origin.xyz + distance * direction);
+
+        if (distance - fallbackDistance > evalResult.w)
+        {
+            // over relaxation was too optimistic, we need to throw away this
+            // result and go back to fallback.
+            distance = fallbackDistance;
+            continue;
+        }
+
         hit = evalResult.w < epsilon;
 
         if (hit)
             break;
 
-        distance += evalResult.w;
+        fallbackDistance = distance + evalResult.w;
+        distance = distance + evalResult.w * OVER_RELAXATION_CONSTANT;
 
         if (distance > maxDistance)
             break;
