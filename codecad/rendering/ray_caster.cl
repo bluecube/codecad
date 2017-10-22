@@ -2,10 +2,13 @@
 
 // Some constants that don't depend on the geometry
 #define OVER_RELAXATION_CONSTANT 0.5f
+#define PRIMARY_RAY_MAX_STEPS 1000
+#define LIGHT_RAY_MAX_STEPS 100
+#define LIGHT_MIN_INFLUENCE (1.0f/512.0f)
 
 static float light_contribution(__constant float* restrict scene,
                                 float3 point, float3 normal, float3 toLight,
-                                float epsilon, uint maxSteps, float maxDistance)
+                                float minDistance, float maxDistance)
 {
     float surfaceToLightDotProduct = dot(normal, toLight);
 
@@ -13,13 +16,13 @@ static float light_contribution(__constant float* restrict scene,
         return 0;
 
     float lightVisibility = 1;
-    float distance = epsilon;
-    for (uint i = 0; i < maxSteps; ++i)
+    float distance = minDistance;
+    for (uint i = 0; i < LIGHT_RAY_MAX_STEPS; ++i)
     {
         float evalResult = evaluate(scene, point + distance * toLight).w;
         lightVisibility = min(lightVisibility, evalResult / distance);
 
-        if (evalResult < epsilon)
+        if (lightVisibility < LIGHT_MIN_INFLUENCE)
             break;
 
         distance += evalResult;
@@ -35,7 +38,7 @@ __kernel void ray_caster(__constant float* restrict scene,
                          float4 origin, float4 forward, float4 up, float4 right,
                          float4 surfaceColor, float4 backgroundColor,
                          float4 light, float ambient,
-                         float epsilon, uint maxSteps, float minDistance, float maxDistance,
+                         float pixelTolerance, float minDistance, float maxDistance,
                          uint renderOptions,
                          __global uchar* restrict output)
 {
@@ -57,7 +60,7 @@ __kernel void ray_caster(__constant float* restrict scene,
     float4 evalResult;
     bool hit;
     uint stepCount = 0;
-    for (stepCount = 0; stepCount < maxSteps; ++stepCount)
+    for (stepCount = 0; stepCount < PRIMARY_RAY_MAX_STEPS; ++stepCount)
     {
         evalResult = evaluate(scene, origin.xyz + distance * direction);
 
@@ -69,7 +72,7 @@ __kernel void ray_caster(__constant float* restrict scene,
             continue;
         }
 
-        hit = evalResult.w < epsilon;
+        hit = evalResult.w < pixelTolerance * distance;
 
         if (hit)
         {
@@ -111,13 +114,11 @@ __kernel void ray_caster(__constant float* restrict scene,
     }
     else if (hit)
     {
-        float lightness = ambient;
+        float3 point = origin.xyz + direction * distance;
         float3 normal = evalResult.xyz;
 
-        float3 point = origin.xyz + direction * distance;
-
-        lightness += light_contribution(scene, point, normal, -light.xyz,
-                                        epsilon, maxSteps, maxDistance);
+        float lightness = ambient;
+        lightness += light_contribution(scene, point, normal, -light.xyz, 1e-3, maxDistance);
 
         color = lightness * surfaceColor;
     }
