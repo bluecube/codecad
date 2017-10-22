@@ -6,9 +6,24 @@
 #define LIGHT_RAY_MAX_STEPS 100
 #define LIGHT_MIN_INFLUENCE (1.0f/512.0f)
 
+static float overRelaxationStepLength(float3 direction, float4 evalResult)
+{
+    // Control over-relaxation by the distance field direction.
+    // This gives about 20% speedup over `overRelaxation = 0`.
+    // Setting `overRelaxation` to any constant > 0 actually makes it slower on
+    // on complex models.
+    // Surprisingly this linear model works better than actually approximating
+    // the surface with a plane and using distance to the plane to drive
+    // the step length
+    float overRelaxation = OVER_RELAXATION_CONSTANT * \
+                           min(1.0f, 1.0f + dot(direction, evalResult.xyz));
+    return evalResult.w * (1 + overRelaxation);
+}
+
 static float light_contribution(__constant float* restrict scene,
                                 float3 point, float3 normal, float3 toLight,
-                                float minDistance, float maxDistance)
+                                float minDistance, float maxDistance,
+                                uint renderOptions)
 {
     float surfaceToLightDotProduct = dot(normal, toLight);
 
@@ -16,22 +31,29 @@ static float light_contribution(__constant float* restrict scene,
         return 0;
 
     float lightVisibility = 1;
+
     float distance = minDistance;
-    for (uint i = 0; i < LIGHT_RAY_MAX_STEPS; ++i)
+    float fallbackDistance = minDistance;
+    uint stepCount;
+    for (stepCount = 0; stepCount < LIGHT_RAY_MAX_STEPS; ++stepCount)
     {
-        float evalResult = evaluate(scene, point + distance * toLight).w;
-        lightVisibility = min(lightVisibility, evalResult / distance);
+        float4 evalResult = evaluate(scene, point + distance * toLight);
+        lightVisibility = min(lightVisibility, evalResult.w / distance);
 
         if (lightVisibility < LIGHT_MIN_INFLUENCE)
             break;
 
-        distance += evalResult;
+        fallbackDistance = distance + evalResult.w;
+        distance = distance + overRelaxationStepLength(toLight, evalResult);
 
         if (distance > maxDistance)
             break;
     }
 
-    return lightVisibility * surfaceToLightDotProduct;
+    if (renderOptions & RENDER_OPTIONS_FALSE_COLOR)
+        return stepCount;
+    else
+        return lightVisibility * surfaceToLightDotProduct;
 }
 
 __kernel void ray_caster(__constant float* restrict scene,
@@ -84,17 +106,7 @@ __kernel void ray_caster(__constant float* restrict scene,
         }
 
         fallbackDistance = distance + evalResult.w;
-
-        // Control over-relaxation by the distance field direction.
-        // This gives about 20% speedup over `overRelaxation = 0`.
-        // Setting `overRelaxation` to any constant > 0 actually makes it slower on
-        // on complex models.
-        // Surprisingly this linear model works better than actually approximating
-        // the surface with a plane and using distance to the plane to drive
-        // the step length
-        float overRelaxation = OVER_RELAXATION_CONSTANT * \
-                               min(1.0f, 1.0f + dot(direction, evalResult.xyz));
-        distance = distance + evalResult.w * (1 + overRelaxation);
+        distance = distance + overRelaxationStepLength(direction, evalResult);
 
         if (distance > maxDistance)
             break;
@@ -104,13 +116,19 @@ __kernel void ray_caster(__constant float* restrict scene,
 
     if (renderOptions & RENDER_OPTIONS_FALSE_COLOR)
     {
+        float3 point = origin.xyz + direction * distance;
+        float3 normal = evalResult.xyz;
+
         float residual;
         if (hit)
-            residual = fabs(evaluate(scene, origin.xyz + direction * distance).w);
+            residual = fabs(evaluate(scene, point).w);
         else
             residual = 0;
 
-        color = (float4)(stepCount, 1000 * residual, 0, 0);
+        float steps = stepCount;
+        steps += light_contribution(scene, point, normal,
+                                    -light.xyz, 1e-3, maxDistance, renderOptions);
+        color = (float4)(steps, 1000 * residual, 0, 0);
     }
     else if (hit)
     {
@@ -118,8 +136,8 @@ __kernel void ray_caster(__constant float* restrict scene,
         float3 normal = evalResult.xyz;
 
         float lightness = ambient;
-        lightness += light_contribution(scene, point, normal, -light.xyz, 1e-3, maxDistance);
-
+        lightness += light_contribution(scene, point, normal,
+                                        -light.xyz, 1e-3, maxDistance, renderOptions);
         color = lightness * surfaceColor;
     }
     else
