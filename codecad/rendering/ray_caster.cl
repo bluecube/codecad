@@ -72,7 +72,13 @@ __kernel void ray_caster(__constant float* restrict scene,
         hit = evalResult.w < epsilon;
 
         if (hit)
+        {
+            // Approximate the object by a plane and move all the way to it
+            // (but never backwards).
+            distance += evalResult.w * clamp(1.0f / dot(evalResult.xyz, -direction),
+                                             0.0f, 2.0f);
             break;
+        }
 
         fallbackDistance = distance + evalResult.w;
 
@@ -95,14 +101,20 @@ __kernel void ray_caster(__constant float* restrict scene,
 
     if (renderOptions & RENDER_OPTIONS_FALSE_COLOR)
     {
-        color = (float4)(stepCount, 0, 0, 0);
+        float residual;
+        if (hit)
+            residual = fabs(evaluate(scene, origin.xyz + direction * distance).w);
+        else
+            residual = 0;
+
+        color = (float4)(stepCount, 1000 * residual, 0, 0);
     }
     else if (hit)
     {
         float lightness = ambient;
         float3 normal = evalResult.xyz;
 
-        float3 point = origin.xyz + direction * (distance - 2 * epsilon);// + normal * hitResult.w;
+        float3 point = origin.xyz + direction * distance;
 
         lightness += light_contribution(scene, point, normal, -light.xyz,
                                         epsilon, maxSteps, maxDistance);
