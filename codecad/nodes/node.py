@@ -59,7 +59,7 @@ class Node:
         # Values calculated during scheduling:
         self.refcount = None  # How many times is this node referenced by other node
         self.register = None  # Register allocated for output of this node
-        self.store_node = None # Node that stores this node's output value, for visualisation
+        self.store_node = None  # Node that stores this node's output value, for visualisation
 
     def disconnect(self):
         """ Disconnect this node from all its dependencies """

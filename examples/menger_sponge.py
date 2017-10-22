@@ -3,6 +3,7 @@
 import codecad
 from codecad.shapes import *
 
+
 def sponge(iteration):
     if iteration < 0:
         raise ValueError("Iteration must be positive or zero")
@@ -14,8 +15,8 @@ def sponge(iteration):
 
     bar = box(1/3, 1/3, float("inf"))
     cross = bar + \
-            bar.rotated_x(90) + \
-            bar.rotated_y(90)
+        bar.rotated_x(90) + \
+        bar.rotated_y(90)
 
     scales = ((1/3)**i for i in range(iteration))
 

@@ -1,6 +1,7 @@
 from .. import opencl_manager
 from . import node
 
+
 def generate_eval_source_code(node_class, register_count):
     opencl_manager.instance.max_register_count = register_count
 
@@ -49,7 +50,7 @@ float4 evaluate(__constant float* program, float3 point)
 
 
 def _format_function(before, args):
-    return before + "(" + ", ".join(args) + ");";
+    return before + "(" + ", ".join(args) + ");"
 
 
 def _generate_op_decl(c_file, name, params, arity, code):
@@ -70,7 +71,6 @@ def _generate_op_decl(c_file, name, params, arity, code):
         args.extend('float4 input{}'.format(i + 1) for i in range(arity))
 
     c_file.append(_format_function('float4 {}_op'.format(name), args))
-
 
 
 def _generate_op_handler(c_file, name, params, arity, code):

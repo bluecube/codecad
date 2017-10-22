@@ -5,7 +5,7 @@ import copy
 
 from .node import Node
 
-_last_value = 9999 # Marker for values in schedule passed in lastValue register
+_last_value = 9999  # Marker for values in schedule passed in lastValue register
 
 
 class _SchedulerState:
@@ -88,7 +88,7 @@ def _contiguous_schedule_recursive(node, need_store, ordering_selector, state):
 
             dep_need_store = dep.refcount > 1 or \
                              i != 0 or \
-                             dep_order[-1] != 0 # Only last computed dependency can be passed directly
+                             dep_order[-1] != 0  # Only last computed dependency can be passed directly
 
             yield from _contiguous_schedule_recursive(dep, dep_need_store,
                                                       ordering_selector, state)
@@ -107,8 +107,8 @@ def _contiguous_schedule_recursive(node, need_store, ordering_selector, state):
         node.register = _last_value
 
     need_load = len(node.dependencies) > 0 and \
-                node.dependencies[0].name == "_store" and \
-                state.last_node is not node.dependencies[0].dependencies[0]
+        node.dependencies[0].name == "_store" and \
+        state.last_node is not node.dependencies[0].dependencies[0]
 
     if need_load:
         load_node = Node("_load", (), (node.dependencies[0],))
@@ -136,6 +136,7 @@ def _contiguous_schedule_recursive(node, need_store, ordering_selector, state):
         yield store_node
     else:
         node.store_node = node
+
 
 def _contiguous_schedule(node, ordering_selector):
     state = _SchedulerState()
