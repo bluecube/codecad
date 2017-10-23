@@ -68,7 +68,15 @@ def render(obj,
 
     pyopencl.enqueue_copy(opencl_manager.instance.queue, output, output_buffer, wait_for=[ev])
 
-    print("Render took", (ev.profile.end - ev.profile.start) / 1e9)
+    # print("Render took", (ev.profile.end - ev.profile.start) / 1e9)
+
+    if options & RenderOptions.false_color:
+        for i, name in enumerate(["Steps taken", "Residual * 1000"]):
+            channel = output[:, :, i]
+            print("{}: min: {}, max: {}, mean: {}".format(name,
+                                                          channel.min(),
+                                                          channel.max(),
+                                                          channel.mean()))
 
     return output
 
