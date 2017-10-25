@@ -22,7 +22,7 @@ static float overRelaxationStepLength(float3 direction, float4 evalResult)
 
 static float light_contribution(__constant float* restrict scene,
                                 float3 point, float3 normal, float3 toLight,
-                                float minDistance, float maxDistance,
+                                float maxDistance, float lastDistance,
                                 uint renderOptions)
 {
     float surfaceToLightDotProduct = dot(normal, toLight);
@@ -32,8 +32,8 @@ static float light_contribution(__constant float* restrict scene,
 
     float lightVisibility = 1;
 
-    float distance = minDistance;
-    float fallbackDistance = minDistance;
+    float distance = max(1e-5f, 2 * fabs(lastDistance));
+    float fallbackDistance = distance;
     uint stepCount;
     for (stepCount = 0; stepCount < LIGHT_RAY_MAX_STEPS; ++stepCount)
     {
@@ -144,8 +144,9 @@ __kernel void ray_caster(__constant float* restrict scene,
             residual = 0;
 
         float steps = stepCount;
-        steps += light_contribution(scene, point, normal,
-                                    -light.xyz, 1e-3, maxDistance, renderOptions);
+        steps += light_contribution(scene, point, normal, -light.xyz,
+                                    maxDistance, evalResult.w,
+                                    renderOptions);
         color = (float4)(steps, 1000 * residual, 0, 0);
     }
     else if (hit)
@@ -154,8 +155,9 @@ __kernel void ray_caster(__constant float* restrict scene,
         float3 normal = evalResult.xyz;
 
         float lightness = ambient;
-        lightness += light_contribution(scene, point, normal,
-                                        -light.xyz, 1e-3, maxDistance, renderOptions);
+        lightness += light_contribution(scene, point, normal, -light.xyz,
+                                        maxDistance, evalResult.w,
+                                        renderOptions);
         color = lightness * surfaceColor;
     }
     else
