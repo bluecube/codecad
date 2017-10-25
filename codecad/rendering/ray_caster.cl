@@ -38,10 +38,28 @@ static float light_contribution(__constant float* restrict scene,
     for (stepCount = 0; stepCount < LIGHT_RAY_MAX_STEPS; ++stepCount)
     {
         float4 evalResult = evaluate(scene, point + distance * toLight);
+
         lightVisibility = min(lightVisibility, evalResult.w / distance);
 
         if (lightVisibility < LIGHT_MIN_INFLUENCE)
             break;
+
+        if (distance - fallbackDistance > evalResult.w)
+        {
+            // over relaxation was too optimistic, we need to throw away this
+            // result and go back to fallback.
+
+            // This check comes _after_ lightVisibility calculation, because we
+            // are approximating minimum of `evalResult.w / distance` over the
+            // whole path, so adding an extra option to decrease it might only
+            // improve quality of the approximation.
+            // Also calculating it eagerly gives an extra option to abort the ray
+            // early and that saves about 0.07 evaluation per pixel (on arm.py example).
+
+            distance = fallbackDistance;
+            continue;
+        }
+
 
         fallbackDistance = distance + evalResult.w;
         distance = distance + overRelaxationStepLength(toLight, evalResult);
