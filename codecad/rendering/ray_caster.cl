@@ -4,7 +4,7 @@
 #define OVER_RELAXATION_CONSTANT 0.5f
 #define PRIMARY_RAY_MAX_STEPS 1000
 #define LIGHT_RAY_MAX_STEPS 100
-#define LIGHT_MIN_INFLUENCE (1.0f/512.0f)
+#define LIGHT_MIN_INFLUENCE (1.0f/128.0f)
 
 static float overRelaxationStepLength(float3 direction, float4 evalResult)
 {
