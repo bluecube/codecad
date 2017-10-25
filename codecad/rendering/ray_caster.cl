@@ -26,6 +26,7 @@ static float light_contribution(__constant float* restrict scene,
                                 uint renderOptions)
 {
     float surfaceToLightDotProduct = dot(normal, toLight);
+    float threshold = LIGHT_MIN_INFLUENCE / surfaceToLightDotProduct;
 
     if (surfaceToLightDotProduct <= 0)
         return 0;
@@ -41,7 +42,7 @@ static float light_contribution(__constant float* restrict scene,
 
         lightVisibility = min(lightVisibility, evalResult.w / distance);
 
-        if (lightVisibility < LIGHT_MIN_INFLUENCE)
+        if (lightVisibility < threshold)
             break;
 
         if (distance - fallbackDistance > evalResult.w)
