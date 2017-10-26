@@ -4,6 +4,7 @@
 #define OVER_RELAXATION_CONSTANT 0.5f
 #define PRIMARY_RAY_MAX_STEPS 1000
 #define LIGHT_RAY_MAX_STEPS 100
+#define AMBIENT_OCCLUSION_STEPS 4
 #define LIGHT_MIN_INFLUENCE (1.0f/128.0f)
 
 static float overRelaxationStepLength(float3 direction, float4 evalResult)
@@ -22,7 +23,7 @@ static float overRelaxationStepLength(float3 direction, float4 evalResult)
 
 static float light_contribution(__constant float* restrict scene,
                                 float3 point, float3 normal, float3 toLight,
-                                float maxDistance, float lastDistance,
+                                float minDistance, float maxDistance,
                                 uint renderOptions)
 {
     float surfaceToLightDotProduct = dot(normal, toLight);
@@ -33,7 +34,7 @@ static float light_contribution(__constant float* restrict scene,
 
     float lightVisibility = 1;
 
-    float distance = max(1e-5f, 2 * fabs(lastDistance));
+    float distance = minDistance;
     float fallbackDistance = distance;
     uint stepCount;
     for (stepCount = 0; stepCount < LIGHT_RAY_MAX_STEPS; ++stepCount)
@@ -73,6 +74,24 @@ static float light_contribution(__constant float* restrict scene,
         return stepCount;
     else
         return lightVisibility * surfaceToLightDotProduct;
+}
+
+float ambient_occlusion(__constant float* restrict scene,
+                        float3 point, float3 normal, float distanceStep)
+{
+    float3 bentNormal = normal;
+    float occlusion = 0.0;
+    float scale = 1.0;
+    float distance = distanceStep;
+    for (uint i = 0; i < AMBIENT_OCCLUSION_STEPS; ++i)
+    {
+        float4 evalResult = evaluate(scene, point + distance * normal);
+        occlusion += scale * (distance - evalResult.w);
+        scale /= 2;
+        bentNormal += (float3)(0, 0, 0.25);
+        distance += distanceStep;
+    }
+    return clamp(1 - occlusion * 0.5 / (1 - scale), 0.0f, 1.0f);
 }
 
 __kernel void ray_caster(__constant float* restrict scene,
@@ -145,9 +164,11 @@ __kernel void ray_caster(__constant float* restrict scene,
             residual = 0;
 
         float steps = stepCount;
+        float localEpsilon = max(1e-4f, 2 * fabs(evalResult.w));
         steps += light_contribution(scene, point, normal, -light.xyz,
-                                    maxDistance, evalResult.w,
+                                    localEpsilon, maxDistance,
                                     renderOptions);
+        steps += AMBIENT_OCCLUSION_STEPS;
         color = (float4)(steps, 1000 * residual, 0, 0);
     }
     else if (hit)
@@ -155,9 +176,13 @@ __kernel void ray_caster(__constant float* restrict scene,
         float3 point = origin.xyz + direction * distance;
         float3 normal = evalResult.xyz;
 
-        float lightness = ambient;
+        float localEpsilon = max(1e-4f, 2 * fabs(evalResult.w));
+
+        // TODO: 0.5 here is model dependent and should be solved better
+        float ao = ambient_occlusion(scene, point, normal, 0.5);
+        float lightness = ambient * ao;
         lightness += light_contribution(scene, point, normal, -light.xyz,
-                                        maxDistance, evalResult.w,
+                                        localEpsilon, maxDistance,
                                         renderOptions);
         color = lightness * surfaceColor;
     }
