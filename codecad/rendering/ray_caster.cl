@@ -120,7 +120,8 @@ static float3 map_color(float ambient, float diffuse, float specular)
 
 __kernel void ray_caster(__constant float* restrict scene,
                          float4 origin, float4 forward, float4 up, float4 right,
-                         float pixelTolerance, float minDistance, float maxDistance,
+                         float pixelTolerance, float boxRadius,
+                         float minDistance, float maxDistance,
                          uint renderOptions,
                          __global uchar* restrict output)
 {
@@ -198,8 +199,7 @@ __kernel void ray_caster(__constant float* restrict scene,
         float3 point = origin.xyz + direction * distance;
         float3 normal = evalResult.xyz;
 
-        // TODO: 0.5 here is model dependent and should be solved better
-        float ambient = ambient_occlusion(scene, point, normal, 0.5);
+        float ambient = ambient_occlusion(scene, point, normal, boxRadius / 100);
         float2 light = light_contribution(scene, point, normal, -LIGHT_DIRECTION, -direction,
                                           localEpsilon, maxDistance,
                                           renderOptions);
