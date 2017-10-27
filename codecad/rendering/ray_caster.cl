@@ -115,7 +115,7 @@ static float3 map_color(float ambient, float diffuse, float specular)
 
     float3 color = 255 * ((float3)(X, chroma, 0) + m);
 
-    return color + specular * (float3)(512, 512, 512);
+    return color + specular * 128;
 }
 
 __kernel void ray_caster(__constant float* restrict scene,
