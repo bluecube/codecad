@@ -6,7 +6,6 @@ import numpy
 import flags
 
 from .. import util
-from . import render_params
 from .. import opencl_manager
 from .. import nodes
 
@@ -60,15 +59,13 @@ def render(obj,
     ev = opencl_manager.instance.k.ray_caster(size, None,
                                               program_buffer,
                                               origin.as_float4(), forward.as_float4(), up.as_float4(), right.as_float4(),
-                                              render_params.surface.as_float4(), render_params.background.as_float4(),
-                                              render_params.light.as_float4(), numpy.float32(render_params.ambient),
                                               numpy.float32(pixel_tolerance), numpy.float32(min_distance), numpy.float32(max_distance),
                                               numpy.uint32(options),
                                               output_buffer)
 
     pyopencl.enqueue_copy(opencl_manager.instance.queue, output, output_buffer, wait_for=[ev])
 
-    # print("Render took", (ev.profile.end - ev.profile.start) / 1e9)
+    print("Render took", (ev.profile.end - ev.profile.start) / 1e9)
 
     if options & RenderOptions.false_color:
         for i, name in enumerate(["Steps taken", "Residual * 1000"]):

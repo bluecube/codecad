@@ -3,12 +3,7 @@ import collections
 import os.path
 import numpy
 
-from . import render_params
 from . import mesh
-
-
-def _html_color(c):
-    return "#" + hex(c.x << 16 | c.y << 8 | c.z)[2:]
 
 
 def render_svg(obj, resolution, filename):
@@ -26,7 +21,7 @@ def render_svg(obj, resolution, filename):
         fp.write('stroke:#000;')
         fp.write('stroke-width:1px;')
         fp.write('vector-effect:non-scaling-stroke;')
-        fp.write('fill:{};'.format(_html_color(render_params.surface)))
+        fp.write('fill:#BBF23C{};')
         fp.write('}')
         fp.write('</style>')
 

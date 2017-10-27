@@ -7,6 +7,8 @@
 #define AMBIENT_OCCLUSION_STEPS 4
 #define LIGHT_MIN_INFLUENCE (1.0f/128.0f)
 
+#define LIGHT_DIRECTION normalize((float3)(1, 2, -1))
+
 static float overRelaxationStepLength(float3 direction, float4 evalResult)
 {
     // Control over-relaxation by the distance field direction.
@@ -21,16 +23,23 @@ static float overRelaxationStepLength(float3 direction, float4 evalResult)
     return evalResult.w * (1 + overRelaxation);
 }
 
-static float light_contribution(__constant float* restrict scene,
-                                float3 point, float3 normal, float3 toLight,
+static float2 light_contribution(__constant float* restrict scene,
+                                float3 point, float3 normal, float3 toLight, float3 toCamera,
                                 float minDistance, float maxDistance,
                                 uint renderOptions)
 {
-    float surfaceToLightDotProduct = dot(normal, toLight);
-    float threshold = LIGHT_MIN_INFLUENCE / surfaceToLightDotProduct;
+    float3 halfwayVector = normalize(toLight + toCamera);
 
-    if (surfaceToLightDotProduct <= 0)
+    float diffuseIntensity = max(0.0f, dot(normal, toLight));
+    float specularIntensity = max(0.0f, dot(normal, halfwayVector));
+    specularIntensity *= specularIntensity;
+    specularIntensity *= specularIntensity;
+    specularIntensity *= specularIntensity;
+
+    if (diffuseIntensity <= 0 && specularIntensity <= 0)
         return 0;
+
+    float threshold = LIGHT_MIN_INFLUENCE / max(diffuseIntensity, specularIntensity);
 
     float lightVisibility = 1;
 
@@ -71,13 +80,13 @@ static float light_contribution(__constant float* restrict scene,
     }
 
     if (renderOptions & RENDER_OPTIONS_FALSE_COLOR)
-        return stepCount;
+        return (float2)(stepCount, 0);
     else
-        return lightVisibility * surfaceToLightDotProduct;
+        return lightVisibility * (float2)(diffuseIntensity, specularIntensity);
 }
 
-float ambient_occlusion(__constant float* restrict scene,
-                        float3 point, float3 normal, float distanceStep)
+static float ambient_occlusion(__constant float* restrict scene,
+                               float3 point, float3 normal, float distanceStep)
 {
     float3 bentNormal = normal;
     float occlusion = 0.0;
@@ -94,10 +103,23 @@ float ambient_occlusion(__constant float* restrict scene,
     return clamp(1 - occlusion * 0.5 / (1 - scale), 0.0f, 1.0f);
 }
 
+static float3 map_color(float ambient, float diffuse, float specular)
+{
+    // hue is fixed to 78°
+    float saturation = 0.75 * smoothstep(0.0f, 0.25f, diffuse);
+    float value = 0.1 + 0.8 * mix(diffuse, ambient, 0.3f);
+
+    float chroma = value * saturation;
+    float X = chroma * 0.7; // Corresponds to hue of 78°
+    float m = value - chroma;
+
+    float3 color = 255 * ((float3)(X, chroma, 0) + m);
+
+    return color + specular * (float3)(512, 512, 512);
+}
+
 __kernel void ray_caster(__constant float* restrict scene,
                          float4 origin, float4 forward, float4 up, float4 right,
-                         float4 surfaceColor, float4 backgroundColor,
-                         float4 light, float ambient,
                          float pixelTolerance, float minDistance, float maxDistance,
                          uint renderOptions,
                          __global uchar* restrict output)
@@ -150,7 +172,8 @@ __kernel void ray_caster(__constant float* restrict scene,
             break;
     }
 
-    float4 color;
+    float3 color;
+    float localEpsilon = max(1e-4f, 2 * fabs(evalResult.w));
 
     if (renderOptions & RENDER_OPTIONS_FALSE_COLOR)
     {
@@ -164,30 +187,26 @@ __kernel void ray_caster(__constant float* restrict scene,
             residual = 0;
 
         float steps = stepCount;
-        float localEpsilon = max(1e-4f, 2 * fabs(evalResult.w));
-        steps += light_contribution(scene, point, normal, -light.xyz,
+        steps += light_contribution(scene, point, normal, -LIGHT_DIRECTION, -direction,
                                     localEpsilon, maxDistance,
-                                    renderOptions);
+                                    renderOptions).s0;
         steps += AMBIENT_OCCLUSION_STEPS;
-        color = (float4)(steps, 1000 * residual, 0, 0);
+        color = (float3)(steps, 1000 * residual, 0);
     }
     else if (hit)
     {
         float3 point = origin.xyz + direction * distance;
         float3 normal = evalResult.xyz;
 
-        float localEpsilon = max(1e-4f, 2 * fabs(evalResult.w));
-
         // TODO: 0.5 here is model dependent and should be solved better
-        float ao = ambient_occlusion(scene, point, normal, 0.5);
-        float lightness = ambient * ao;
-        lightness += light_contribution(scene, point, normal, -light.xyz,
-                                        localEpsilon, maxDistance,
-                                        renderOptions);
-        color = lightness * surfaceColor;
+        float ambient = ambient_occlusion(scene, point, normal, 0.5);
+        float2 light = light_contribution(scene, point, normal, -LIGHT_DIRECTION, -direction,
+                                          localEpsilon, maxDistance,
+                                          renderOptions);
+        color = map_color(ambient, light.x, light.y);
     }
     else
-        color = backgroundColor;
+        color = (float3)(230, 230, 241);
 
     output[index + 0] = clamp(color.x, 0.0f, 255.0f);
     output[index + 1] = clamp(color.y, 0.0f, 255.0f);
