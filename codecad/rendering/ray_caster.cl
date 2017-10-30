@@ -8,6 +8,7 @@
 #define LIGHT_MIN_INFLUENCE (1.0f/128.0f)
 
 #define LIGHT_DIRECTION normalize((float3)(1, 2, -1))
+#define SECONDARY_LIGHT_DIRECTION normalize((float3)(-1, 1, 0))
 
 static float overRelaxationStepLength(float3 direction, float4 evalResult)
 {
@@ -23,10 +24,7 @@ static float overRelaxationStepLength(float3 direction, float4 evalResult)
     return evalResult.w * (1 + overRelaxation);
 }
 
-static float2 light_contribution(__constant float* restrict scene,
-                                float3 point, float3 normal, float3 toLight, float3 toCamera,
-                                float minDistance, float maxDistance,
-                                uint renderOptions)
+static float2 light_contribution_no_trace(float3 point, float3 normal, float3 toLight, float3 toCamera)
 {
     float3 halfwayVector = normalize(toLight + toCamera);
 
@@ -36,10 +34,20 @@ static float2 light_contribution(__constant float* restrict scene,
     specularIntensity *= specularIntensity;
     specularIntensity *= specularIntensity;
 
-    if (diffuseIntensity <= 0 && specularIntensity <= 0)
+    return (float2)(diffuseIntensity, specularIntensity);
+}
+
+static float2 light_contribution(__constant float* restrict scene,
+                                float3 point, float3 normal, float3 toLight, float3 toCamera,
+                                float minDistance, float maxDistance,
+                                uint renderOptions)
+{
+    float2 resultBeforeTrace = light_contribution_no_trace(point, normal, toLight, toCamera);
+
+    if (resultBeforeTrace.x <= 0 && resultBeforeTrace.y <= 0)
         return 0;
 
-    float threshold = LIGHT_MIN_INFLUENCE / max(diffuseIntensity, specularIntensity);
+    float threshold = LIGHT_MIN_INFLUENCE / max(resultBeforeTrace.x, resultBeforeTrace.y);
 
     float lightVisibility = 1;
 
@@ -82,7 +90,7 @@ static float2 light_contribution(__constant float* restrict scene,
     if (renderOptions & RENDER_OPTIONS_FALSE_COLOR)
         return (float2)(stepCount, 0);
     else
-        return lightVisibility * (float2)(diffuseIntensity, specularIntensity);
+        return lightVisibility * resultBeforeTrace;
 }
 
 static float ambient_occlusion(__constant float* restrict scene,
@@ -203,9 +211,10 @@ __kernel void ray_caster(__constant float* restrict scene,
         float3 normal = evalResult.xyz;
 
         float ambient = ambient_occlusion(scene, point, normal, boxRadius / 100);
-        float2 light = light_contribution(scene, point, normal, -LIGHT_DIRECTION, -direction,
-                                          localEpsilon, maxDistance,
-                                          renderOptions);
+        float2 light = 0.8 * light_contribution(scene, point, normal, -LIGHT_DIRECTION, -direction,
+                                                localEpsilon, maxDistance,
+                                                renderOptions);
+        light += 0.2 * light_contribution_no_trace(point, normal, -SECONDARY_LIGHT_DIRECTION, -direction);
         color = map_color(ambient, light.x, light.y);
     }
     else
