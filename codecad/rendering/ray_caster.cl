@@ -129,7 +129,7 @@ static float3 map_color(float ambient, float diffuse, float specular)
 __kernel void ray_caster(__constant float* restrict scene,
                          float4 origin, float4 forward, float4 up, float4 right,
                          float pixelTolerance, float boxRadius,
-                         float minDistance, float maxDistance,
+                         float minDistance, float maxDistance, float floorZ,
                          uint renderOptions,
                          __global uchar* restrict output)
 {
@@ -220,17 +220,16 @@ __kernel void ray_caster(__constant float* restrict scene,
     else
         color = (float3)(230, 230, 241);
 
-    float floorDistance = -origin.z / direction.z;
+    float floorDistance = (floorZ - origin.z) / direction.z;
     if (floorDistance > 0 && floorDistance < distance)
     {
         float3 floorPoint = origin.xyz + direction * floorDistance;
         float floorDistance = evaluate(scene, floorPoint).w;
-        float shadow = clamp(5 * floorDistance / boxRadius, 0.0f, 1.0f);
+        float shadow = clamp(2 * floorDistance / boxRadius, 0.0f, 1.0f);
         shadow = 1 - shadow;
         shadow *= shadow;
-        shadow *= shadow;
         shadow = 1 - shadow;
-        color = mix((float3)(0, 0, 0), color, 0.5 + 0.5 * shadow);
+        color = mix((float3)(0, 0, 0), color, 0.4 + 0.6 * shadow);
     }
 
     output[index + 0] = clamp(color.x, 0.0f, 255.0f);

@@ -61,6 +61,7 @@ def render(obj,
                                               origin.as_float4(), forward.as_float4(), up.as_float4(), right.as_float4(),
                                               numpy.float32(pixel_tolerance), numpy.float32(box_radius),
                                               numpy.float32(min_distance), numpy.float32(max_distance),
+                                              numpy.float32(box.a.z - box.size().z / 20),
                                               numpy.uint32(options),
                                               output_buffer)
 
