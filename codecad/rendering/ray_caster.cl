@@ -208,6 +208,19 @@ __kernel void ray_caster(__constant float* restrict scene,
     else
         color = (float3)(230, 230, 241);
 
+    float floorDistance = -origin.z / direction.z;
+    if (floorDistance > 0 && floorDistance < distance)
+    {
+        float3 floorPoint = origin.xyz + direction * floorDistance;
+        float floorDistance = evaluate(scene, floorPoint).w;
+        float shadow = clamp(5 * floorDistance / boxRadius, 0.0f, 1.0f);
+        shadow = 1 - shadow;
+        shadow *= shadow;
+        shadow *= shadow;
+        shadow = 1 - shadow;
+        color = mix((float3)(0, 0, 0), color, 0.5 + 0.5 * shadow);
+    }
+
     output[index + 0] = clamp(color.x, 0.0f, 255.0f);
     output[index + 1] = clamp(color.y, 0.0f, 255.0f);
     output[index + 2] = clamp(color.z, 0.0f, 255.0f);
