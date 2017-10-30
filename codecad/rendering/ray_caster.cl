@@ -170,7 +170,10 @@ __kernel void ray_caster(__constant float* restrict scene,
         distance = distance + overRelaxationStepLength(direction, evalResult);
 
         if (distance > maxDistance)
+        {
+            distance = INFINITY;
             break;
+        }
     }
 
     float3 color;
