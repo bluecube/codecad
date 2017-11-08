@@ -165,4 +165,5 @@ def _shuffled(x):
 def randomized_scheduler(node, random_passes=100):
     return min((_contiguous_schedule(node, selector)
                 for selector in
-                [_identity, reversed] + [_shuffled] * random_passes))[1:]
+                [_identity, reversed] + [_shuffled] * random_passes),
+               key=lambda x: (x[0], x[1]))[1:]
