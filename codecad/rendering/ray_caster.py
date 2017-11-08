@@ -1,6 +1,5 @@
 import math
 
-import PIL
 import pyopencl
 import numpy
 import flags
@@ -29,8 +28,7 @@ def _zero_if_inf(x):
 
 def render(obj,
            origin, direction, up, focal_length,
-           size, epsilon,
-           options=RenderOptions.no_flags):
+           size, options=RenderOptions.no_flags):
 
     box = obj.bounding_box()
     obj.check_dimension(required=3)
@@ -103,18 +101,3 @@ def get_camera_params(box, size, view_angle):
     up = util.Vector(0, 0, 1)
 
     return (origin, direction, up, focal_length)
-
-
-def render_image(obj, size=(1024, 768), view_angle=None, resolution=None):
-    box = obj.bounding_box()
-    box_size = box.size()
-
-    if resolution is None:
-        epsilon = min(1, box_size.x, box_size.y, box_size.z) / 10000
-    else:
-        epsilon = resolution / 10
-
-    camera_params = get_camera_params(box, size, view_angle)
-
-    pixels = render(obj, size=size, epsilon=epsilon, *camera_params)
-    return PIL.Image.fromarray(pixels)

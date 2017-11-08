@@ -3,39 +3,26 @@ import PIL
 from . import ray_caster
 
 
-def render_PIL_image(obj, size=(1024, 768), view_angle=None, resolution=None):
-    box = obj.bounding_box()
-    box_size = box.size()
+def render_PIL_image(obj, size=(1024, 768), view_angle=None):
+    camera_params = ray_caster.get_camera_params(obj.bounding_box(), size, view_angle)
 
-    if resolution is None:
-        epsilon = min(1, box_size.x, box_size.y, box_size.z) / 10000
-    else:
-        epsilon = resolution / 10
-
-    camera_params = ray_caster.get_camera_params(box, size, view_angle)
-
-    pixels = ray_caster.render(obj, size=size, epsilon=epsilon, *camera_params)
+    pixels = ray_caster.render(obj, size=size, *camera_params)
     return PIL.Image.fromarray(pixels)
 
 
-def render_image(obj, filename, size=(1024, 768), view_angle=None, resolution=None):
-    render_PIL_image(obj, size, view_angle, resolution).save(filename)
+def render_image(obj, filename, resolution=None, size=(1024, 768), view_angle=None):
+    # resolution is unused
+    render_PIL_image(obj, size, view_angle).save(filename)
 
 
 def render_gif(obj, filename, size=(640, 480),
                view_angle=None,
                duration=5,
                fps=20,
-               loop=True,
-               resolution=None):
+               loop=True):
 
     with util.status_block("calculating bounding box"):
         box = obj.bounding_box().eval({animation.time: 0})
-
-    if resolution is None:
-        epsilon = min(box_size.x, box_size.y, box_size.z) / 10000
-    else:
-        epsilon = resolution / 10
 
     camera_params = ray_caster.get_camera_params(box, size, view_angle)
 
@@ -46,7 +33,7 @@ def render_gif(obj, filename, size=(640, 480),
     for i in range(count):
         time = (i * frame_duration) / 1000
         with util.status_block("rendering frame {}/{}".format(i + 1, count)):
-            pixels = ray_caster.render(obj, size=size, epsilon=epsilon, *camera_params)
+            pixels = ray_caster.render(obj, size=size, *camera_params)
             frame = PIL.Image.fromarray(pixels)
             frames.append(frame)
 
