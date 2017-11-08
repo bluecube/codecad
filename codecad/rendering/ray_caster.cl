@@ -137,7 +137,6 @@ __kernel void ray_caster(__constant float* restrict scene,
     size_t y = get_global_id(1);
     size_t w = get_global_size(0);
     size_t h = get_global_size(1);
-    size_t index = (x + y * w) * 3;
 
     float filmx = x - (w - 1) / 2.0f;
     float filmy = y - (h - 1) / 2.0f;
@@ -232,6 +231,7 @@ __kernel void ray_caster(__constant float* restrict scene,
         color = mix((float3)(0, 0, 0), color, 0.4 + 0.6 * shadow);
     }
 
+    size_t index = INDEX2_GG * 3;
     output[index + 0] = clamp(color.x, 0.0f, 255.0f);
     output[index + 1] = clamp(color.y, 0.0f, 255.0f);
     output[index + 2] = clamp(color.z, 0.0f, 255.0f);

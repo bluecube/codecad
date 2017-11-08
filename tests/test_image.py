@@ -9,18 +9,15 @@ import codecad.rendering.image
 
 import data
 import tools
+import itertools
+
+names_and_shapes = (pytest.param((k, v), id=k)
+                    for k, v
+                    in sorted(data.shapes_2d.items()) + sorted(data.shapes_3d.items()))
 
 
-def image_compare(tested_file_obj, baseline_file_obj):
-
-    assert distance
-
-    return True
-
-
-@pytest.mark.parametrize("name_and_shape",
-                         [pytest.param((k, v), id=k) for k, v in sorted(data.shapes_3d.items())])
-def test_raycaster_png(name_and_shape):
+@pytest.mark.parametrize("name_and_shape", names_and_shapes)
+def test_image_png(name_and_shape):
     shape_name, shape = name_and_shape
     with tools.FileBaselineCompare(os.path.join(os.path.dirname(__file__), "baseline"),
                                    "rendered_{}.png".format(shape_name)) as compare:

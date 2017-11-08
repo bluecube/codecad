@@ -1,12 +1,16 @@
 import PIL
 
 from . import ray_caster
+from . import bitmap
 
 
 def render_PIL_image(obj, size=(1024, 768), view_angle=None):
-    camera_params = ray_caster.get_camera_params(obj.bounding_box(), size, view_angle)
+    if obj.dimension() == 2:
+        pixels = bitmap.render(obj, size)
+    else:
+        camera_params = ray_caster.get_camera_params(obj.bounding_box(), size, view_angle)
+        pixels = ray_caster.render(obj, size=size, *camera_params)
 
-    pixels = ray_caster.render(obj, size=size, *camera_params)
     return PIL.Image.fromarray(pixels)
 
 
