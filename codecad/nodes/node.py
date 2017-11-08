@@ -25,6 +25,7 @@ class Node:
         # Common:
         ("initial_transformation_to", 7, 0),
         ("transformation_to", 7, 1), ("transformation_from", 4, 1),
+        ("mirror", 0, 1),
         ("offset", 1, 1), ("shell", 1, 1),
         # Misc:
         ("repetition", 3, 1), ("involute_gear", 2, 1),

@@ -130,6 +130,13 @@ class Shape2D(ShapeBase):
                                          util.Quaternion.from_degrees(util.Vector(0, 0, 1), 0, s),
                                          util.Vector(0, 0, 0))
 
+    def mirrored_x(self):
+        from . import simple2d
+        return simple2d.Mirror2D(self)
+
+    def mirrored_y(self):
+        return self.rotated(180).mirrored_x()
+
     def offset(self, d):
         """ Returns current shape offset by given distance (positive is outside) """
         from . import simple2d
@@ -238,6 +245,16 @@ class Shape3D(ShapeBase):
         return simple3d.Transformation(self,
                                        util.Quaternion.from_degrees(util.Vector(0, 0, 1), 0, s),
                                        util.Vector(0, 0, 0))
+
+    def mirrored_x(self):
+        from . import simple3d
+        return simple3d.Mirror(self)
+
+    def mirrored_y(self):
+        return self.rotated_z(180).mirrored_x()
+
+    def mirrored_z(self):
+        return self.rotated_y(180).mirrored_x()
 
     def offset(self, d):
         """ Returns current shape offset by given distance (positive increases size) """

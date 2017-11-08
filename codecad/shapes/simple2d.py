@@ -175,3 +175,7 @@ class Transformation2D(common.TransformationMixin, base.Shape2D):
             ret = util.BoundingBox.containing(self.transformation.transform_vector(v) for v in b.vertices())
             return util.BoundingBox(util.Vector(ret.a.x, ret.a.y, -inf),
                                     util.Vector(ret.b.x, ret.b.y, inf))
+
+
+class Mirror2D(common.MirrorMixin, base.Shape2D):
+    pass

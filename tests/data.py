@@ -8,6 +8,16 @@ nonconvex = polygon2d([(0, 0), (4, 6), (4, -2), (-4, -2), (-4, 6)])
 csg_thing = (cylinder(h=5, d=2, symmetrical=False).rotated((1, 2, 3), 15) &
              sphere(d=3)) + \
             box(2).translated(.5, 0, -.5)
+mirror_2d = rectangle(1, 4).translated_x(-0.5) + circle(r=1).translated_y(-1)
+mirror_2d = mirror_2d + \
+            mirror_2d.mirrored_x().translated_x(5) + \
+            mirror_2d.mirrored_y().translated_y(5)
+
+mirror_3d = box(1, 4, 4).translated_x(-0.5) + sphere(r=1).translated(0, -1, -1)
+mirror_3d = mirror_3d + \
+            mirror_3d.mirrored_x().translated_x(5) + \
+            mirror_3d.mirrored_y().translated_y(5) + \
+            mirror_3d.mirrored_z().translated_z(5)
 
 shapes_2d = {"rectangle": rectangle(2, 4),
              "circle": circle(4),
@@ -17,6 +27,7 @@ shapes_2d = {"rectangle": rectangle(2, 4),
              "nonconvex_shell1": nonconvex.shell(1),
              "nonconvex_shell2": nonconvex.shell(2.5),  # Has two holes
              "gear": gears.InvoluteGear(20, 0.5),
+             "mirror_2d": mirror_2d,
              }
 shapes_2d.update(("polygon2d_" + k, polygon2d(v)) for k, v in test_simple2d.valid_polygon_cases.items())
 params_2d = [pytest.param(v, id=k) for k, v in sorted(shapes_2d.items())]
@@ -29,5 +40,6 @@ shapes_3d = {"sphere": sphere(4),
              "torus": circle(d=4).translated_x(3).revolved(),
              "empty_intersection": sphere().translated_x(-2) & sphere().translated_x(2),
              "nested_transformations": (box().translated_z(-2) + sphere().translated_x(2)).rotated_y(45).rotated_x(45),
+             "mirror_3d": mirror_3d,
              }
 params_3d = [pytest.param(v, id=k) for k, v in sorted(shapes_3d.items())]

@@ -116,6 +116,10 @@ float4 transformation_from_op(float qx, float qy, float qz, float qw,
     return ret;
 }
 
+float4 mirror_op(float4 input) {
+    return (float4)(-input.x, input.y, input.z, input.w);
+}
+
 float4 offset_op(float distance, float4 input) {
     return (float4)(input.x, input.y, input.z, input.w - distance);
 }

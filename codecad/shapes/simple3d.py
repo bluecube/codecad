@@ -67,6 +67,10 @@ class Transformation(common.TransformationMixin, base.Shape3D):
             return util.BoundingBox.containing(self.transformation.transform_vector(v) for v in b.vertices())
 
 
+class Mirror(common.MirrorMixin, base.Shape3D):
+    pass
+
+
 class Extrusion(base.Shape3D):
     def __init__(self, s, height):
         self.check_dimension(s, required=2)
