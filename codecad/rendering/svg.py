@@ -3,11 +3,11 @@ import collections
 import os.path
 import numpy
 
-from . import mesh
+from . import polygon2d
 
 
 def render_svg(obj, resolution, filename):
-    polygons = mesh.polygon(obj, resolution)
+    polygons = polygon2d.polygon(obj, resolution)
 
     with open(filename, "w") as fp:
         box = obj.bounding_box()
