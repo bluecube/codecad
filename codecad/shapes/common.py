@@ -113,7 +113,11 @@ class OffsetMixin:
         self.distance = distance
 
     def bounding_box(self):
-        return self.s.bounding_box().expanded_additive(self.distance)
+        box = self.s.bounding_box().expanded_additive(self.distance)
+        if self.dimension() == 2:
+            return box.flattened()
+        else:
+            return box
 
     def get_node(self, point, cache):
         return cache.make_node("offset",
@@ -128,7 +132,11 @@ class ShellMixin:
         self.wall_thickness = wall_thickness
 
     def bounding_box(self):
-        return self.s.bounding_box().expanded_additive(self.wall_thickness / 2)
+        box = self.s.bounding_box().expanded_additive(self.wall_thickness / 2)
+        if self.dimension() == 2:
+            return box.flattened()
+        else:
+            return box
 
     def get_node(self, point, cache):
         return cache.make_node("shell",

@@ -42,8 +42,8 @@ class Circle(base.Shape2D):
 class HalfPlane(base.Shape2D):
     """ Half space y > 0. """
     def bounding_box(self):
-        return util.BoundingBox(util.Vector(-float("inf"), 0, -float("inf")),
-                                util.Vector.splat(float("inf")))
+        return util.BoundingBox(util.Vector(-float("inf"), 0),
+                                util.Vector(float("inf"), float("inf")))
 
     def get_node(self, point, cache):
         return cache.make_node("half_space", [], [point])
@@ -168,13 +168,12 @@ class Transformation2D(common.TransformationMixin, base.Shape2D):
 
         if any(math.isinf(x) for x in b.a) or any(math.isinf(x) for x in b.b):
             # Special case for rotating infinite objects.
-            inf = util.Vector(float("inf"), float("inf"), float("inf"))
+            inf = util.Vector(float("inf"), float("inf"))
             return util.BoundingBox(-inf, inf)
         else:
-            inf = float("inf")
             ret = util.BoundingBox.containing(self.transformation.transform_vector(v) for v in b.vertices())
-            return util.BoundingBox(util.Vector(ret.a.x, ret.a.y, -inf),
-                                    util.Vector(ret.b.x, ret.b.y, inf))
+            return util.BoundingBox(util.Vector(ret.a.x, ret.a.y),
+                                    util.Vector(ret.b.x, ret.b.y))
 
 
 class Mirror2D(common.MirrorMixin, base.Shape2D):

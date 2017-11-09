@@ -16,3 +16,9 @@ def test_valid_polygon_construction(points):
 def test_invalid_polygon_construction(points):
     with pytest.raises(ValueError):
         codecad.shapes.simple2d.Polygon2D(points)
+
+@pytest.mark.parametrize("shape", data.params_2d)
+def test_z_bounding_box_size(shape):
+    box = shape.bounding_box()
+    assert box.a.z == 0
+    assert box.b.z == 0
