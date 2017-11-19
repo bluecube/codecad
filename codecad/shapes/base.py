@@ -61,6 +61,13 @@ class ShapeBase(metaclass=abc.ABCMeta):
     def shell(self, wall_thickness):
         """ Returns a shell of the current shape (centered around the original surface) """
 
+    def _repr_png_(self):
+        """ Return representation of this shape as a png image for Jupyter notebooks. """
+        from ..rendering import image
+        with io.BytesIO() as fp:
+            image.render_PIL_image(self, size=(800, 400)).save(fp, format="png")
+            return fp.getvalue()
+
 
 class Shape2D(ShapeBase):
     """ A base 2D shape. """
@@ -265,9 +272,3 @@ class Shape3D(ShapeBase):
         """ Returns a shell of the current shape (centered around the original surface) """
         from . import simple3d
         return simple3d.Shell(self, wall_thickness)
-
-    def _repr_png_(self):
-        from ..rendering import image
-        with io.BytesIO() as fp:
-            image.render_PIL_image(self, size=(800, 400)).save(fp, format="png")
-            return fp.getvalue()
