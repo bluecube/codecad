@@ -29,7 +29,7 @@ def mass_properties(shape, resolution, grid_size=None):
         # TODO: Determine default grid size
         grid_size = 64
 
-    assert shape.dimension() == 3, "3D objects are not supported yet"
+    assert shape.dimension() == 3, "2D objects are not supported yet"
     assert resolution > 0, "Non-positive resolution makes no sense"
     assert grid_size > 1, "Grid needs to be at least 2x2x2"
     assert grid_size**5 <= 2**32, "Centroid coordinate sums would overflow"
