@@ -10,10 +10,18 @@ import pytest
 
 
 class FileBaselineCompare:
-    """ Decorator factory. The wrapped function must return a filename, which is
-    then checked against a baseline file using `comparison_func(tested_file_obj, baseline_file_obj)`.
-    If file is not present in baseline directory this function skips the test
-    and stores the current result as a baseline."""
+    """ Context manager for comparing a file output of a tested function with
+    known baseline. Handles lookup of baseline file. If a baseline file is not found,
+    skips the test and moves the generated tested file into its place.
+
+    Usage:
+
+        with FileBaselineCompare(directory_with_baseline_files, filename_of_this_instance) as compare:
+            generate_tested_data(compare.tested_filename)
+            tested_fp, baseline_fp = compare.tested_file_ready()
+            check_that_data_are_close_enough(tested_fp, baseline_fp)
+
+    """
 
     def __init__(self, baseline_directory, filename):
         self.filename = filename
