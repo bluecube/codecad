@@ -61,6 +61,10 @@ class ShapeBase(metaclass=abc.ABCMeta):
     def shell(self, wall_thickness):
         """ Returns a shell of the current shape (centered around the original surface) """
 
+    @abc.abstractmethod
+    def transformed(self, transformation):
+        """ Returns the current shape transformed by a given transformation. """
+
     def _repr_png_(self):
         """ Return representation of this shape as a png image for Jupyter notebooks. """
         from ..rendering import image
@@ -69,7 +73,67 @@ class ShapeBase(metaclass=abc.ABCMeta):
             return fp.getvalue()
 
 
-class Shape2D(ShapeBase):
+class SolidBodyTransformable2D(metaclass=abc.ABCMeta):
+    @abc.abstractmethod
+    def translated(self, x, y=None):
+        """ Returns current shape translated by a given offset """
+
+    def translated_x(self, distance):
+        """ Translate along X axis by given angle.
+        Alias for translated() remaining two arguments set to zero. """
+        return self.translated(distance, 0)
+
+    def translated_y(self, distance):
+        """ Translate along Y axis by given angle.
+        Alias for translated() remaining two arguments set to zero. """
+        return self.translated(0, distance)
+
+    @abc.abstractmethod
+    def rotated(self, angle):
+        """ Returns current shape rotated by given angle. """
+
+
+class SolidBodyTransformable3D(metaclass=abc.ABCMeta):
+    @abc.abstractmethod
+    def translated(self, x, y=None, z=None):
+        """ Returns current shape translated by a given offset """
+
+    def translated_x(self, distance):
+        """ Translate along X axis by given angle.
+        Alias for translated() remaining two arguments set to zero. """
+        return self.translated(distance, 0, 0)
+
+    def translated_y(self, distance):
+        """ Translate along Y axis by given angle.
+        Alias for translated() remaining two arguments set to zero. """
+        return self.translated(0, distance, 0)
+
+    def translated_z(self, distance):
+        """ Translate along Z axis by given angle.
+        Alias for translated() remaining two arguments set to zero. """
+        return self.translated(0, 0, distance)
+
+    @abc.abstractmethod
+    def rotated(self, vector, angle):
+        """ Returns current shape rotated by an angle around the vector. """
+
+    def rotated_x(self, angle):
+        """ Rotate around X axis by given angle.
+        Alias for rotated() with first argument set to (1, 0, 0). """
+        return self.rotated((1, 0, 0), angle)
+
+    def rotated_y(self, angle):
+        """ Rotate around Y axis by given angle.
+        Alias for rotated() with first argument set to (0, 1, 0). """
+        return self.rotated((0, 1, 0), angle)
+
+    def rotated_z(self, angle):
+        """ Rotate around Z axis by given angle.
+        Alias for rotated() with first argument set to (0, 0, 1). """
+        return self.rotated((0, 0, 1), angle)
+
+
+class Shape2D(SolidBodyTransformable2D, ShapeBase):
     """ A base 2D shape. """
 
     @staticmethod
@@ -103,16 +167,6 @@ class Shape2D(ShapeBase):
         return simple2d.Transformation2D(self,
                                          util.Quaternion.from_degrees(util.Vector(0, 0, 1), 0),
                                          o)
-
-    def translated_x(self, distance):
-        """ Translate along X axis by given angle.
-        Alias for translated() remaining two arguments set to zero. """
-        return self.translated(distance, 0)
-
-    def translated_y(self, distance):
-        """ Translate along Y axis by given angle.
-        Alias for translated() remaining two arguments set to zero. """
-        return self.translated(0, distance)
 
     def rotated(self, angle, n=1):
         """ Returns current shape rotated by given angle.
@@ -167,8 +221,20 @@ class Shape2D(ShapeBase):
         from . import simple3d
         return simple3d.Revolution(self)
 
+    def transformed(self, transformation):
+        from . import simple2d
+        if not transformation.is_2d():
+            raise ValueError("Transformation needs to be 2D only")
+        return simple2d.Transformation2D(self,
+                                         transformation.quaternion,
+                                         transformation.offset)
 
-class Shape3D(ShapeBase):
+    def make_part(self, name, attributes=[]):
+        from .. import assembly
+        return assembly.Part2D(self, name, attributes, util.Transformation.zero())
+
+
+class Shape3D(SolidBodyTransformable3D, ShapeBase):
     """ A base 3D shape. """
 
     @staticmethod
@@ -200,21 +266,6 @@ class Shape3D(ShapeBase):
                                        util.Quaternion.from_degrees(util.Vector(0, 0, 1), 0),
                                        o)
 
-    def translated_x(self, distance):
-        """ Translate along X axis by given angle.
-        Alias for translated() remaining two arguments set to zero. """
-        return self.translated(distance, 0, 0)
-
-    def translated_y(self, distance):
-        """ Translate along Y axis by given angle.
-        Alias for translated() remaining two arguments set to zero. """
-        return self.translated(0, distance, 0)
-
-    def translated_z(self, distance):
-        """ Translate along Z axis by given angle.
-        Alias for translated() remaining two arguments set to zero. """
-        return self.translated(0, 0, distance)
-
     def rotated(self, vector, angle, n=1):
         """ Returns current shape rotated by an angle around the vector.
 
@@ -230,21 +281,6 @@ class Shape3D(ShapeBase):
         else:
             angle_step = angle / n
             return simple3d.Union([self.rotated(vector, (1 + i) * angle_step) for i in range(n)])
-
-    def rotated_x(self, angle):
-        """ Rotate around X axis by given angle.
-        Alias for rotated() with first argument set to (1, 0, 0). """
-        return self.rotated((1, 0, 0), angle)
-
-    def rotated_y(self, angle):
-        """ Rotate around Y axis by given angle.
-        Alias for rotated() with first argument set to (0, 1, 0). """
-        return self.rotated((0, 1, 0), angle)
-
-    def rotated_z(self, angle):
-        """ Rotate around Z axis by given angle.
-        Alias for rotated() with first argument set to (0, 0, 1). """
-        return self.rotated((0, 0, 1), angle)
 
     def scaled(self, s):
         """ Returns current shape scaled by given ratio """
@@ -272,3 +308,19 @@ class Shape3D(ShapeBase):
         """ Returns a shell of the current shape (centered around the original surface) """
         from . import simple3d
         return simple3d.Shell(self, wall_thickness)
+
+    def _repr_png_(self):
+        from ..rendering import image
+        with io.BytesIO() as fp:
+            image.render_PIL_image(self, size=(800, 400)).save(fp, format="png")
+            return fp.getvalue()
+
+    def transformed(self, transformation):
+        from . import simple3d
+        return simple3d.Transformation(self,
+                                       transformation.quaternion,
+                                       transformation.offset)
+
+    def make_part(self, name, attributes=[]):
+        from .. import assembly
+        return assembly.Part3D(self, name, attributes, util.Transformation.zero())

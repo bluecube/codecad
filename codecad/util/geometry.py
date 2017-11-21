@@ -237,3 +237,8 @@ class Transformation(collections.namedtuple("Transformation", "quaternion offset
         ret[1, 3] = self.offset.y
         ret[2, 3] = self.offset.z
         return ret
+
+    def is_2d(self):
+        return self.quaternion.v.x == 0 and \
+               self.quaternion.v.y == 0 and \
+               self.offset.z == 0
