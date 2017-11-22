@@ -2,6 +2,7 @@
 import pytest
 from codecad.shapes import *
 
+
 def bin_counter(n):
     """ Generate a 2D shape that contains binary representation of n """
     assert n > 0
@@ -16,8 +17,9 @@ def bin_counter(n):
         bit_length += 1
 
     base = rectangle(1, bit_length).translated_y(bit_length / 2) + \
-           circle(d=0.2).translated_x(0.5)
+        circle(d=0.2).translated_x(0.5)
     return base - union(blips)
+
 
 valid_polygon2d = {"triangle": [(0, 0), (3, 0), (3, 2)],
                    "non_convex": [(0, 0), (3, 0), (3, 1), (2, 2), (3, 3), (0, 3)],

@@ -4,6 +4,7 @@ from .shapes import base
 from . import shapes
 from . import util
 
+
 class Part(collections.namedtuple("Part", "name data attributes")):
     __slots__ = ()
 
