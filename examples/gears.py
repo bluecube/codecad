@@ -30,4 +30,4 @@ assembly.add(gear1.make_part("gear1").rotated_x(180).translated(-gear_distance /
 assembly.add(gear2.make_part("gear2").rotated_x(180).translated(gear_distance / 2, 0, 21))
 
 if __name__ == "__main__":
-    codecad.commandline_render(assembly.shape(), 0.1)
+    codecad.commandline_render(assembly, 0.1)
