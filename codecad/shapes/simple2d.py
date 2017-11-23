@@ -51,6 +51,39 @@ class HalfPlane(base.Shape2D):
         return cache.make_node("half_space", [], [point])
 
 
+class RegularPolygon2D(base.Shape2D):
+    def __init__(self, n, d=1, r=None, side_length=None):
+        self.n = n
+        if side_length is not None:
+            self.side_length = side_length
+            self.d = side_length / math.sin(math.pi / n)
+            self.r = self.d / 2
+        else:
+            if r is not None:
+                self.r = r
+                self.d = 2 * r
+            else:
+                self.d = d
+                self.r = d / 2
+            print(self.d)
+            self.side_length = self.d * math.sin(math.pi / n)
+
+    @staticmethod
+    def calculate_n(r, side_length):
+        """ Calculate n that would make given radius and side_length work.
+
+        Note that this will typically not be an integer and must be appropriately
+        rounded before use. """
+        return math.pi / math.asin(side_length / (2 * r))
+
+    def bounding_box(self):
+        v = util.Vector(self.r, self.r)
+        return util.BoundingBox(-v, v)
+
+    def get_node(self, point, cache):
+        return cache.make_node("regular_polygon2d", [math.pi / self.n, self.r], [point])
+
+
 class Polygon2D(base.Shape2D):
     """ 2D simple (without self intersections) polygon.
     First and last point are implicitly connected. """

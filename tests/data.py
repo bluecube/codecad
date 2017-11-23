@@ -66,6 +66,7 @@ shapes_2d = {"rectangle": rectangle(2, 4),
              "gear": gears.InvoluteGear(20, 0.5),
              "mirror_2d": mirror_2d,
              "bin_counter_11": bin_counter(11),
+             "regular_polygon3": regular_polygon2d(3),
              }
 shapes_2d.update(("polygon2d_" + k, polygon2d(v)) for k, v in valid_polygon2d.items())
 params_2d = [pytest.param(v, id=k) for k, v in sorted(shapes_2d.items())]
@@ -79,5 +80,6 @@ shapes_3d = {"sphere": sphere(4),
              "empty_intersection": sphere().translated_x(-2) & sphere().translated_x(2),
              "nested_transformations": (box().translated_z(-2) + sphere().translated_x(2)).rotated_y(45).rotated_x(45),
              "mirror_3d": mirror_3d,
+             "octagonal_torus": regular_polygon2d(8).translated_x(2).revolved(),
              }
 params_3d = [pytest.param(v, id=k) for k, v in sorted(shapes_3d.items())]

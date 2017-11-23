@@ -19,7 +19,8 @@ class Node:
 
         # Unary nodes:
         # 2D shapes:
-        ("rectangle", 2, 1), ("circle", 1, 1), ("polygon2d", _Variable, 1),
+        ("rectangle", 2, 1), ("circle", 1, 1),
+        ("regular_polygon2d", 2, 1), ("polygon2d", _Variable, 1),
         # 3D shapes:
         ("sphere", 1, 1), ("half_space", 0, 1), ("revolution_to", 0, 1),
         # Common:

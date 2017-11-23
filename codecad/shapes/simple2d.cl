@@ -13,6 +13,38 @@ float4 circle_op(float r, float4 coords) {
     return (float4)(flat.x, flat.y, 0, absFlat - r);
 }
 
+float4 regular_polygon2d_op(float piOverN, float r, float4 coords) {
+    float len = hypot(coords.x, coords.y);
+    float alpha = atan2(coords.y, coords.x) + 2 * M_PI + piOverN;
+    int side = floor(alpha / (2 * piOverN));
+    float modAlpha = alpha - side * 2 * piOverN - piOverN;
+
+    float c;
+    float s = sincos(modAlpha, &c);
+
+    if (fabs(s * len) > r * sin(piOverN))
+    {
+        float c2;
+        float2 nearest;
+        nearest.y = sincos(side * 2 * piOverN + sign(s) * piOverN, &c2);
+        nearest.x = c2;
+        nearest *= r;
+        float2 direction = coords.xy - nearest;
+        float dist = length(direction);
+        if (dist > 0) // TODO: Check this
+        {
+            direction /= dist;
+            return (float4)(direction.x, direction.y, 0, dist);
+        }
+    }
+
+    float c2;
+    float2 direction;
+    direction.y = sincos(side * 2 * piOverN, &c2);
+    direction.x = c2;
+    return (float4)(direction.x, direction.y, 0, len * c - r * cos(piOverN));
+}
+
 float4 polygon2d_op(__constant float* restrict* restrict params, float4 coords) {
     uint pointCount = **params;
 
