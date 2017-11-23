@@ -17,7 +17,7 @@ computing power.
   - [ ] Polygonal model
     - [ ] STL import
   - [ ] Svg export
-  - [ ] Assemblies (operations on combined shapes, simple BOM)
+  - [X] Assemblies (operations on combined shapes, simple BOM)
 
 ## Ideas
 - Primitives
