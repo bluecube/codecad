@@ -27,9 +27,11 @@ class Rectangle(base.Shape2D):
 class Circle(base.Shape2D):
     def __init__(self, d=1, r=None):
         if r is None:
+            self.d = d
             self.r = d / 2
         else:
             self.r = r
+            self.d = 2 * r
 
     def bounding_box(self):
         v = util.Vector(self.r, self.r)

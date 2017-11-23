@@ -20,9 +20,7 @@ def rectangle(x=1, y=None):
 
 
 def circle(d=1, r=None):
-    if r is not None:
-        d = 2 * r
-    return _s2.Circle(d)
+    return _s2.Circle(d, r)
 
 
 def half_plane():
