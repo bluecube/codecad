@@ -225,10 +225,16 @@ class Shape2D(SolidBodyTransformable2D, ShapeBase):
         else:
             return s.translated(0, 0, height/2)
 
-    def revolved(self):
-        """ Returns current shape taken as 2D in xy plane and revolved around y axis """
+    def revolved(self, r=0, twist=0):
+        """ Returns current shape taken as 2D in xy plane and revolved around y axis.
+        Only geometry with X > 0 is used.
+
+        Twist is angle in degrees that the object is rotated while revolving.
+
+        If `r` is > 0 then revolve acts like `.translated_x(r)` was applied before
+        rotation with `r` = 0. This also moves the center of rotation of `r`"""
         from . import simple3d
-        return simple3d.Revolution(self)
+        return simple3d.Revolution(self, r, twist)
 
     def transformed(self, transformation):
         from . import simple2d

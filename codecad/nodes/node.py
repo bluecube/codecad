@@ -22,7 +22,7 @@ class Node:
         ("rectangle", 2, 1), ("circle", 1, 1),
         ("regular_polygon2d", 2, 1), ("polygon2d", _Variable, 1),
         # 3D shapes:
-        ("sphere", 1, 1), ("half_space", 0, 1), ("revolution_to", 0, 1),
+        ("sphere", 1, 1), ("half_space", 0, 1), ("revolution_to", 2, 1),
         # Common:
         ("initial_transformation_to", 7, 0),
         ("transformation_to", 7, 1), ("transformation_from", 4, 1),
@@ -33,7 +33,7 @@ class Node:
 
         # Binary nodes:
         # 3D shapes:
-        ("extrusion", 1, 2), ("revolution_from", 0, 2),
+        ("extrusion", 1, 2), ("revolution_from", 1, 2),
         # Common:
         ("union", 1, 2), ("intersection", 1, 2), ("subtraction", 1, 2),
         ]))

@@ -20,22 +20,32 @@ float4 extrusion_op(float halfH, float4 input, float4 coords) {
                                       input);
 }
 
-float4 revolution_to_op(float4 coord) {
-    float x = hypot(coord.x, coord.z);
-    return (float4)(x, coord.y, 0, 0);
+float4 revolution_to_op(float r, float twist, float4 coord) {
+    float alpha = fmod(atan2pi(coord.z, coord.x) + 2, 2) / 2; // Angle along the main diameter, 0 to 1
+    float beta = alpha * twist; // Local twist angle
+    float dist = hypot(coord.x, coord.z);
+
+    float2 flatCoord = rotated2d((float2)(dist - r, coord.y), -beta);
+    return (float4)(flatCoord.x, flatCoord.y, 0, 0);
 }
 
-float4 revolution_from_op(float4 flat, float4 coords) {
-    float length = hypot(coords.x, coords.z);
-    float multiplier;
-    if (length == 0) {
-        coords.x = 1;
-        multiplier = flat.x;
-    }
-    else
-        multiplier = flat.x / length;
+float4 revolution_from_op(float twist, float4 flatResult, float4 coord) {
+    float alpha = fmod(atan2pi(coord.z, coord.x) + 2, 2) / 2; // Angle along the main diameter, 0 to 1
+    float beta = alpha * twist; // Local twist angle
+    float dist = hypot(coord.x, coord.z);
 
-    return (float4)(coords.x * multiplier, flat.y, coords.z * multiplier, flat.w);
+    float2 unrotatedFlatResult = rotated2d(flatResult.xy, beta);
+
+    float multiplier = unrotatedFlatResult.x;
+    if (dist == 0)
+        coord.x = 1;
+    else
+        multiplier /= dist;
+
+    return (float4)(coord.x * multiplier,
+                    unrotatedFlatResult.y,
+                    coord.z * multiplier,
+                    flatResult.w);
 }
 
 // vim: filetype=c

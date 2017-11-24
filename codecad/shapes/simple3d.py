@@ -91,21 +91,23 @@ class Extrusion(base.Shape3D):
 
 
 class Revolution(base.Shape3D):
-    def __init__(self, s):
+    def __init__(self, s, r, twist):
         self.check_dimension(s, required=2)
         self.s = s
+        self.r = r
+        self.twist = math.radians(twist)
 
     def bounding_box(self):
         box = self.s.bounding_box()
-        radius = max(-box.a.x, box.b.x)
+        radius = max(-box.a.x, box.b.x) + self.r
         return util.BoundingBox(util.Vector(-radius, box.a.y, -radius),
                                 util.Vector(radius, box.b.y, radius))
 
     def get_node(self, point, cache):
         new_point = cache.make_node("revolution_to",
-                                    [],
+                                    [self.r, self.twist],
                                     [point])
         sub_node = self.s.get_node(new_point, cache)
         return cache.make_node("revolution_from",
-                               [],
+                               [self.twist],
                                [sub_node, point])
