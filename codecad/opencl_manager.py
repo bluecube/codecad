@@ -121,3 +121,6 @@ instance = OpenCLManager()
 
 # Collecting files that don't belong anywhere else
 instance.common_header.append_file("indexing.h")
+instance.common_header.append_file("util.h")
+
+instance.add_compile_unit().append_file("util.cl")
