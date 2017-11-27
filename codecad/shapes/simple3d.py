@@ -99,7 +99,11 @@ class Revolution(base.Shape3D):
 
     def bounding_box(self):
         box = self.s.bounding_box()
-        radius = max(-box.a.x, box.b.x) + self.r
+        if self.twist == 0:
+            radius = box.b.x
+        else:
+            radius = max(abs(pt) for pt in box.points2d())
+        radius += self.r
         return util.BoundingBox(util.Vector(-radius, box.a.y, -radius),
                                 util.Vector(radius, box.b.y, radius))
 

@@ -144,6 +144,19 @@ class BoundingBox(collections.namedtuple("BoundingBox", "a b")):
     def flattened(self):
         return BoundingBox(self.a.flattened(), self.b.flattened())
 
+    def points(self):
+        """ Yield coordinates of all corner points of this box """
+        for x in [self.a.x, self.b.x]:
+            for y in [self.a.y, self.b.y]:
+                for z in [self.a.z, self.b.z]:
+                    yield Vector(x, y, z)
+
+    def points2d(self):
+        """ Yield coordinates of all corner points of the box, when taken as 2D. """
+        for x in [self.a.x, self.b.x]:
+            for y in [self.a.y, self.b.y]:
+                yield Vector(x, y)
+
 
 class Quaternion(collections.namedtuple("Quaternion", "v w")):
     # http://www.cs.ucr.edu/~vbz/resources/quatut.pdf
