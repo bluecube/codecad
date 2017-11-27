@@ -3,6 +3,7 @@
 import codecad
 from codecad.shapes import *
 
+import cube_thingie
 
 def sponge(iteration):
     if iteration < 0:
@@ -26,7 +27,7 @@ def sponge(iteration):
     return outline - negative
 
 
-o = sponge(6) & half_space().rotated_x(-80).rotated_z(45)
+o = cube_thingie.cube_with_base(sponge(4))
 
 if __name__ == "__main__":
-    codecad.commandline_render(o.rotated_z(-30).rotated_x(30), 0.001)
+    codecad.commandline_render(o, 0.05)
