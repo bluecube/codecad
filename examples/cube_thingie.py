@@ -11,6 +11,7 @@ base_knob_height = 5
 base_chamfer = 1.2
 cube_side = 50
 
+
 def tetrahedron_cube():
     d = 0.08
     bars = []
@@ -35,29 +36,31 @@ def tetrahedron_cube():
 
     return not_rotated
 
+
 def cube_with_base(unit_cube):
     """ Take a unit cube and turn it into a statue thingie, standing on one corner """
     m = cube_side / 2
 
     prepared_cube = unit_cube.scaled(cube_side) \
-                    .rotated_x(45) \
-                    .rotated_y(math.degrees(math.acos(math.sqrt(2/3)))) \
-                    .translated(0, 0, cube_side * math.sqrt(3) / 2 + base_height)
+        .rotated_x(45) \
+        .rotated_y(math.degrees(math.acos(math.sqrt(2/3)))) \
+        .translated(0, 0, cube_side * math.sqrt(3) / 2 + base_height)
 
     bottom = rectangle(base_diameter, base_height).translated(0, base_height / 2)
     chamfer = rectangle(2 * base_chamfer, 2 * base_chamfer).rotated(-45).translated(base_diameter / 2, base_height)
     bottom = bottom - chamfer
 
     knob = rectangle(base_knob_diameter, base_height + base_knob_height) \
-           .translated_y((base_height + base_knob_height) / 2)
+        .translated_y((base_height + base_knob_height) / 2)
     knob_chamfer = rectangle(2 * base_chamfer, 2 * base_chamfer) \
-                   .rotated(-45) \
-                   .translated(base_knob_diameter / 2, base_height + base_knob_height)
+        .rotated(-45) \
+        .translated(base_knob_diameter / 2, base_height + base_knob_height)
     knob = knob - knob_chamfer
 
     base = (bottom + knob).revolved().rotated_x(90)
 
     return prepared_cube + base
+
 
 o = cube_with_base(tetrahedron_cube())
 

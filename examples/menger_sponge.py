@@ -5,6 +5,7 @@ from codecad.shapes import *
 
 import cube_thingie
 
+
 def sponge(iteration):
     if iteration < 0:
         raise ValueError("Iteration must be positive or zero")
