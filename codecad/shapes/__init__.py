@@ -5,6 +5,8 @@ Names from this module may optionally be imported as "from codecad.shapes import
 Basic shape interface is composed of functions defined here and of methods on
 Shape objects (transformations, shell, extrude ...)"""
 
+import math
+
 from . import simple2d as _s2
 from . import simple3d as _s3
 
@@ -33,6 +35,18 @@ def regular_polygon2d(n, d=1, r=None, side_length=None):
 
 def polygon2d(points):
     return _s2.Polygon2D(points)
+
+
+def capsule(x1, y1, x2, y2, width):
+    """ Use zero thickness rectangle trick to model a 2D capsule between two points """
+    dx = x2 - x1
+    dy = y2 - y1
+    length = math.hypot(dx, dy)
+    angle = math.atan2(dy, dx)
+    return rectangle(length, 0) \
+        .offset(width / 2) \
+        .rotated(math.degrees(math.atan(dy / dx))) \
+        .translated((x1 + x2) / 2, (y1 + y2) / 2)
 
 
 def box(x=1, y=None, z=None):
