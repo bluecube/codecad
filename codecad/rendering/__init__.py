@@ -2,18 +2,37 @@ import sys
 import os
 import argparse
 import importlib
+import re
 
+import flags
 import PIL.Image
 
+from .. import assembly
 
-def commandline_render(shape, resolution, default_renderer=None, **kwargs):
+class AssemblyMode(flags.Flags):
+    """ Determining how assemblies are treated by the renderer """
+    disabled = () # Only allow rendering individual shapes, assemblies raise an exception
+    whole = () # Render the whole assembly at once using `.shape()`
+    parts = () # Render all assembly parts separaterly using its BoM.
+    raw = () # Pass the assembly as is
+
+def commandline_render(obj, resolution, default_renderer=None, **kwargs):
     """ Reads commandline arguments, chooses a renderer and passes the parameters to it. """
 
     parser = argparse.ArgumentParser(description='Render an object')
     parser.add_argument('--output', '-o',
-                        help='File name of the output.')
+                        help='File name of the output. '
+                             'If multiple files are saved, then this has to contain '
+                             'exactly one "{}" string which will be replaced by part name.')
     parser.add_argument('--renderer', '-r', choices=_renderers,
                         help='Renderer to use.')
+    parser.add_argument('--whole', '-w',
+                        action='store_const', const=AssemblyMode.whole, dest='assembly_mode',
+                        help='Render the assembly combined shape')
+    parser.add_argument('--parts', '-p',
+                        action='store_const', const=AssemblyMode.parts, dest='assembly_mode',
+                        help='Render all assembly parts from its BoM')
+
     args = parser.parse_args()
 
     if args.renderer is not None:
@@ -34,6 +53,26 @@ def commandline_render(shape, resolution, default_renderer=None, **kwargs):
         else:
             output = None
 
+    if args.assembly_mode is not None:
+        assembly_mode = args.assembly_mode
+    else:
+        assembly_mode = _renderers[renderer][2]
+
+    if isinstance(obj, assembly.Assembly) and assembly_mode == AssemblyMode.parts:
+        pattern =  _parse_name_format(output)
+        for item in obj.bom():
+            _render_one(renderer, item.shape, item.name.join(pattern), resolution, **kwargs)
+    else:
+        if isinstance(obj, codecad.Assembly):
+            if assembly_mode == AssemblyMode.disabled:
+                raise ValueError("Renderer {} does not allow assemblies".format(renderer))
+            elif assembly_mode == AssemblyMode.whole:
+                obj = obj.shape()
+
+        _render_one(renderer, shape, output, resolution, **kwargs)
+
+
+def _render_one(renderer, shape, output, resolution, **kwargs):
     if output is not None:
         print("Rendering with renderer {} to file {}".format(renderer, output))
     else:
@@ -42,7 +81,15 @@ def commandline_render(shape, resolution, default_renderer=None, **kwargs):
     _renderers[renderer][0](shape, filename=output, resolution=resolution, **kwargs)
 
 
-def _register(name, module_name, extensions, default_extension=None):
+def _parse_name_format(string):
+    split = re.split(r'(<!{){}|{}(!})', string)
+    split = re.split(r'{}', string)
+    if len(split) != 2:
+        raise ValueError('Filename must contain exactly one occurence of "{}"')
+    return split
+
+
+def _register(name, module_name, extensions, assembly_mode, default_extension=None):
     try:
         module = importlib.import_module("." + module_name, __name__)
     except ImportError as e:
@@ -56,7 +103,7 @@ def _register(name, module_name, extensions, default_extension=None):
         _extensions[extension] = name
 
     setattr(sys.modules[__name__], module_name, module)
-    _renderers[name] = (getattr(module, "render_" + name), default_extension)
+    _renderers[name] = (getattr(module, "render_" + name), default_extension, assembly_mode)
 
 
 _renderers = {}
@@ -64,11 +111,11 @@ _extensions = {}
 
 PIL.Image.init()
 
-_register("image", "image", PIL.Image.EXTENSION.keys(), ".png")
-_register("stl", "stl_renderer", [".stl"])
-_register("slice", "matplotlib_slice", [])
-_register("mesh", "matplotlib_mesh", [])
-_register("gif", "image", [".gif"])
-_register("svg", "svg", [".svg"])
-_register("nodes_graph", "graphviz", [".dot"])
-_register("bom", "bom", [".csv"])
+_register("image", "image", PIL.Image.EXTENSION.keys(), AssemblyMode.whole, ".png")
+_register("stl", "stl_renderer", [".stl"], AssemblyMode.parts)
+_register("slice", "matplotlib_slice", [], AssemblyMode.disabled)
+_register("mesh", "matplotlib_mesh", [], AssemblyMode.disabled)
+_register("gif", "image", [".gif"], AssemblyMode.whole)
+_register("svg", "svg", [".svg"], AssemblyMode.disabled)
+_register("nodes_graph", "graphviz", [".dot"], AssemblyMode.disabled)
+_register("bom", "bom", [".csv"], AssemblyMode.raw)

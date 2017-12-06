@@ -71,6 +71,9 @@ class BomItem:
         self.part = part
         self.count = 1
 
+    @property
+    def shape(self):
+        return self.part.data
 
 class _FrozenAssembly:
     def __init__(self, instances, dimension):

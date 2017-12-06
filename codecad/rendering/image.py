@@ -5,7 +5,6 @@ from . import bitmap
 
 
 def render_PIL_image(obj, size=(1024, 768), view_angle=None):
-    obj = obj.shape()  # We can render both shapes and assemblies
     if obj.dimension() == 2:
         pixels = bitmap.render(obj, size)
     else:
