@@ -31,4 +31,4 @@ def sponge(iteration):
 o = cube_thingie.cube_with_base(sponge(4))
 
 if __name__ == "__main__":
-    codecad.commandline_render(o, 0.05)
+    codecad.commandline_render(o, 0.2)
