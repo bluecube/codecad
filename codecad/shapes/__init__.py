@@ -45,7 +45,7 @@ def capsule(x1, y1, x2, y2, width):
     angle = math.atan2(dy, dx)
     return rectangle(length, 0) \
         .offset(width / 2) \
-        .rotated(math.degrees(math.atan(dy / dx))) \
+        .rotated(math.degrees(angle)) \
         .translated((x1 + x2) / 2, (y1 + y2) / 2)
 
 
