@@ -82,8 +82,7 @@ def _render_one(renderer, shape, output, resolution, **kwargs):
 
 
 def _parse_name_format(string):
-    split = re.split(r'(<!{){}|{}(!})', string)
-    split = re.split(r'{}', string)
+    split = re.split(r'(?<!{){}|{}(?!})', string)
     if len(split) != 2:
         raise ValueError('Filename must contain exactly one occurence of "{}"')
     return split
