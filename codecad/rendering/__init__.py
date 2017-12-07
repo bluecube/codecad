@@ -63,13 +63,15 @@ def commandline_render(obj, resolution, default_renderer=None, **kwargs):
         for item in obj.bom():
             _render_one(renderer, item.shape, item.name.join(pattern), resolution, **kwargs)
     else:
-        if isinstance(obj, codecad.Assembly):
+        if isinstance(obj, assembly.Assembly):
             if assembly_mode == AssemblyMode.disabled:
                 raise ValueError("Renderer {} does not allow assemblies".format(renderer))
             elif assembly_mode == AssemblyMode.whole:
                 obj = obj.shape()
+        elif isinstance(obj, assembly.Part) or isinstance(obj, assembly.PartTransform):
+            obj = obj.shape()
 
-        _render_one(renderer, shape, output, resolution, **kwargs)
+        _render_one(renderer, obj, output, resolution, **kwargs)
 
 
 def _render_one(renderer, shape, output, resolution, **kwargs):
