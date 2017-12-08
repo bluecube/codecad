@@ -5,6 +5,7 @@
 /*.egg-info/
 /htmlcov/
 /output.*
+/*.stl
 /*error.png
 __pycache__/
 *.swp
