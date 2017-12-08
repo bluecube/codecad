@@ -24,6 +24,7 @@ def test_z_bounding_box_size(shape):
     assert box.a.z == 0
     assert box.b.z == 0
 
+
 def test_regular_polygon2d_hexagon():
     hexagon = codecad.shapes.regular_polygon2d(6, r=1)
     assert hexagon.d == 2

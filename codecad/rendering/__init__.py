@@ -9,12 +9,14 @@ import PIL.Image
 
 from .. import assembly
 
+
 class AssemblyMode(flags.Flags):
     """ Determining how assemblies are treated by the renderer """
-    disabled = () # Only allow rendering individual shapes, assemblies raise an exception
-    whole = () # Render the whole assembly at once using `.shape()`
-    parts = () # Render all assembly parts separaterly using its BoM.
-    raw = () # Pass the assembly as is
+    disabled = ()  # Only allow rendering individual shapes, assemblies raise an exception
+    whole = ()  # Render the whole assembly at once using `.shape()`
+    parts = ()  # Render all assembly parts separaterly using its BoM.
+    raw = ()  # Pass the assembly as is
+
 
 def commandline_render(obj, resolution, default_renderer=None, **kwargs):
     """ Reads commandline arguments, chooses a renderer and passes the parameters to it. """
@@ -59,7 +61,7 @@ def commandline_render(obj, resolution, default_renderer=None, **kwargs):
         assembly_mode = _renderers[renderer][2]
 
     if isinstance(obj, assembly.Assembly) and assembly_mode == AssemblyMode.parts:
-        pattern =  _parse_name_format(output)
+        pattern = _parse_name_format(output)
         for item in obj.bom():
             _render_one(renderer, item.shape, item.name.join(pattern), resolution, **kwargs)
     else:

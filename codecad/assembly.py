@@ -75,6 +75,7 @@ class BomItem:
     def shape(self):
         return self.part.data
 
+
 class _FrozenAssembly:
     def __init__(self, instances, dimension):
         self._instances = instances
