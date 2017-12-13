@@ -8,16 +8,16 @@ import pyopencl
 
 from . import util
 
-_default_compiler_options = ["-Werror",
-                             "-cl-single-precision-constant",
-                             "-cl-denorms-are-zero",
-                             "-cl-no-signed-zeros",
-                             "-cl-fast-relaxed-math"]
+DEFAULT_COMPILER_OPTIONS = ["-Werror",
+                            "-cl-single-precision-constant",
+                            "-cl-denorms-are-zero",
+                            "-cl-no-signed-zeros",
+                            "-cl-fast-relaxed-math"]
 
 
 class CompileUnit:
-    def __init__(self, options=_default_compiler_options):
-        self.options = _default_compiler_options
+    def __init__(self, options=DEFAULT_COMPILER_OPTIONS):
+        self.options = options
         self.clear()
 
     def clear(self):
@@ -35,8 +35,9 @@ class CompileUnit:
         frame = inspect.stack()[1]
 
         abs_filename = os.path.join(os.path.dirname(frame[1]), filename)
+        rel_filename = os.path.relpath(abs_filename)
 
-        self.pieces.append('#line 1 "{}"'.format(abs_filename))  # TODO: Escape filename
+        self.pieces.append('#line 1 "{}"'.format(rel_filename))  # TODO: Escape filename
         with open(abs_filename, "r") as fp:
             self.pieces.append(fp.read())
 
@@ -103,7 +104,7 @@ class OpenCLManager:
             # Intel OpenCL generates non empty output and that causes warnings
             # from pyopencl. We just silence them.
             warnings.simplefilter("ignore")
-            return program.build(options=_default_compiler_options)
+            return program.build(options=DEFAULT_COMPILER_OPTIONS)
 
         # Working around bug in pyopencl.Program.compile in pyopencl 2017.1.1
         # compiled_units = [unit.compile(self.context, self.common_header.pieces)
@@ -119,8 +120,8 @@ class OpenCLManager:
 
 instance = OpenCLManager()
 
-# Collecting files that don't belong anywhere else
-instance.common_header.append_file("indexing.h")
+# Collecting files that don't belong anywhere else:
 instance.common_header.append_file("util.h")
+instance.common_header.append_file("indexing.h")
 
 instance.add_compile_unit().append_file("util.cl")
