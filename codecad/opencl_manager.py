@@ -13,6 +13,7 @@ DEFAULT_COMPILER_OPTIONS = ["-Werror",
                             "-cl-denorms-are-zero",
                             "-cl-no-signed-zeros",
                             "-cl-fast-relaxed-math"]
+ASSERT_BUFFER_SIZE = 1024
 
 
 class CompileUnit:
@@ -120,8 +121,15 @@ class OpenCLManager:
 
 instance = OpenCLManager()
 
+# Some global constants:
+instance.common_header.append("#define ASSERT_BUFFER_SIZE {}".format(ASSERT_BUFFER_SIZE))
+if __debug__:
+    instance.common_header.append("#define DEBUG 1")
+
 # Collecting files that don't belong anywhere else:
 instance.common_header.append_file("util.h")
+instance.common_header.append_file("assert.h")
 instance.common_header.append_file("indexing.h")
 
 instance.add_compile_unit().append_file("util.cl")
+instance.add_compile_unit().append_file("assert.cl")

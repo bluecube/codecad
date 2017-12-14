@@ -54,6 +54,8 @@ def render(obj,
                                     mf.WRITE_ONLY,
                                     output.nbytes)
 
+    assert_buffer = util.cl_util.AssertBuffer(opencl_manager.instance.queue)
+
     ev = opencl_manager.instance.k.ray_caster(size, None,
                                               program_buffer,
                                               origin.as_float4(), forward.as_float4(), up.as_float4(), right.as_float4(),
@@ -61,7 +63,10 @@ def render(obj,
                                               numpy.float32(min_distance), numpy.float32(max_distance),
                                               numpy.float32(box.a.z - box.size().z / 20),
                                               numpy.uint32(options),
-                                              output_buffer)
+                                              output_buffer,
+                                              assert_buffer.buffer)
+
+    assert_buffer.check(wait_for=[ev])
 
     pyopencl.enqueue_copy(opencl_manager.instance.queue, output, output_buffer, wait_for=[ev])
 

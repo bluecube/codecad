@@ -131,7 +131,8 @@ __kernel void ray_caster(__constant float* restrict scene,
                          float pixelTolerance, float boxRadius,
                          float minDistance, float maxDistance, float floorZ,
                          uint renderOptions,
-                         __global uchar* restrict output)
+                         __global uchar* restrict output,
+                         __global AssertBuffer* assertBuffer)
 {
     size_t x = get_global_id(0);
     size_t y = get_global_id(1);
