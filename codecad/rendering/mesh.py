@@ -4,7 +4,7 @@ import pyopencl
 
 from .. import util
 from .. import subdivision
-from .. import opencl_manager
+from ..cl_util import opencl_manager
 
 
 def triangular_mesh(obj, resolution, subdivision_grid_size=None, debug_subdivision_boxes=False):
@@ -17,7 +17,7 @@ def triangular_mesh(obj, resolution, subdivision_grid_size=None, debug_subdivisi
                                                                   grid_size=subdivision_grid_size)
 
     block = numpy.empty(max_box_size, dtype=numpy.float32)
-    block_buffer = pyopencl.Buffer(opencl_manager.instance.context, pyopencl.mem_flags.WRITE_ONLY, block.nbytes)
+    block_buffer = pyopencl.Buffer(opencl_manager.context, pyopencl.mem_flags.WRITE_ONLY, block.nbytes)
 
     for i, (box_size, box_corner, box_resolution, *_) in enumerate(boxes):
         if debug_subdivision_boxes:
@@ -34,11 +34,11 @@ def triangular_mesh(obj, resolution, subdivision_grid_size=None, debug_subdivisi
             continue
 
         # TODO: Staggered opencl / python processing the way subdivision does it.
-        ev = opencl_manager.instance.k.grid_eval_pymcubes(box_size, None,
-                                                          program_buffer,
-                                                          box_corner.as_float4(), numpy.float32(box_resolution),
-                                                          block_buffer)
-        pyopencl.enqueue_copy(opencl_manager.instance.queue, block, block_buffer, wait_for=[ev])
+        ev = opencl_manager.k.grid_eval_pymcubes(box_size, None,
+                                                 program_buffer,
+                                                 box_corner.as_float4(), numpy.float32(box_resolution),
+                                                 block_buffer)
+        pyopencl.enqueue_copy(opencl_manager.queue, block, block_buffer, wait_for=[ev])
 
         vertices, triangles = mcubes.marching_cubes(block, 0)
 

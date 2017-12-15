@@ -1,8 +1,11 @@
 import functools
 
 from .. import util
-from .. import opencl_manager
-opencl_manager.instance.add_compile_unit().append_file("common.cl")
+from .. import cl_util
+
+_c_file = cl_util.opencl_manager.add_compile_unit()
+_c_file.append_file("common.h")
+_c_file.append_file("common.cl")
 
 
 class UnionMixin:

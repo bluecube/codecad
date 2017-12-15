@@ -1,14 +1,14 @@
-from .. import opencl_manager
+from ..cl_util import opencl_manager
 from . import node
 
 
 def generate_eval_source_code(node_class, register_count):
-    opencl_manager.instance.max_register_count = register_count
+    opencl_manager.max_register_count = register_count
 
-    h = opencl_manager.instance.common_header
+    h = opencl_manager.common_header
     h.append('float4 evaluate(__constant float* program, float3 point);')
 
-    c = opencl_manager.instance.add_compile_unit()
+    c = opencl_manager.add_compile_unit()
     c.append('#define EVAL_REGISTER_COUNT {}'.format(register_count))
     for name, (params, arity, code) in node_class._node_types.items():
         _generate_op_decl(c, name, params, arity, code)

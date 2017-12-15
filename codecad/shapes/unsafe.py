@@ -5,9 +5,9 @@ import math
 
 from .. import util
 from . import base
-from .. import opencl_manager
+from ..cl_util import opencl_manager
 
-_c_file = opencl_manager.instance.add_compile_unit()
+_c_file = opencl_manager.add_compile_unit()
 _c_file.append_file("common.h")
 _c_file.append_file("unsafe.cl")
 

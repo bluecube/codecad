@@ -2,11 +2,11 @@ import numpy
 import pyopencl
 
 from .. import util
-from ..util import cl_util
-from .. import opencl_manager
+from .. import cl_util
+from ..cl_util import opencl_manager
 from .. import nodes
 
-opencl_manager.instance.add_compile_unit().append_file("bitmap.cl")
+opencl_manager.add_compile_unit().append_file("bitmap.cl")
 
 
 def render(obj, size):
@@ -22,13 +22,13 @@ def render(obj, size):
 
     shape = (size[1], size[0], 3)
     program_buffer = nodes.make_program_buffer(obj)
-    output = cl_util.Buffer(opencl_manager.instance.queue,
+    output = cl_util.Buffer(opencl_manager.queue,
                             numpy.uint8,
                             shape,
                             pyopencl.mem_flags.WRITE_ONLY)
 
-    ev = opencl_manager.instance.k.bitmap(size, None,
-                                          program_buffer,
-                                          origin.as_float4(), numpy.float32(step_size),
-                                          output.buffer)
+    ev = opencl_manager.k.bitmap(size, None,
+                                 program_buffer,
+                                 origin.as_float4(), numpy.float32(step_size),
+                                 output.buffer)
     return output.read(wait_for=[ev]).reshape(shape)

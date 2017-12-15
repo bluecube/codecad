@@ -3,12 +3,12 @@ import math
 import pyopencl
 import numpy
 
-from . import opencl_manager
 from . import util
 from . import nodes
-from .util import cl_util
+from . import cl_util
+from .cl_util import opencl_manager
 
-opencl_manager.instance.add_compile_unit().append_file("subdivision.cl")
+cl_util.opencl_manager.add_compile_unit().append_file("subdivision.cl")
 
 
 class _Helper:
@@ -49,12 +49,12 @@ class _Helper:
         # Enqueue write instead of fill to work around pyopencl bug #168
         fill_ev = self.counter.enqueue_write(numpy.zeros(1, self.counter.dtype))
 
-        return opencl_manager.instance.k.subdivision_step(grid_dimensions, None,
-                                                          self.program_buffer,
-                                                          shifted_corner.as_float4(), numpy.float32(box_step),
-                                                          numpy.float32(distance_threshold),
-                                                          self.counter.buffer, self.list.buffer,
-                                                          wait_for=[fill_ev])
+        return opencl_manager.k.subdivision_step(grid_dimensions, None,
+                                                 self.program_buffer,
+                                                 shifted_corner.as_float4(), numpy.float32(box_step),
+                                                 numpy.float32(distance_threshold),
+                                                 self.counter.buffer, self.list.buffer,
+                                                 wait_for=[fill_ev])
 
     def process_result(self, event):
         int_box_step = self.block_sizes[self.level][0]
@@ -174,10 +174,10 @@ def subdivision(shape, resolution, overlap_edge_samples=True, grid_size=None):
         return program_buffer, block_sizes[0][1], [(block_sizes[0][1], box.a, resolution, util.Vector(0, 0, 0), 1)]
 
     final_blocks = []
-    helper1 = _Helper(opencl_manager.instance.queue, grid_size, dimension,
+    helper1 = _Helper(opencl_manager.queue, grid_size, dimension,
                       program_buffer, block_sizes, box.a, resolution,
                       final_blocks)
-    helper2 = _Helper(opencl_manager.instance.queue, grid_size, dimension,
+    helper2 = _Helper(opencl_manager.queue, grid_size, dimension,
                       program_buffer, block_sizes, box.a, resolution,
                       final_blocks)
 

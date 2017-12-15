@@ -1,5 +1,4 @@
 from .. import nodes
-from .. import opencl_manager
 
 from ..nodes import program
 from ..nodes import scheduler

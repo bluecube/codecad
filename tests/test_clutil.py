@@ -4,7 +4,7 @@ import numpy
 
 import codecad
 
-codecad.opencl_manager.instance.add_compile_unit().append_file("test_clutil.cl")
+codecad.cl_util.opencl_manager.add_compile_unit().append_file("test_clutil.cl")
 
 
 def _tuple_from_xyz(xyz):
@@ -13,11 +13,11 @@ def _tuple_from_xyz(xyz):
 
 @pytest.mark.parametrize("size", [4, (4), (4, 4), (4, 4, 4)])
 def test_buffer_indexing(size):
-    b = codecad.util.cl_util.Buffer(codecad.opencl_manager.instance.queue,
-                                    pyopencl.cltypes.uint3,
-                                    size,
-                                    pyopencl.mem_flags.WRITE_ONLY)
-    ev = codecad.opencl_manager.instance.k.indexing_identity(b.size, None, b.buffer)
+    b = codecad.cl_util.Buffer(codecad.cl_util.opencl_manager.queue,
+                               pyopencl.cltypes.uint3,
+                               size,
+                               pyopencl.mem_flags.WRITE_ONLY)
+    ev = codecad.cl_util.opencl_manager.k.indexing_identity(b.size, None, b.buffer)
     b.read(wait_for=[ev])
 
     for coords in b.array:
@@ -30,10 +30,10 @@ def test_buffer_indexing(size):
                                                   (pyopencl.cltypes.uchar, 1),
                                                   (pyopencl.cltypes.double16, 128)])
 def test_buffer_alloc_size(size, nitems, item_type, item_size):
-    b = codecad.util.cl_util.Buffer(codecad.opencl_manager.instance.queue,
-                                    item_type,
-                                    size,
-                                    pyopencl.mem_flags.WRITE_ONLY)
+    b = codecad.cl_util.Buffer(codecad.cl_util.opencl_manager.queue,
+                               item_type,
+                               size,
+                               pyopencl.mem_flags.WRITE_ONLY)
 
     b.create_host_side_array()
 
@@ -43,60 +43,60 @@ def test_buffer_alloc_size(size, nitems, item_type, item_size):
 
 
 def test_buffer_read_write():
-    b = codecad.util.cl_util.Buffer(codecad.opencl_manager.instance.queue,
-                                    pyopencl.cltypes.ulong,
-                                    1,
-                                    pyopencl.mem_flags.READ_WRITE)
+    b = codecad.cl_util.Buffer(codecad.cl_util.opencl_manager.queue,
+                               pyopencl.cltypes.ulong,
+                               1,
+                               pyopencl.mem_flags.READ_WRITE)
 
     b.create_host_side_array()
     b[0] = 42
     ev = b.enqueue_write()
-    ev = codecad.opencl_manager.instance.k.one_item_double((1,), None,
-                                                           b.buffer,
-                                                           wait_for=[ev])
+    ev = codecad.cl_util.opencl_manager.k.one_item_double((1,), None,
+                                                          b.buffer,
+                                                          wait_for=[ev])
     b.read(wait_for=[ev])
 
     assert b[0] == 84
 
 
 def test_buffer_read_write():
-    b = codecad.util.cl_util.Buffer(codecad.opencl_manager.instance.queue,
-                                    pyopencl.cltypes.ulong,
-                                    1,
-                                    pyopencl.mem_flags.READ_WRITE)
+    b = codecad.cl_util.Buffer(codecad.cl_util.opencl_manager.queue,
+                               pyopencl.cltypes.ulong,
+                               1,
+                               pyopencl.mem_flags.READ_WRITE)
 
     b.create_host_side_array()
     b[0] = 42
     ev = b.enqueue_write()
-    ev = codecad.opencl_manager.instance.k.one_item_double((1,), None,
-                                                           b.buffer,
-                                                           wait_for=[ev])
+    ev = codecad.cl_util.opencl_manager.k.one_item_double((1,), None,
+                                                          b.buffer,
+                                                          wait_for=[ev])
     b.read(wait_for=[ev])
 
     assert b[0] == 84
 
 
 def test_buffer_read_write_map():
-    b = codecad.util.cl_util.Buffer(codecad.opencl_manager.instance.queue,
-                                    pyopencl.cltypes.ulong,
-                                    1,
-                                    pyopencl.mem_flags.READ_WRITE)
+    b = codecad.cl_util.Buffer(codecad.cl_util.opencl_manager.queue,
+                               pyopencl.cltypes.ulong,
+                               1,
+                               pyopencl.mem_flags.READ_WRITE)
 
     with b.map(pyopencl.map_flags.WRITE_INVALIDATE_REGION, wait_for=None) as mapped:
         mapped[0] = 31
 
-    ev = codecad.opencl_manager.instance.k.one_item_double((1,), None,
-                                                           b.buffer)
+    ev = codecad.cl_util.opencl_manager.k.one_item_double((1,), None,
+                                                          b.buffer)
 
     with b.map(pyopencl.map_flags.READ, wait_for=[ev]) as result:
         assert result[0] == 62
 
 
 def test_buffer_write_map():
-    b = codecad.util.cl_util.Buffer(codecad.opencl_manager.instance.queue,
-                                    pyopencl.cltypes.uchar8,
-                                    1,
-                                    pyopencl.mem_flags.READ_WRITE)
+    b = codecad.cl_util.Buffer(codecad.cl_util.opencl_manager.queue,
+                               pyopencl.cltypes.uchar8,
+                               1,
+                               pyopencl.mem_flags.READ_WRITE)
 
     v = pyopencl.cltypes.filled_uchar8(17)
 
@@ -107,10 +107,10 @@ def test_buffer_write_map():
 
 
 def test_buffer_read_map():
-    b = codecad.util.cl_util.Buffer(codecad.opencl_manager.instance.queue,
-                                    pyopencl.cltypes.uchar8,
-                                    1,
-                                    pyopencl.mem_flags.READ_WRITE)
+    b = codecad.cl_util.Buffer(codecad.cl_util.opencl_manager.queue,
+                               pyopencl.cltypes.uchar8,
+                               1,
+                               pyopencl.mem_flags.READ_WRITE)
 
     v = pyopencl.cltypes.filled_uchar8(71)
 
@@ -126,10 +126,10 @@ def test_buffer_read_map():
                                                   (pyopencl.cltypes.uchar, 1),
                                                   (pyopencl.cltypes.double16, 128)])
 def test_buffer_map_size(item_type, item_size):
-    b = codecad.util.cl_util.Buffer(codecad.opencl_manager.instance.queue,
-                                    item_type,
-                                    (2, 2, 2),
-                                    pyopencl.mem_flags.WRITE_ONLY)
+    b = codecad.cl_util.Buffer(codecad.cl_util.opencl_manager.queue,
+                               item_type,
+                               (2, 2, 2),
+                               pyopencl.mem_flags.WRITE_ONLY)
 
     with b.map(pyopencl.map_flags.WRITE_INVALIDATE_REGION, wait_for=None) as mapped:
         assert mapped.nbytes == b.nbytes

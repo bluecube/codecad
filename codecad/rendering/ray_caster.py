@@ -5,7 +5,8 @@ import numpy
 import flags
 
 from .. import util
-from .. import opencl_manager
+from .. import cl_util
+from ..cl_util import opencl_manager
 from .. import nodes
 
 
@@ -13,7 +14,7 @@ class RenderOptions(flags.Flags):
     false_color = ()
 
 
-_c_file = opencl_manager.instance.add_compile_unit()
+_c_file = opencl_manager.add_compile_unit()
 for flag in RenderOptions:
     _c_file.append("#define RENDER_OPTIONS_{} {}".format(flag.to_simple_str().upper(), int(flag)))
 _c_file.append_file("ray_caster.cl")
@@ -50,25 +51,25 @@ def render(obj,
 
     mf = pyopencl.mem_flags
     program_buffer = nodes.make_program_buffer(obj)
-    output_buffer = pyopencl.Buffer(opencl_manager.instance.context,
+    output_buffer = pyopencl.Buffer(opencl_manager.context,
                                     mf.WRITE_ONLY,
                                     output.nbytes)
 
-    assert_buffer = util.cl_util.AssertBuffer(opencl_manager.instance.queue)
+    assert_buffer = cl_util.AssertBuffer(opencl_manager.queue)
 
-    ev = opencl_manager.instance.k.ray_caster(size, None,
-                                              program_buffer,
-                                              origin.as_float4(), forward.as_float4(), up.as_float4(), right.as_float4(),
-                                              numpy.float32(pixel_tolerance), numpy.float32(box_radius),
-                                              numpy.float32(min_distance), numpy.float32(max_distance),
-                                              numpy.float32(box.a.z - box.size().z / 20),
-                                              numpy.uint32(options),
-                                              output_buffer,
-                                              assert_buffer.buffer)
+    ev = opencl_manager.k.ray_caster(size, None,
+                                     program_buffer,
+                                     origin.as_float4(), forward.as_float4(), up.as_float4(), right.as_float4(),
+                                     numpy.float32(pixel_tolerance), numpy.float32(box_radius),
+                                     numpy.float32(min_distance), numpy.float32(max_distance),
+                                     numpy.float32(box.a.z - box.size().z / 20),
+                                     numpy.uint32(options),
+                                     output_buffer,
+                                     assert_buffer.buffer)
 
     assert_buffer.check(wait_for=[ev])
 
-    pyopencl.enqueue_copy(opencl_manager.instance.queue, output, output_buffer, wait_for=[ev])
+    pyopencl.enqueue_copy(opencl_manager.queue, output, output_buffer, wait_for=[ev])
 
     print("Render took", (ev.profile.end - ev.profile.start) / 1e9)
 

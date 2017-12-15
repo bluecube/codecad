@@ -14,7 +14,7 @@ import codecad
 
 import data
 
-codecad.opencl_manager.instance.add_compile_unit().append_file("test_dsdf.cl")
+codecad.cl_util.opencl_manager.add_compile_unit().append_file("test_dsdf.cl")
 
 with_2d_shapes = pytest.mark.parametrize("dsdf_common", data.params_2d, indirect=True)
 with_all_shapes = pytest.mark.parametrize("dsdf_common", data.params_2d + data.params_3d, indirect=True)
@@ -54,16 +54,16 @@ def eval_buffer(dsdf_common):
     box_step = dsdf_common["box_step"]
     scene_buffer = dsdf_common["scene_buffer"]
 
-    b = codecad.util.cl_util.Buffer(codecad.opencl_manager.instance.queue,
-                                    (pyopencl.cltypes.float4, (2,)),
-                                    size,
-                                    pyopencl.mem_flags.READ_WRITE)
+    b = codecad.cl_util.Buffer(codecad.cl_util.opencl_manager.queue,
+                               (pyopencl.cltypes.float4, (2,)),
+                               size,
+                               pyopencl.mem_flags.READ_WRITE)
 
-    ev = codecad.opencl_manager.instance.k.grid_eval_twice(size, None,
-                                                           scene_buffer,
-                                                           box_corner.as_float4(),
-                                                           numpy.float32(box_step),
-                                                           b.buffer)
+    ev = codecad.cl_util.opencl_manager.k.grid_eval_twice(size, None,
+                                                          scene_buffer,
+                                                          box_corner.as_float4(),
+                                                          numpy.float32(box_step),
+                                                          b.buffer)
 
     b.read(wait_for=[ev])
     return b
@@ -74,15 +74,15 @@ def actual_distance_buffer(dsdf_common, eval_buffer):
     size = dsdf_common["size"]
     box_step = dsdf_common["box_step"]
 
-    b = codecad.util.cl_util.Buffer(codecad.opencl_manager.instance.queue,
-                                    pyopencl.cltypes.float,
-                                    size,
-                                    pyopencl.mem_flags.WRITE_ONLY)
+    b = codecad.cl_util.Buffer(codecad.cl_util.opencl_manager.queue,
+                               pyopencl.cltypes.float,
+                               size,
+                               pyopencl.mem_flags.WRITE_ONLY)
 
-    ev = codecad.opencl_manager.instance.k.actual_distance_to_surface(size, None,
-                                                                      numpy.float32(box_step),
-                                                                      eval_buffer.buffer,
-                                                                      b.buffer)
+    ev = codecad.cl_util.opencl_manager.k.actual_distance_to_surface(size, None,
+                                                                     numpy.float32(box_step),
+                                                                     eval_buffer.buffer,
+                                                                     b.buffer)
     b.read(wait_for=[ev])
     return b
 
@@ -95,17 +95,17 @@ def direction_buffer(dsdf_common):
     scene_buffer = dsdf_common["scene_buffer"]
     epsilon = dsdf_common["epsilon"]
 
-    b = codecad.util.cl_util.Buffer(codecad.opencl_manager.instance.queue,
-                                    (pyopencl.cltypes.float3, (2,)),
-                                    size,
-                                    pyopencl.mem_flags.WRITE_ONLY)
+    b = codecad.cl_util.Buffer(codecad.cl_util.opencl_manager.queue,
+                               (pyopencl.cltypes.float3, (2,)),
+                               size,
+                               pyopencl.mem_flags.WRITE_ONLY)
 
-    ev = codecad.opencl_manager.instance.k.estimate_direction(size, None,
-                                                              scene_buffer,
-                                                              box_corner.as_float4(),
-                                                              numpy.float32(box_step),
-                                                              numpy.float32(epsilon),
-                                                              b.buffer)
+    ev = codecad.cl_util.opencl_manager.k.estimate_direction(size, None,
+                                                             scene_buffer,
+                                                             box_corner.as_float4(),
+                                                             numpy.float32(box_step),
+                                                             numpy.float32(epsilon),
+                                                             b.buffer)
     b.read(wait_for=[ev])
     return b
 

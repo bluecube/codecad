@@ -4,7 +4,7 @@ import pyopencl.cltypes
 
 from .. import util
 from . import scheduler, node
-from .. import opencl_manager
+from ..cl_util import opencl_manager
 
 
 class NodeCache:
@@ -44,7 +44,7 @@ def _make_program_pieces(shape):
     scheduler.calculate_node_refcounts(nodes)
     registers_needed, schedule = scheduler.randomized_scheduler(nodes)
 
-    assert registers_needed <= opencl_manager.instance.max_register_count
+    assert registers_needed <= opencl_manager.max_register_count
 
     for n in schedule:
         assert len(n.dependencies) <= 2
@@ -56,7 +56,7 @@ def _make_program_pieces(shape):
             secondaryRegister = n.dependencies[1].register
         else:
             secondaryRegister = 0
-        instruction = opcode * opencl_manager.instance.max_register_count + secondaryRegister
+        instruction = opcode * opencl_manager.max_register_count + secondaryRegister
 
         assert int(numpy.float32(instruction)) == instruction
 
@@ -70,6 +70,6 @@ def make_program(shape):
 
 
 def make_program_buffer(shape):
-    return pyopencl.Buffer(opencl_manager.instance.context,
+    return pyopencl.Buffer(opencl_manager.context,
                            pyopencl.mem_flags.READ_ONLY | pyopencl.mem_flags.COPY_HOST_PTR,
                            hostbuf=make_program(shape))
