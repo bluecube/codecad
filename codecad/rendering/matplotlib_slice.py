@@ -56,7 +56,7 @@ def render_slice(obj,
                                   corner.y, corner.y + (values.shape[0] - 1) * resolution)}
 
         plt.imshow(distances,
-                   cmap=plt.get_cmap("viridis"),
+                   cmap=plt.get_cmap("RdBu"),
                    interpolation="none",
                    **common_args)
         plt.colorbar()
