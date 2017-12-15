@@ -1,6 +1,7 @@
 import pytest
 import pyopencl.cltypes
 import numpy
+import os.path
 
 import codecad
 
@@ -134,3 +135,57 @@ def test_buffer_map_size(item_type, item_size):
     with b.map(pyopencl.map_flags.WRITE_INVALIDATE_REGION, wait_for=None) as mapped:
         assert mapped.nbytes == b.nbytes
         assert mapped.dtype == item_type
+
+
+def test_assert_pass():
+    assertBuffer = codecad.cl_util.AssertBuffer(codecad.cl_util.opencl_manager.queue)
+
+    # Checking before first use should always pass
+    assertBuffer.check()
+
+    ev = codecad.cl_util.opencl_manager.k.assert_tester((10, 10), None,
+                                                        numpy.uint32(100), assertBuffer.buffer)
+
+    # The kernel shouldn't have logged an assert
+    assertBuffer.check(wait_for=[ev])
+
+
+def test_assert_fail():
+    assertBuffer = codecad.cl_util.AssertBuffer(codecad.cl_util.opencl_manager.queue)
+    ev = codecad.cl_util.opencl_manager.k.assert_tester((10, 10), None,
+                                                        numpy.uint32(5), assertBuffer.buffer)
+
+    with pytest.raises(codecad.cl_util.cl_assert.OpenClAssertionError) as exc_info:
+        assertBuffer.check(wait_for=[ev])
+
+    assert exc_info.value.count == 1
+    assert os.path.basename(exc_info.value.filename) == "test_clutil.cl"
+    assert exc_info.value.global_id == [5, 5, 0, 0]
+
+
+def test_assert_chaining_pass():
+    assertBuffer = codecad.cl_util.AssertBuffer(codecad.cl_util.opencl_manager.queue)
+    ev = codecad.cl_util.opencl_manager.k.assert_tester((10, 10), None,
+                                                        numpy.uint32(101), assertBuffer.buffer)
+    ev = codecad.cl_util.opencl_manager.k.assert_tester((10, 10), None,
+                                                        numpy.uint32(102), assertBuffer.buffer,
+                                                        wait_for=[ev])
+
+    # The kernel shouldn't have logged an assert
+    assertBuffer.check(wait_for=[ev])
+
+
+def test_assert_chaining_multiple_fail():
+    assertBuffer = codecad.cl_util.AssertBuffer(codecad.cl_util.opencl_manager.queue)
+    ev = codecad.cl_util.opencl_manager.k.assert_tester((10, 10), None,
+                                                        numpy.uint32(1), assertBuffer.buffer)
+    ev = codecad.cl_util.opencl_manager.k.assert_tester((10, 10), None,
+                                                        numpy.uint32(2), assertBuffer.buffer,
+                                                        wait_for=[ev])
+
+    with pytest.raises(codecad.cl_util.cl_assert.OpenClAssertionError) as exc_info:
+        assertBuffer.check(wait_for=[ev])
+
+    assert exc_info.value.count == 2
+    assert os.path.basename(exc_info.value.filename) == "test_clutil.cl"
+    assert exc_info.value.global_id == [1, 1, 0, 0]

@@ -76,7 +76,7 @@ class AssertBuffer(cl_buffer.Buffer):
             raise OpenClAssertionError(mapped["assert_count"][0],
                                        filename,
                                        mapped["line"][0],
-                                       mapped["global_id"][0],
+                                       list(mapped["global_id"][0]),
                                        expr)
 
 
