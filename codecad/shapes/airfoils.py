@@ -5,7 +5,6 @@ def _load_selig(fileobj):
     header = fileobj.readline()
 
     l = list()
-    print(l)
     return simple2d.Polygon2D([[float(x) for x in l.split()] for l in fileobj])
 
 

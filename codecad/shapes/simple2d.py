@@ -4,9 +4,9 @@ import numpy
 from .. import util
 from . import base
 from . import common
-from .. import opencl_manager
+from ..cl_util import opencl_manager
 
-_c_file = opencl_manager.instance.add_compile_unit()
+_c_file = opencl_manager.add_compile_unit()
 _c_file.append_file("common.h")
 _c_file.append_file("simple2d.cl")
 
@@ -65,7 +65,6 @@ class RegularPolygon2D(base.Shape2D):
             else:
                 self.d = d
                 self.r = d / 2
-            print(self.d)
             self.side_length = self.d * math.sin(math.pi / n)
 
     @staticmethod

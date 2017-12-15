@@ -9,7 +9,6 @@ def render_mesh(obj, filename, resolution):
     ax = fig.gca(projection='3d')
 
     for vertices, indices in mesh.triangular_mesh(obj, resolution):
-        print(vertices.shape)
         ax.plot_trisurf(vertices[:, 0], vertices[:, 1], vertices[:, 2], triangles=indices)
 
     plt.show()
