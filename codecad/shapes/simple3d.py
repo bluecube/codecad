@@ -96,22 +96,36 @@ class Revolution(base.Shape3D):
         self.s = s
         self.r = r
         self.twist = math.radians(twist)
+        self.minor_r = max(abs(pt) for pt in s.bounding_box().points2d())
+        if self.twist != 0 and self.minor_r >= 0.9 * r:
+            raise ValueError("Radius of the revolved object around "
+                             "origin must be less than 90% of revolution "
+                             "radius when twist is applied.")
 
     def bounding_box(self):
         box = self.s.bounding_box()
         if self.twist == 0:
-            radius = box.b.x
+            radius = self.r + max(-box.a.x, box.b.x)
+            return util.BoundingBox(util.Vector(-radius, box.a.y, -radius),
+                                    util.Vector(radius, box.b.y, radius))
         else:
-            radius = max(abs(pt) for pt in box.points2d())
-        radius += self.r
-        return util.BoundingBox(util.Vector(-radius, box.a.y, -radius),
-                                util.Vector(radius, box.b.y, radius))
+            v = util.Vector(self.r + self.minor_r, self.minor_r, self.r + self.minor_r)
+            return util.BoundingBox(-v, v)
 
     def get_node(self, point, cache):
-        new_point = cache.make_node("revolution_to",
-                                    [self.r, self.twist],
-                                    [point])
-        sub_node = self.s.get_node(new_point, cache)
-        return cache.make_node("revolution_from",
-                               [self.twist],
-                               [sub_node, point])
+        if self.twist == 0:
+            new_point = cache.make_node("revolution_to",
+                                        [],
+                                        [point])
+            sub_node = self.s.get_node(new_point, cache)
+            return cache.make_node("revolution_from",
+                                   [],
+                                   [sub_node, point])
+        else:
+            new_point = cache.make_node("twist_revolution_to",
+                                        [self.r, self.twist],
+                                        [point])
+            sub_node = self.s.get_node(new_point, cache)
+            return cache.make_node("twist_revolution_from",
+                                   [self.minor_r, self.r, self.twist],
+                                   [sub_node, point])

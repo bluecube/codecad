@@ -80,6 +80,7 @@ shapes_3d = {"sphere": sphere(4),
              "empty_intersection": sphere().translated_x(-2) & sphere().translated_x(2),
              "nested_transformations": (box().translated_z(-2) + sphere().translated_x(2)).rotated_y(45).rotated_x(45),
              "mirror_3d": mirror_3d,
-             "moebius_pentagon": regular_polygon2d(5).revolved(2, 360/5),
+             "revolved_pentagon": regular_polygon2d(5).revolved(2),
+             "extreme_twisted_revolve": rectangle(1, 0.1).revolved(2, 19 * 180)
              }
 params_3d = [pytest.param(v, id=k) for k, v in sorted(shapes_3d.items())]
