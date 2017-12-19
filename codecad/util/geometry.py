@@ -114,7 +114,14 @@ class BoundingBox(collections.namedtuple("BoundingBox", "a b")):
         return cls(a, b)
 
     def intersection(self, other):
-        return BoundingBox(self.a.max(other.a), self.b.min(other.b))
+        a = []
+        b = []
+        for a1, b1, a2, b2 in zip(self.a, self.b, other.a, other.b):
+            a_tmp = max(a1, a2)
+            b_tmp = max(a_tmp, min(b1, b2))
+            a.append(a_tmp)
+            b.append(b_tmp)
+        return BoundingBox(Vector(*a), Vector(*b))
 
     def union(self, other):
         return BoundingBox(self.a.min(other.a), self.b.max(other.b))

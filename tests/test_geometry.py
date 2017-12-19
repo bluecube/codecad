@@ -4,7 +4,7 @@ import pytest
 from pytest import approx
 
 import codecad
-from codecad.util.geometry import Vector, Quaternion, Transformation
+from codecad.util.geometry import Vector, BoundingBox, Quaternion, Transformation
 
 quaternions_to_test = [
     (Quaternion.from_degrees((0, 0, 1), 90, 1), (1, 1, 1), (-1, 1, 1)),
@@ -54,3 +54,10 @@ def test_vector_transformatio_matrix(transformation, v, target):
 def test_vector_transformation_times_zero(transformation, v, target):
     assert (transformation * transformation.zero()).transform_vector(v) == approx(target)
     assert (transformation.zero() * transformation).transform_vector(v) == approx(target)
+
+
+def test_empty_bounding_box_intersection_zero_volume():
+    box1 = BoundingBox(Vector(-2, -2, -2), Vector(-1, -1, -1))
+    box2 = BoundingBox(Vector(1, 1, 1), Vector(2, 2, 2))
+
+    assert box1.intersection(box2).volume() == 0
