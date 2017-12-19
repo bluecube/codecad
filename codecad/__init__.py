@@ -7,3 +7,5 @@ from . import cl_util
 from . import grid_eval
 
 from .assembly import Assembly
+
+from . import mass_properties

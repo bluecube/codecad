@@ -1,12 +1,14 @@
 import contextlib
 import tempfile
 import os
-import functools
 import shutil
-import inspect
-import collections
+import io
 
 import pytest
+import PIL
+import numpy
+
+import codecad
 
 
 class FileBaselineCompare:
@@ -54,3 +56,49 @@ class FileBaselineCompare:
             tested_fp = self._stack.enter_context(open(self.tested_filename, "rb"))
 
             return tested_fp, baseline_fp
+
+
+def assert_images_equal(tested_fp, baseline_fp, error_filename=None):
+    tested_array = numpy.array(PIL.Image.open(tested_fp), dtype=numpy.float32) / 255
+    baseline_array = numpy.array(PIL.Image.open(baseline_fp), dtype=numpy.float32) / 255
+
+    assert tested_array.shape == baseline_array.shape
+
+    error_array = tested_array - baseline_array
+
+    mean_squared_error = numpy.mean(error_array * error_array)
+
+    if mean_squared_error > 1e-3:
+        if error_filename is not None:
+            error_image_array = 255 * error_array / numpy.max(error_array)
+            error_image = PIL.Image.fromarray(error_image_array.astype(numpy.uint8))
+            error_image.save(error_filename)
+        raise AssertionError("Mean squared error is too big.")
+
+
+def assert_shapes_equal(shape, expected, resolution=0.1):
+    """ Checks that two shapes are equal, raises AssertionError if they are not.
+
+    For now this does a bounding box chec, very rough check using volume of
+    symmetric difference of the two shapes and then a comparison of low resolution renders.
+    This is certainly not optimal (too slow and too imprecise), but that's what we've got. """
+    # TODO: Rely only on the volume of symmetric difference once mass properties are more reliable
+
+    box = shape.bounding_box()
+    expected_box = expected.bounding_box()
+    intersection_box = box.intersection(expected_box)
+    assert box.volume() == pytest.approx(intersection_box.volume())
+    assert expected_box.volume() == pytest.approx(intersection_box.volume())
+
+    difference = (shape - expected) | (expected - shape)
+    volume = codecad.mass_properties.mass_properties(difference, resolution).volume
+    print(volume, box.volume())
+    assert volume <= box.volume() * 0.001
+
+    shape_render = io.BytesIO()
+    codecad.rendering.image.render_PIL_image(shape, size=(800, 400)).save(shape_render, format="png")
+    shape_render.seek(0)
+    expected_render = io.BytesIO()
+    codecad.rendering.image.render_PIL_image(expected, size=(800, 400)).save(expected_render, format="png")
+    expected_render.seek(0)
+    assert_images_equal(shape_render, expected_render)
