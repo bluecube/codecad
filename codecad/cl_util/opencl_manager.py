@@ -106,7 +106,9 @@ class OpenCLManager:
             warnings.simplefilter("ignore")
             return program.build(options=DEFAULT_COMPILER_OPTIONS)
 
-        # Working around bug in pyopencl.Program.compile in pyopencl 2017.1.1
+        # Working around bug in pyopencl.Program.compile in pyopencl
+        # (https://lists.tiker.net/pipermail/pyopencl/2015-September/001986.html)
+        # TODO: Fix this in OpenCL
         # compiled_units = [unit.compile(self.context, self.common_header.pieces)
         #                   for unit in self._compile_units]
         # return pyopencl.link_program(self.context, compiled_units)
