@@ -5,8 +5,6 @@ from codecad.shapes import *
 
 def bin_counter(n):
     """ Generate a 2D shape that contains binary representation of n """
-    assert n > 0
-
     blip = circle(d=0.75)
     blips = []
     bit_length = 0
@@ -15,10 +13,15 @@ def bin_counter(n):
             blips.append(blip.translated_y(0.5 + bit_length))
         n //= 2
         bit_length += 1
+    bit_length = max(bit_length, 1)
 
     base = rectangle(1, bit_length).translated_y(bit_length / 2) + \
         circle(d=0.2).translated_x(0.5)
-    return base - union(blips)
+
+    if len(blips):
+        return base - union(blips)
+    else:
+        return base
 
 
 valid_polygon2d = {"triangle": [(0, 0), (3, 0), (3, 2)],

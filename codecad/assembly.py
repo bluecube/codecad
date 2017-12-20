@@ -32,6 +32,14 @@ class PartTransform(collections.namedtuple("PartPlacer", "part transform")):
         return self.__class__(self.part,
                               transform * self.transform)
 
+    @property
+    def name(self):
+        return self.part.name
+
+    @property
+    def attributes(self):
+        return self.part.attributes
+
 
 class PartTransform2D(PartTransform, base.SolidBodyTransformable2D):
     __slots__ = ()
@@ -145,7 +153,7 @@ class _FrozenAssembly:
     def __iter__(self):
         """ Iterate over part instances of this assembly, not entering subassemblies
         recursively. """
-        return iter(self._parts)
+        return iter(self._instances)
 
 
 class Assembly(_FrozenAssembly):
