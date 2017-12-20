@@ -22,8 +22,8 @@ class _Helper:
         self.resolution = resolution
         self.final_blocks = final_blocks
 
-        self.counter = cl_util.Buffer(queue, numpy.uint32, 1, pyopencl.mem_flags.READ_WRITE)
-        self.list = cl_util.Buffer(queue, cl_util.Buffer.quad_dtype(numpy.uint8), grid_size * grid_size * grid_size, pyopencl.mem_flags.WRITE_ONLY)
+        self.counter = cl_util.Buffer(numpy.uint32, 1, pyopencl.mem_flags.READ_WRITE, queue=queue)
+        self.list = cl_util.Buffer(cl_util.Buffer.quad_dtype(numpy.uint8), grid_size * grid_size * grid_size, pyopencl.mem_flags.WRITE_ONLY, queue=queue)
 
         self.level = None
 

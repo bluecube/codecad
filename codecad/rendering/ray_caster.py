@@ -55,7 +55,7 @@ def render(obj,
                                     mf.WRITE_ONLY,
                                     output.nbytes)
 
-    assert_buffer = cl_util.AssertBuffer(opencl_manager.queue)
+    assert_buffer = cl_util.AssertBuffer()
 
     ev = opencl_manager.k.ray_caster(size, None,
                                      program_buffer,

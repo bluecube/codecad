@@ -50,22 +50,18 @@ def polygon(obj, resolution, subdivision_grid_size=None):
     corners = pyopencl.Buffer(opencl_manager.context,
                               pyopencl.mem_flags.READ_WRITE | pyopencl.mem_flags.HOST_NO_ACCESS,
                               cl_util.Buffer.quad_dtype(numpy.float32).itemsize * grid_size[0] * grid_size[1])
-    vertices = cl_util.Buffer(opencl_manager.queue,
-                              cl_util.Buffer.dual_dtype(numpy.float32),
+    vertices = cl_util.Buffer(cl_util.Buffer.dual_dtype(numpy.float32),
                               grid_size_triangles[0] * grid_size_triangles[1] * grid_size_triangles[2],
                               pyopencl.mem_flags.WRITE_ONLY | pyopencl.mem_flags.HOST_READ_ONLY)
-    links = cl_util.Buffer(opencl_manager.queue,
-                           numpy.uint32,
+    links = cl_util.Buffer(numpy.uint32,
                            grid_size_triangles[0] * grid_size_triangles[1] * grid_size_triangles[2],
                            pyopencl.mem_flags.WRITE_ONLY | pyopencl.mem_flags.HOST_READ_ONLY)
-    starts = cl_util.Buffer(opencl_manager.queue,
-                            numpy.uint32,
+    starts = cl_util.Buffer(numpy.uint32,
                             grid_size_triangles[0] + grid_size_triangles[1],
                             # Start of chain can happen only on a side and
                             # each chain takes at least two cells (start and end)
                             pyopencl.mem_flags.WRITE_ONLY | pyopencl.mem_flags.HOST_READ_ONLY)
-    start_counter = cl_util.Buffer(opencl_manager.queue,
-                                   numpy.uint32,
+    start_counter = cl_util.Buffer(numpy.uint32,
                                    1,
                                    pyopencl.mem_flags.READ_WRITE)
 

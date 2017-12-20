@@ -22,8 +22,7 @@ def render(obj, size):
 
     shape = (size[1], size[0], 3)
     program_buffer = nodes.make_program_buffer(obj)
-    output = cl_util.Buffer(opencl_manager.queue,
-                            numpy.uint8,
+    output = cl_util.Buffer(numpy.uint8,
                             shape,
                             pyopencl.mem_flags.WRITE_ONLY)
 

@@ -54,8 +54,7 @@ def eval_buffer(dsdf_common):
     box_step = dsdf_common["box_step"]
     scene_buffer = dsdf_common["scene_buffer"]
 
-    b = codecad.cl_util.Buffer(codecad.cl_util.opencl_manager.queue,
-                               (pyopencl.cltypes.float4, (2,)),
+    b = codecad.cl_util.Buffer((pyopencl.cltypes.float4, (2,)),
                                size,
                                pyopencl.mem_flags.READ_WRITE)
 
@@ -74,8 +73,7 @@ def actual_distance_buffer(dsdf_common, eval_buffer):
     size = dsdf_common["size"]
     box_step = dsdf_common["box_step"]
 
-    b = codecad.cl_util.Buffer(codecad.cl_util.opencl_manager.queue,
-                               pyopencl.cltypes.float,
+    b = codecad.cl_util.Buffer(pyopencl.cltypes.float,
                                size,
                                pyopencl.mem_flags.WRITE_ONLY)
 
@@ -95,8 +93,7 @@ def direction_buffer(dsdf_common):
     scene_buffer = dsdf_common["scene_buffer"]
     epsilon = dsdf_common["epsilon"]
 
-    b = codecad.cl_util.Buffer(codecad.cl_util.opencl_manager.queue,
-                               (pyopencl.cltypes.float3, (2,)),
+    b = codecad.cl_util.Buffer((pyopencl.cltypes.float3, (2,)),
                                size,
                                pyopencl.mem_flags.WRITE_ONLY)
 

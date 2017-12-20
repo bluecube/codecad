@@ -112,10 +112,10 @@ class _Helper:
         self.integral_xz = 0
         self.integral_yz = 0
 
-        self.index_sums = cl_util.Buffer(queue, numpy.uint32, 10, pyopencl.mem_flags.READ_WRITE)
+        self.index_sums = cl_util.Buffer(numpy.uint32, 10, pyopencl.mem_flags.READ_WRITE, queue=queue)
 
-        self.counter = cl_util.Buffer(queue, numpy.uint32, 1, pyopencl.mem_flags.READ_WRITE)
-        self.list = cl_util.Buffer(queue, cl_util.Buffer.quad_dtype(numpy.uint8), grid_size * grid_size * grid_size, pyopencl.mem_flags.WRITE_ONLY)
+        self.counter = cl_util.Buffer(numpy.uint32, 1, pyopencl.mem_flags.READ_WRITE, queue=queue)
+        self.list = cl_util.Buffer(cl_util.Buffer.quad_dtype(numpy.uint8), grid_size * grid_size * grid_size, pyopencl.mem_flags.WRITE_ONLY, queue=queue)
 
         self.box_corner = None
         self.level = None

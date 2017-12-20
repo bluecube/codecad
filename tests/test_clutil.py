@@ -14,8 +14,7 @@ def _tuple_from_xyz(xyz):
 
 @pytest.mark.parametrize("size", [4, (4), (4, 4), (4, 4, 4)])
 def test_buffer_indexing(size):
-    b = codecad.cl_util.Buffer(codecad.cl_util.opencl_manager.queue,
-                               pyopencl.cltypes.uint3,
+    b = codecad.cl_util.Buffer(pyopencl.cltypes.uint3,
                                size,
                                pyopencl.mem_flags.WRITE_ONLY)
     ev = codecad.cl_util.opencl_manager.k.indexing_identity(b.size, None, b.buffer)
@@ -31,8 +30,7 @@ def test_buffer_indexing(size):
                                                   (pyopencl.cltypes.uchar, 1),
                                                   (pyopencl.cltypes.double16, 128)])
 def test_buffer_alloc_size(size, nitems, item_type, item_size):
-    b = codecad.cl_util.Buffer(codecad.cl_util.opencl_manager.queue,
-                               item_type,
+    b = codecad.cl_util.Buffer(item_type,
                                size,
                                pyopencl.mem_flags.WRITE_ONLY)
 
@@ -44,8 +42,7 @@ def test_buffer_alloc_size(size, nitems, item_type, item_size):
 
 
 def test_buffer_read_write():
-    b = codecad.cl_util.Buffer(codecad.cl_util.opencl_manager.queue,
-                               pyopencl.cltypes.ulong,
+    b = codecad.cl_util.Buffer(pyopencl.cltypes.ulong,
                                1,
                                pyopencl.mem_flags.READ_WRITE)
 
@@ -61,8 +58,7 @@ def test_buffer_read_write():
 
 
 def test_buffer_read_write():
-    b = codecad.cl_util.Buffer(codecad.cl_util.opencl_manager.queue,
-                               pyopencl.cltypes.ulong,
+    b = codecad.cl_util.Buffer(pyopencl.cltypes.ulong,
                                1,
                                pyopencl.mem_flags.READ_WRITE)
 
@@ -78,8 +74,7 @@ def test_buffer_read_write():
 
 
 def test_buffer_read_write_map():
-    b = codecad.cl_util.Buffer(codecad.cl_util.opencl_manager.queue,
-                               pyopencl.cltypes.ulong,
+    b = codecad.cl_util.Buffer(pyopencl.cltypes.ulong,
                                1,
                                pyopencl.mem_flags.READ_WRITE)
 
@@ -94,8 +89,7 @@ def test_buffer_read_write_map():
 
 
 def test_buffer_write_map():
-    b = codecad.cl_util.Buffer(codecad.cl_util.opencl_manager.queue,
-                               pyopencl.cltypes.uchar8,
+    b = codecad.cl_util.Buffer(pyopencl.cltypes.uchar8,
                                1,
                                pyopencl.mem_flags.READ_WRITE)
 
@@ -108,8 +102,7 @@ def test_buffer_write_map():
 
 
 def test_buffer_read_map():
-    b = codecad.cl_util.Buffer(codecad.cl_util.opencl_manager.queue,
-                               pyopencl.cltypes.uchar8,
+    b = codecad.cl_util.Buffer(pyopencl.cltypes.uchar8,
                                1,
                                pyopencl.mem_flags.READ_WRITE)
 
@@ -127,8 +120,7 @@ def test_buffer_read_map():
                                                   (pyopencl.cltypes.uchar, 1),
                                                   (pyopencl.cltypes.double16, 128)])
 def test_buffer_map_size(item_type, item_size):
-    b = codecad.cl_util.Buffer(codecad.cl_util.opencl_manager.queue,
-                               item_type,
+    b = codecad.cl_util.Buffer(item_type,
                                (2, 2, 2),
                                pyopencl.mem_flags.WRITE_ONLY)
 
@@ -138,7 +130,7 @@ def test_buffer_map_size(item_type, item_size):
 
 
 def test_assert_pass():
-    assertBuffer = codecad.cl_util.AssertBuffer(codecad.cl_util.opencl_manager.queue)
+    assertBuffer = codecad.cl_util.AssertBuffer()
 
     # Checking before first use should always pass
     assertBuffer.check()
@@ -151,7 +143,7 @@ def test_assert_pass():
 
 
 def test_assert_fail():
-    assertBuffer = codecad.cl_util.AssertBuffer(codecad.cl_util.opencl_manager.queue)
+    assertBuffer = codecad.cl_util.AssertBuffer()
     ev = codecad.cl_util.opencl_manager.k.assert_tester((10, 10), None,
                                                         numpy.uint32(5), assertBuffer.buffer)
 
@@ -164,7 +156,7 @@ def test_assert_fail():
 
 
 def test_assert_chaining_pass():
-    assertBuffer = codecad.cl_util.AssertBuffer(codecad.cl_util.opencl_manager.queue)
+    assertBuffer = codecad.cl_util.AssertBuffer()
     ev = codecad.cl_util.opencl_manager.k.assert_tester((10, 10), None,
                                                         numpy.uint32(101), assertBuffer.buffer)
     ev = codecad.cl_util.opencl_manager.k.assert_tester((10, 10), None,
@@ -176,7 +168,7 @@ def test_assert_chaining_pass():
 
 
 def test_assert_chaining_multiple_fail():
-    assertBuffer = codecad.cl_util.AssertBuffer(codecad.cl_util.opencl_manager.queue)
+    assertBuffer = codecad.cl_util.AssertBuffer()
     ev = codecad.cl_util.opencl_manager.k.assert_tester((10, 10), None,
                                                         numpy.uint32(1), assertBuffer.buffer)
     ev = codecad.cl_util.opencl_manager.k.assert_tester((10, 10), None,

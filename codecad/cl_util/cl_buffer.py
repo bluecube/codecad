@@ -3,6 +3,8 @@ import contextlib
 import numpy
 import pyopencl
 
+from . import opencl_manager
+
 
 class Buffer:
     """ A simple wrapper around pyopencl buffer that handles the corresponding
@@ -16,8 +18,8 @@ class Buffer:
     def quad_dtype(scalar):
         return numpy.dtype([(name, scalar) for name in 'xyzw'])
 
-    def __init__(self, queue, dtype, size, mem_flags):
-        self.queue = queue
+    def __init__(self, dtype, size, mem_flags, queue=None):
+        self.queue = queue if queue is not None else opencl_manager.instance.queue
         self.dtype = numpy.dtype(dtype)
         self.nitems = 1
 

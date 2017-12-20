@@ -34,14 +34,14 @@ class AssertBuffer(cl_buffer.Buffer):
     """ Buffer subclass for processing asserts. """
     ASSERT_BUFFER_SIZE = 1024
 
-    def __init__(self, queue):
+    def __init__(self, queue=None):
         dtype_list = [("assert_count", numpy.uint32),
                       ("global_id", numpy.uint32, 4),
                       ("line", numpy.uint32)]
         dtype_list_size = numpy.dtype(dtype_list).itemsize
         dtype_list.append(("text", "a{}".format(self.ASSERT_BUFFER_SIZE - dtype_list_size)))
 
-        super().__init__(queue, dtype_list, 1, pyopencl.mem_flags.READ_WRITE)
+        super().__init__(dtype_list, 1, pyopencl.mem_flags.READ_WRITE, queue=queue)
         assert self.nbytes == self.ASSERT_BUFFER_SIZE
 
         self.reset()
