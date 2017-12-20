@@ -71,8 +71,9 @@ class BomItem:
         self.part = part
         self.count = 1
 
-    @property
     def shape(self):
+        """ Return shape corresponding to this bom item. This also makes
+        bom items compatible for rendering """
         return self.part.data
 
 

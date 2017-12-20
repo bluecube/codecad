@@ -63,7 +63,7 @@ def commandline_render(obj, resolution, default_renderer=None, **kwargs):
     if isinstance(obj, assembly.Assembly) and assembly_mode == AssemblyMode.parts:
         pattern = _parse_name_format(output)
         for item in obj.bom():
-            _render_one(renderer, item.shape, item.name.join(pattern), resolution, **kwargs)
+            _render_one(renderer, item.shape(), item.name.join(pattern), resolution, **kwargs)
     else:
         if isinstance(obj, assembly.Assembly):
             if assembly_mode == AssemblyMode.disabled:
