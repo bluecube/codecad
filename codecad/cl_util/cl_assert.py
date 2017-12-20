@@ -42,7 +42,7 @@ class AssertBuffer(cl_buffer.Buffer):
         dtype_list.append(("text", "a{}".format(self.ASSERT_BUFFER_SIZE - dtype_list_size)))
 
         super().__init__(dtype_list, 1, pyopencl.mem_flags.READ_WRITE, queue=queue)
-        assert self.nbytes == self.ASSERT_BUFFER_SIZE
+        assert self.size == self.ASSERT_BUFFER_SIZE
 
         self.reset()
 

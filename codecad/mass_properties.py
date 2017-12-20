@@ -115,7 +115,9 @@ class _Helper:
         self.index_sums = cl_util.Buffer(numpy.uint32, 10, pyopencl.mem_flags.READ_WRITE, queue=queue)
 
         self.counter = cl_util.Buffer(numpy.uint32, 1, pyopencl.mem_flags.READ_WRITE, queue=queue)
-        self.list = cl_util.Buffer(cl_util.Buffer.quad_dtype(numpy.uint8), grid_size * grid_size * grid_size, pyopencl.mem_flags.WRITE_ONLY, queue=queue)
+        self.list = cl_util.Buffer(cl_util.Buffer.quad_dtype(numpy.uint8),
+                                   grid_size * grid_size * grid_size,
+                                   pyopencl.mem_flags.WRITE_ONLY, queue=queue)
 
         self.box_corner = None
         self.level = None
@@ -140,8 +142,8 @@ class _Helper:
                                                 self.program_buffer,
                                                 shifted_corner.as_float4(), numpy.float32(box_step),
                                                 numpy.float32(distance_threshold),
-                                                self.index_sums.buffer,
-                                                self.counter.buffer, self.list.buffer,
+                                                self.index_sums,
+                                                self.counter, self.list,
                                                 wait_for=[fill_ev])
 
     def process_result(self, event):

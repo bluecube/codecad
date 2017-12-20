@@ -23,7 +23,9 @@ class _Helper:
         self.final_blocks = final_blocks
 
         self.counter = cl_util.Buffer(numpy.uint32, 1, pyopencl.mem_flags.READ_WRITE, queue=queue)
-        self.list = cl_util.Buffer(cl_util.Buffer.quad_dtype(numpy.uint8), grid_size * grid_size * grid_size, pyopencl.mem_flags.WRITE_ONLY, queue=queue)
+        self.list = cl_util.Buffer(cl_util.Buffer.quad_dtype(numpy.uint8),
+                                   grid_size * grid_size * grid_size,
+                                   pyopencl.mem_flags.WRITE_ONLY, queue=queue)
 
         self.level = None
 
@@ -53,7 +55,7 @@ class _Helper:
                                                  self.program_buffer,
                                                  shifted_corner.as_float4(), numpy.float32(box_step),
                                                  numpy.float32(distance_threshold),
-                                                 self.counter.buffer, self.list.buffer,
+                                                 self.counter, self.list,
                                                  wait_for=[fill_ev])
 
     def process_result(self, event):

@@ -65,7 +65,7 @@ def render(obj,
                                      numpy.float32(box.a.z - box.size().z / 20),
                                      numpy.uint32(options),
                                      output_buffer,
-                                     assert_buffer.buffer)
+                                     assert_buffer)
 
     assert_buffer.check(wait_for=[ev])
 

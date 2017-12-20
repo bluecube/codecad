@@ -17,12 +17,12 @@ def test_buffer_indexing(size):
     b = codecad.cl_util.Buffer(pyopencl.cltypes.uint3,
                                size,
                                pyopencl.mem_flags.WRITE_ONLY)
-    ev = codecad.cl_util.opencl_manager.k.indexing_identity(b.size, None, b.buffer)
+    ev = codecad.cl_util.opencl_manager.k.indexing_identity(b.shape, None, b)
     b.read(wait_for=[ev])
 
     for coords in b.array:
-        seed = _tuple_from_xyz(coords)[:len(b.size)]
-        assert _tuple_from_xyz(b[seed])[:len(b.size)] == seed
+        seed = _tuple_from_xyz(coords)[:len(b.shape)]
+        assert _tuple_from_xyz(b[seed])[:len(b.shape)] == seed
 
 
 @pytest.mark.parametrize("size, nitems", [((4), 4), ((4, 4), 16), ((4, 4, 4), 64)])
@@ -37,7 +37,7 @@ def test_buffer_alloc_size(size, nitems, item_type, item_size):
     b.create_host_side_array()
 
     assert b.nitems == nitems
-    assert b.nbytes == nitems * item_size
+    assert b.size == nitems * item_size
     assert b.array.nbytes == nitems * item_size
 
 
@@ -50,8 +50,7 @@ def test_buffer_read_write():
     b[0] = 42
     ev = b.enqueue_write()
     ev = codecad.cl_util.opencl_manager.k.one_item_double((1,), None,
-                                                          b.buffer,
-                                                          wait_for=[ev])
+                                                          b, wait_for=[ev])
     b.read(wait_for=[ev])
 
     assert b[0] == 84
@@ -66,8 +65,7 @@ def test_buffer_read_write():
     b[0] = 42
     ev = b.enqueue_write()
     ev = codecad.cl_util.opencl_manager.k.one_item_double((1,), None,
-                                                          b.buffer,
-                                                          wait_for=[ev])
+                                                          b, wait_for=[ev])
     b.read(wait_for=[ev])
 
     assert b[0] == 84
@@ -81,8 +79,7 @@ def test_buffer_read_write_map():
     with b.map(pyopencl.map_flags.WRITE_INVALIDATE_REGION, wait_for=None) as mapped:
         mapped[0] = 31
 
-    ev = codecad.cl_util.opencl_manager.k.one_item_double((1,), None,
-                                                          b.buffer)
+    ev = codecad.cl_util.opencl_manager.k.one_item_double((1,), None, b)
 
     with b.map(pyopencl.map_flags.READ, wait_for=[ev]) as result:
         assert result[0] == 62
@@ -125,7 +122,7 @@ def test_buffer_map_size(item_type, item_size):
                                pyopencl.mem_flags.WRITE_ONLY)
 
     with b.map(pyopencl.map_flags.WRITE_INVALIDATE_REGION, wait_for=None) as mapped:
-        assert mapped.nbytes == b.nbytes
+        assert mapped.nbytes == b.size
         assert mapped.dtype == item_type
 
 
@@ -136,7 +133,7 @@ def test_assert_pass():
     assertBuffer.check()
 
     ev = codecad.cl_util.opencl_manager.k.assert_tester((10, 10), None,
-                                                        numpy.uint32(100), assertBuffer.buffer)
+                                                        numpy.uint32(100), assertBuffer)
 
     # The kernel shouldn't have logged an assert
     assertBuffer.check(wait_for=[ev])
@@ -145,7 +142,7 @@ def test_assert_pass():
 def test_assert_fail():
     assertBuffer = codecad.cl_util.AssertBuffer()
     ev = codecad.cl_util.opencl_manager.k.assert_tester((10, 10), None,
-                                                        numpy.uint32(5), assertBuffer.buffer)
+                                                        numpy.uint32(5), assertBuffer)
 
     with pytest.raises(codecad.cl_util.cl_assert.OpenClAssertionError) as exc_info:
         assertBuffer.check(wait_for=[ev])
@@ -158,9 +155,9 @@ def test_assert_fail():
 def test_assert_chaining_pass():
     assertBuffer = codecad.cl_util.AssertBuffer()
     ev = codecad.cl_util.opencl_manager.k.assert_tester((10, 10), None,
-                                                        numpy.uint32(101), assertBuffer.buffer)
+                                                        numpy.uint32(101), assertBuffer)
     ev = codecad.cl_util.opencl_manager.k.assert_tester((10, 10), None,
-                                                        numpy.uint32(102), assertBuffer.buffer,
+                                                        numpy.uint32(102), assertBuffer,
                                                         wait_for=[ev])
 
     # The kernel shouldn't have logged an assert
@@ -170,9 +167,9 @@ def test_assert_chaining_pass():
 def test_assert_chaining_multiple_fail():
     assertBuffer = codecad.cl_util.AssertBuffer()
     ev = codecad.cl_util.opencl_manager.k.assert_tester((10, 10), None,
-                                                        numpy.uint32(1), assertBuffer.buffer)
+                                                        numpy.uint32(1), assertBuffer)
     ev = codecad.cl_util.opencl_manager.k.assert_tester((10, 10), None,
-                                                        numpy.uint32(2), assertBuffer.buffer,
+                                                        numpy.uint32(2), assertBuffer,
                                                         wait_for=[ev])
 
     with pytest.raises(codecad.cl_util.cl_assert.OpenClAssertionError) as exc_info:

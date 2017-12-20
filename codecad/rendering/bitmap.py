@@ -29,5 +29,5 @@ def render(obj, size):
     ev = opencl_manager.k.bitmap(size, None,
                                  program_buffer,
                                  origin.as_float4(), numpy.float32(step_size),
-                                 output.buffer)
+                                 output)
     return output.read(wait_for=[ev]).reshape(shape)

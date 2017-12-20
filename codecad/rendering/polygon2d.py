@@ -87,7 +87,7 @@ def polygon(obj, resolution, subdivision_grid_size=None):
         process_ev = opencl_manager.k.process_polygon(grid_size_triangles, None,
                                                       box_corner.as_float2(), numpy.float32(box_resolution),
                                                       corners,
-                                                      vertices.buffer, links.buffer, starts.buffer, start_counter.buffer,
+                                                      vertices, links, starts, start_counter,
                                                       wait_for=[corners_ev, fill_ev])
 
         # Everything is read into the internal array of clutil.Buffer

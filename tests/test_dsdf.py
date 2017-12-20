@@ -62,7 +62,7 @@ def eval_buffer(dsdf_common):
                                                           scene_buffer,
                                                           box_corner.as_float4(),
                                                           numpy.float32(box_step),
-                                                          b.buffer)
+                                                          b)
 
     b.read(wait_for=[ev])
     return b
@@ -79,8 +79,7 @@ def actual_distance_buffer(dsdf_common, eval_buffer):
 
     ev = codecad.cl_util.opencl_manager.k.actual_distance_to_surface(size, None,
                                                                      numpy.float32(box_step),
-                                                                     eval_buffer.buffer,
-                                                                     b.buffer)
+                                                                     eval_buffer, b)
     b.read(wait_for=[ev])
     return b
 
@@ -102,7 +101,7 @@ def direction_buffer(dsdf_common):
                                                              box_corner.as_float4(),
                                                              numpy.float32(box_step),
                                                              numpy.float32(epsilon),
-                                                             b.buffer)
+                                                             b)
     b.read(wait_for=[ev])
     return b
 

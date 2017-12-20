@@ -6,7 +6,7 @@ import pyopencl
 from . import opencl_manager
 
 
-class Buffer:
+class Buffer(pyopencl.Buffer):
     """ A simple wrapper around pyopencl buffer that handles the corresponding
     numpy arrays and transfers. """
 
@@ -18,24 +18,24 @@ class Buffer:
     def quad_dtype(scalar):
         return numpy.dtype([(name, scalar) for name in 'xyzw'])
 
-    def __init__(self, dtype, size, mem_flags, queue=None):
+    def __init__(self, dtype, shape, mem_flags, queue=None):
         self.queue = queue if queue is not None else opencl_manager.instance.queue
         self.dtype = numpy.dtype(dtype)
         self.nitems = 1
 
         try:
-            for s in size:
+            for s in shape:
                 self.nitems *= s
-            self.size = size
+            self.shape = shape
         except TypeError:
-            self.nitems = size
-            self.size = (size,)
+            self.nitems = shape
+            self.shape = (shape,)
 
-        self.nbytes = self.nitems * self.dtype.itemsize
-        self.buffer = pyopencl.Buffer(self.queue.context,
-                                      mem_flags | pyopencl.mem_flags.ALLOC_HOST_PTR,
-                                      self.nbytes)
         self.array = None
+
+        super().__init__(self.queue.context,
+                         mem_flags | pyopencl.mem_flags.ALLOC_HOST_PTR,
+                         self.nitems * self.dtype.itemsize)
 
     def create_host_side_array(self):
         """ Create numpy array of appropriate size and dtype, assign it to buffer's
@@ -55,10 +55,10 @@ class Buffer:
         `wait_for` can be either None or list of pyopencl.Event. """
 
         array = self._process_array(out)
-        if array.nbytes < self.nbytes:
+        if array.nbytes < self.size:
             raise RuntimeError("Not enough space to store contents of the buffer")
 
-        pyopencl.enqueue_copy(self.queue, array, self.buffer,
+        pyopencl.enqueue_copy(self.queue, array, self,
                               wait_for=wait_for, is_blocking=True)
 
         return array
@@ -69,10 +69,10 @@ class Buffer:
         `wait_for` can be either None or list of opencl.Event. """
 
         array = self._process_array(a)
-        if array.nbytes > self.nbytes:
+        if array.nbytes > self.size:
             raise RuntimeError("Not enough space to store contents in the buffer")
 
-        return pyopencl.enqueue_copy(self.queue, self.buffer, array,
+        return pyopencl.enqueue_copy(self.queue, self, array,
                                      wait_for=wait_for, is_blocking=False)
 
     @contextlib.contextmanager
@@ -80,7 +80,7 @@ class Buffer:
         """ Context manager that maps the buffer data as a numpy array.
         `wait_for` can be either None or list of opencl.Event. """
 
-        array, event = pyopencl.enqueue_map_buffer(self.queue, self.buffer, map_flags,
+        array, event = pyopencl.enqueue_map_buffer(self.queue, self, map_flags,
                                                    0, (self.nitems,), self.dtype,
                                                    wait_for=wait_for, is_blocking=True)
         with array.base:
@@ -92,11 +92,11 @@ class Buffer:
         except TypeError:
             key = (key,)
 
-        if len(key) != len(self.size):
+        if len(key) != len(self.shape):
             raise ValueError("Wrong number of indices for buffer")
 
         index = 0
-        for k, s in zip(reversed(key), reversed(self.size)):
+        for k, s in zip(reversed(key), reversed(self.shape)):
             index = index * s + k
         return index
 
