@@ -12,7 +12,7 @@ def _tuple_from_xyz(xyz):
     return (xyz["x"], xyz["y"], xyz["z"])
 
 
-@pytest.mark.parametrize("size", [4, (4), (4, 4), (4, 4, 4)])
+@pytest.mark.parametrize("size", [4, (4,), (4, 4), (4, 4, 4)])
 def test_buffer_indexing(size):
     b = codecad.cl_util.Buffer(pyopencl.cltypes.uint3,
                                size,
@@ -25,7 +25,7 @@ def test_buffer_indexing(size):
         assert _tuple_from_xyz(b[seed])[:len(b.shape)] == seed
 
 
-@pytest.mark.parametrize("size, nitems", [((4), 4), ((4, 4), 16), ((4, 4, 4), 64)])
+@pytest.mark.parametrize("size, nitems", [((4,), 4), ((4, 4), 16), ((4, 4, 4), 64)])
 @pytest.mark.parametrize("item_type, item_size", [(pyopencl.cltypes.uint3, 16),
                                                   (pyopencl.cltypes.uchar, 1),
                                                   (pyopencl.cltypes.double16, 128)])
