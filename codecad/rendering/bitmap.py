@@ -20,7 +20,7 @@ def render(obj, size):
     step_size = box_size.elementwise_div(resolution).max()
     origin = box.midpoint() - resolution * step_size / 2
 
-    shape = (size[1], size[0], 3)
+    shape = (size[0], size[1], 3)
     program_buffer = nodes.make_program_buffer(obj)
     output = cl_util.Buffer(numpy.uint8,
                             shape,
@@ -30,4 +30,4 @@ def render(obj, size):
                                  program_buffer,
                                  origin.as_float4(), numpy.float32(step_size),
                                  output)
-    return output.read(wait_for=[ev]).reshape(shape)
+    return output.read(wait_for=[ev]).reshape(shape).transpose((1, 0, 2))

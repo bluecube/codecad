@@ -94,7 +94,8 @@ __kernel void process_polygon(float2 boxCorner, float boxStep,
     for (uint i = 0; i < 3; ++i)
     {
         uint2 coords = (uint2)(get_global_id(0), get_global_id(1)) + offsets[i];
-        size_t cornerIndex = INDEX2(get_global_size(0) + 1, coords.x, coords.y);
+        size_t cornerIndex = INDEX2(get_global_size(0) + 1, get_global_size(1) + 1,
+                                    coords.x, coords.y);
         cellType = cellType << 1 | (corners[cornerIndex].w <= 0 ? 1 : 0);
 
     }
@@ -165,7 +166,8 @@ __kernel void process_polygon(float2 boxCorner, float boxStep,
     for (uint i = 0; i < 3; ++i)
     {
         uint2 coords = (uint2)(get_global_id(0), get_global_id(1)) + offsets[i];
-        size_t cornerIndex = INDEX2(get_global_size(0) + 1, coords.x, coords.y);
+        size_t cornerIndex = INDEX2(get_global_size(0) + 1, get_global_size(1) + 1,
+                                    coords.x, coords.y);
         cornerPositions[i] = boxCorner + convert_float2(coords) * boxStep;
         cornerValues[i] = corners[cornerIndex];
     }

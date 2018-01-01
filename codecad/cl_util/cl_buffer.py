@@ -40,7 +40,7 @@ class Buffer(pyopencl.Buffer):
     def create_host_side_array(self):
         """ Create numpy array of appropriate size and dtype, assign it to buffer's
         internal `array` field and return it """
-        self.array = numpy.empty(self.nitems, dtype=self.dtype)
+        self.array = numpy.empty(self.shape, dtype=self.dtype)
 
     def _process_array(self, array):
         if array is None:
@@ -86,25 +86,11 @@ class Buffer(pyopencl.Buffer):
         with array.base:
             yield array.view(self.dtype)
 
-    def _index(self, key):
-        try:
-            iter(key)
-        except TypeError:
-            key = (key,)
-
-        if len(key) != len(self.shape):
-            raise ValueError("Wrong number of indices for buffer")
-
-        index = 0
-        for k, s in zip(reversed(key), reversed(self.shape)):
-            index = index * s + k
-        return index
-
     def __getitem__(self, key):
-        return self.array[self._index(key)]
+        return self.array[key]
 
     def __setitem__(self, key, value):
-        self.array[self._index(key)] = value
+        self.array[key] = value
 
     def __len__(self):
         return self.nitems

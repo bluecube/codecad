@@ -148,22 +148,28 @@ def test_dsdf_approximate(eval_buffer):
 
 
 @with_all_shapes
-def test_dsdf_valid_approximation(eval_buffer, actual_distance_buffer):
+def test_dsdf_valid_approximation(eval_buffer, actual_distance_buffer, dsdf_common):
     """ Distance returned is always lower or equal to the actual distance to surface.
     This condition is necessary for the raycasting algorithm to work. """
 
-    for v, actual_distance in zip(eval_buffer.array, actual_distance_buffer.array):
-        assert v[0]["w"] <= actual_distance + 1e-5
+    for index in numpy.ndindex(dsdf_common["size"]):
+        assert eval_buffer[index][0]["w"] <= actual_distance_buffer[index] + 1e-5
 
 
 @with_all_shapes
 def test_dsdf_direction(eval_buffer, direction_buffer, dsdf_common):
     """ Direction calculated by `evaluate` is close to one calculated by finite differences """
 
-    for v, direction in zip(eval_buffer.array, direction_buffer.array):
-        from_eval = codecad.util.Vector(v[0]["x"], v[0]["y"], v[0]["z"])
-        from_differences1 = codecad.util.Vector(direction[0]["x"], direction[0]["y"], direction[0]["z"])
-        from_differences2 = codecad.util.Vector(direction[1]["x"], direction[1]["y"], direction[1]["z"])
+    for index in numpy.ndindex(dsdf_common["size"]):
+        from_eval = codecad.util.Vector(eval_buffer[index][0][0],
+                                        eval_buffer[index][0][1],
+                                        eval_buffer[index][0][2])
+        from_differences1 = codecad.util.Vector(direction_buffer[index][0][0],
+                                                direction_buffer[index][0][1],
+                                                direction_buffer[index][0][2])
+        from_differences2 = codecad.util.Vector(direction_buffer[index][1][0],
+                                                direction_buffer[index][1][1],
+                                                direction_buffer[index][1][2])
 
         if abs(from_differences1 - from_differences2) > 1e-4:
             # Most likely a dicontinuity and the check doesn't make sense here

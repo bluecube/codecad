@@ -20,9 +20,9 @@ def test_buffer_indexing(size):
     ev = codecad.cl_util.opencl_manager.k.indexing_identity(b.shape, None, b)
     b.read(wait_for=[ev])
 
-    for coords in b.array:
-        seed = _tuple_from_xyz(coords)[:len(b.shape)]
-        assert _tuple_from_xyz(b[seed])[:len(b.shape)] == seed
+    for index in numpy.ndindex(b.shape):
+        assert tuple(b[index])[:len(b.shape)] == index
+        assert tuple(b.array[index])[:len(b.shape)] == index
 
 
 @pytest.mark.parametrize("size, nitems", [((4,), 4), ((4, 4), 16), ((4, 4, 4), 64)])
@@ -38,7 +38,7 @@ def test_buffer_alloc_size(size, nitems, item_type, item_size):
 
     assert b.nitems == nitems
     assert b.size == nitems * item_size
-    assert b.array.nbytes == nitems * item_size
+    assert b.array.nbytes == b.size
 
 
 def test_buffer_read_write():

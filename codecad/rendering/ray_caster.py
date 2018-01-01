@@ -47,13 +47,9 @@ def render(obj,
     min_distance = max(0, origin_to_midpoint - box_radius)
     max_distance = origin_to_midpoint + box_radius
 
-    output = numpy.empty([size[1], size[0], 3], dtype=numpy.uint8)
-
     mf = pyopencl.mem_flags
     program_buffer = nodes.make_program_buffer(obj)
-    output_buffer = pyopencl.Buffer(opencl_manager.context,
-                                    mf.WRITE_ONLY,
-                                    output.nbytes)
+    output_buffer = cl_util.Buffer(numpy.uint8, [size[0], size[1], 3], mf.WRITE_ONLY)
 
     assert_buffer = cl_util.AssertBuffer()
 
@@ -69,19 +65,19 @@ def render(obj,
 
     assert_buffer.check(wait_for=[ev])
 
-    pyopencl.enqueue_copy(opencl_manager.queue, output, output_buffer, wait_for=[ev])
+    output_buffer.read(wait_for=[ev])
 
     print("Render took", (ev.profile.end - ev.profile.start) / 1e9)
 
     if options & RenderOptions.false_color:
         for i, name in enumerate(["Steps taken", "Residual * 1000"]):
-            channel = output[:, :, i]
+            channel = output_buffer[:, :, i]
             print("{}: min: {}, max: {}, mean: {}".format(name,
                                                           channel.min(),
                                                           channel.max(),
                                                           channel.mean()))
 
-    return output
+    return output_buffer.array.transpose((1, 0, 2))
 
 
 def get_camera_params(box, size, view_angle):
