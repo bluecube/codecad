@@ -1,10 +1,6 @@
 """
 Test that the directed signed distance function behaves as expected.
 """
-# TODO: This module collects some of the testing data from other test modules
-# because it was the easiest thing to do, but it would be nicer if the other modules
-# could inject their data into these tests
-
 import pytest
 import pyopencl
 import pyopencl.cltypes
