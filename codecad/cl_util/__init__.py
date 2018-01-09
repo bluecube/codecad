@@ -1,5 +1,6 @@
 from . cl_buffer import *
 from . cl_assert import *
+from . codegen import *
 from . opencl_manager import instance as opencl_manager
 
 

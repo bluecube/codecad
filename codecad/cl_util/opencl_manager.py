@@ -6,6 +6,8 @@ import os.path
 
 import pyopencl
 
+from . import codegen
+
 from .. import util
 
 DEFAULT_COMPILER_OPTIONS = ["-Werror",
@@ -37,7 +39,7 @@ class CompileUnit:
         abs_filename = os.path.join(os.path.dirname(frame[1]), filename)
         rel_filename = os.path.relpath(abs_filename)
 
-        self.pieces.append('#line 1 "{}"'.format(rel_filename))  # TODO: Escape filename
+        self.pieces.append('#line 1 ' + codegen.format_c_string_literal(rel_filename))
         with open(abs_filename, "r") as fp:
             self.pieces.append(fp.read())
 
@@ -51,7 +53,7 @@ class CompileUnit:
             code = code[1:]
             line += 1
 
-        self.pieces.append('#line {} "{}"'.format(line, frameinfo.filename))  # TODO: Escape filename
+        self.pieces.append('#line {} {}'.format(line, codegen.format_c_string_literal(frameinfo.filename)))
         self.pieces.append(code)
 
 

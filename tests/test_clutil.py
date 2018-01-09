@@ -1,4 +1,7 @@
+import warnings
+
 import pytest
+import pyopencl
 import pyopencl.cltypes
 import numpy
 import os.path
@@ -236,3 +239,34 @@ def test_interleave():
     assert tics_working >= len(checked) - 4
     # 1 tick inactive during startup, 1 tick during finshing, 2 ticks because of
     # a stall when the jobs start running out
+
+
+@pytest.mark.parametrize("string", ['', 'ac', 'a\nb', 'a"b', 'ěščřžýáíé', 'ab\0cd', '\1''23',
+                                    pytest.param(''.join(map(chr, range(128))), id="0-127")])
+def test_format_c_string_literal(string):
+    """ Test that a kernel compiles correctly with generated string literal and
+    that the literal corresponds to the same string when read from the kernel """
+
+    with warnings.catch_warnings():
+        # Intel OpenCL generates non empty output and that causes warnings
+        # from pyopencl. We just silence them.
+        warnings.simplefilter("ignore")
+        program = pyopencl.Program(codecad.cl_util.opencl_manager.context, """
+
+__kernel void copy_string(__global char* output, uint n)
+{
+    __constant const char* p = """ + codecad.cl_util.format_c_string_literal(string) + """;
+    for (uint i = 0; i < n; ++i)
+        *output++ = *p++;
+}""").build()
+
+    encoded = list(string.encode("utf-8"))
+
+    output = codecad.cl_util.Buffer(pyopencl.cltypes.uchar, 256, pyopencl.mem_flags.WRITE_ONLY)
+
+    ev = program.copy_string(codecad.cl_util.opencl_manager.queue, (1,), None,
+                             output, numpy.uint32(len(encoded) + 1))
+    output.read(wait_for=[ev])
+
+    assert all(encoded == output[:len(encoded)])
+    assert output[len(encoded)] == 0, "The string must be null terminated"
