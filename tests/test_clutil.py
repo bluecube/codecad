@@ -178,3 +178,61 @@ def test_assert_chaining_multiple_fail():
     assert exc_info.value.count == 2
     assert os.path.basename(exc_info.value.filename) == "test_clutil.cl"
     assert exc_info.value.global_id == [1, 1, 0, 0]
+
+
+def test_interleave():
+    job_log = []
+    job_counter = 0
+
+    class MockEvent:
+        def __init__(self, job):
+            self.job = job
+
+        def wait(self):
+            nonlocal job_log
+            job_log.append((self.job, "wait"))
+
+    def job_func(job):
+        nonlocal job_log, job_counter
+        job_log.append((job, 1))
+
+        yield MockEvent(job)
+
+        job_log.append((job, 2))
+
+        if job < 10:
+            return [2 * job, 2 * job + 1]
+
+    codecad.cl_util.interleave2(job_func, [2, 3])
+
+    checked = set()
+    working_jobs = set()
+    tics_working = 0
+    max_working_jobs = 0
+
+    for job, step in job_log:
+        # print(job, step, working_jobs)
+
+        if len(working_jobs):
+            tics_working += 1
+        max_working_jobs = max(max_working_jobs, len(working_jobs))
+
+        if step == 1:
+            working_jobs.add(job)
+        elif step == "wait":
+            working_jobs.remove(job)
+        elif step == 2:
+            assert (job, "wait") in checked, "The event must be waited on before step 2"
+
+        if job > 3:
+            assert (job // 2, 2) in checked, "Parent task must be finished before running a child"
+
+        checked.add((job, step))
+
+    assert (18, 2) in checked
+    assert (19, 2) in checked
+
+    assert max_working_jobs == 2
+    assert tics_working >= len(checked) - 4
+    # 1 tick inactive during startup, 1 tick during finshing, 2 ticks because of
+    # a stall when the jobs start running out
