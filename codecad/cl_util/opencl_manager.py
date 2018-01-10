@@ -2,7 +2,6 @@ import inspect
 import itertools
 import functools
 import warnings
-import os.path
 
 import pyopencl
 
@@ -34,27 +33,10 @@ class CompileUnit:
         return "\n".join(itertools.chain(extra_headers, self.pieces))
 
     def append_file(self, filename):
-        frame = inspect.stack()[1]
-
-        abs_filename = os.path.join(os.path.dirname(frame[1]), filename)
-        rel_filename = os.path.relpath(abs_filename)
-
-        self.pieces.append('#line 1 ' + codegen.format_c_string_literal(rel_filename))
-        with open(abs_filename, "r") as fp:
-            self.pieces.append(fp.read())
+        self.pieces.append(codegen.file_with_origin(filename, stacklevel=2))
 
     def append(self, code):
-        frame = inspect.currentframe().f_back
-        frameinfo = inspect.getframeinfo(frame, context=0)
-        lines = code.count("\n")
-        line = frameinfo.lineno - lines
-
-        while code.startswith("\n"):
-            code = code[1:]
-            line += 1
-
-        self.pieces.append('#line {} {}'.format(line, codegen.format_c_string_literal(frameinfo.filename)))
-        self.pieces.append(code)
+        self.pieces.append(codegen.string_with_origin(code, stacklevel=2))
 
 
 class _Kernels:
