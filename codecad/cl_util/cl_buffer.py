@@ -50,9 +50,22 @@ class Buffer(pyopencl.Buffer):
         else:
             return array
 
+    def enqueue_read(self, out=None, wait_for=None):
+        """ Read contents of the buffer either into `self.array`, or to `out`.
+        `wait_for` can be either None or list of pyopencl.Event.
+        Returns event. """
+
+        array = self._process_array(out)
+        if array.nbytes < self.size:
+            raise RuntimeError("Not enough space to store contents of the buffer")
+
+        return pyopencl.enqueue_copy(self.queue, array, self,
+                                     wait_for=wait_for, is_blocking=False)
+
     def read(self, out=None, wait_for=None):
         """ Read contents of the buffer either into `self.array`, or to `out`.
-        `wait_for` can be either None or list of pyopencl.Event. """
+        `wait_for` can be either None or list of pyopencl.Event.
+        Blocks until the data is ready, returns output array. """
 
         array = self._process_array(out)
         if array.nbytes < self.size:
