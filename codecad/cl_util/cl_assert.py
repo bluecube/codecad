@@ -80,9 +80,9 @@ class AssertBuffer(cl_buffer.Buffer):
                                        expr)
 
 
-opencl_manager.common_header.append("#define ASSERT_BUFFER_SIZE {}".format(AssertBuffer.ASSERT_BUFFER_SIZE))
+opencl_manager.common_header.append_define("ASSERT_BUFFER_SIZE", AssertBuffer.ASSERT_BUFFER_SIZE)
 if __debug__:
-    opencl_manager.common_header.append("#define DEBUG 1")
+    opencl_manager.common_header.append_define("DEBUG", 1)
 opencl_manager.common_header.append_file("assert.h")
 
 opencl_manager.add_compile_unit().append_file("assert.cl")

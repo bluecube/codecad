@@ -9,7 +9,7 @@ def generate_eval_source_code(node_class, register_count):
     h.append('float4 evaluate(__constant float* program, float3 point);')
 
     c = opencl_manager.add_compile_unit()
-    c.append('#define EVAL_REGISTER_COUNT {}'.format(register_count))
+    c.append_define("EVAL_REGISTER_COUNT", register_count)
     for name, (params, arity, code) in node_class._node_types.items():
         _generate_op_decl(c, name, params, arity, code)
     c.append('''

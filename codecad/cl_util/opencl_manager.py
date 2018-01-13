@@ -32,11 +32,17 @@ class CompileUnit:
     def code(self, extra_headers=[]):
         return "\n".join(itertools.chain(extra_headers, self.pieces))
 
-    def append_file(self, filename):
-        self.pieces.append(codegen.file_with_origin(filename, stacklevel=2))
+    def append_file(self, filename, stacklevel=1):
+        self.pieces.append(codegen.file_with_origin(filename,
+                                                    stacklevel=stacklevel + 1))
 
-    def append(self, code):
-        self.pieces.append(codegen.string_with_origin(code, stacklevel=2))
+    def append_define(self, name, value, stacklevel=1):
+        self.append("#define {} {}".format(name, value),
+                    stacklevel=stacklevel + 1)
+
+    def append(self, code, stacklevel=1):
+        self.pieces.append(codegen.string_with_origin(code,
+                                                      stacklevel=stacklevel + 1))
 
 
 class _Kernels:

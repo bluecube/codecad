@@ -16,7 +16,7 @@ class RenderOptions(flags.Flags):
 
 _c_file = opencl_manager.add_compile_unit()
 for flag in RenderOptions:
-    _c_file.append("#define RENDER_OPTIONS_{} {}".format(flag.to_simple_str().upper(), int(flag)))
+    _c_file.append_define("RENDER_OPTIONS_{}".format(flag.to_simple_str().upper()), int(flag))
 _c_file.append_file("ray_caster.cl")
 
 
