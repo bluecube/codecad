@@ -83,9 +83,12 @@ class _Helper:
             return ((int_pos, level) for int_pos in int_intersecting_pos)
 
 
-def calculate_block_sizes(box, dimension, resolution, grid_size, overlap):
+def calculate_block_sizes(box, dimension, resolution, grid_size, overlap, level_size_multiplier=1):
     # Figure out the layout of grids for processing.
     # There shouldn't ever be more than ~10 levels.
+
+    if grid_size % level_size_multiplier != 0:
+        raise ValueError("Grid size must be divisible by level_size_multiplier")
 
     block_sizes = []
     if dimension == 2:
@@ -112,7 +115,7 @@ def calculate_block_sizes(box, dimension, resolution, grid_size, overlap):
         cell_size = next_cell_size
 
     block_sizes[-1] = (cell_size,
-                       util.Vector(*(util.clamp(math.ceil(x) + overlap_delta, 1, s)
+                       util.Vector(*(util.clamp(util.round_up_to(math.ceil(x) + overlap_delta, level_size_multiplier), 1, s)
                                    for x, s in zip(box_int_size / cell_size, level_size))))
 
     block_sizes.reverse()

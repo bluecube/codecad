@@ -3,6 +3,11 @@ import time
 import sys
 
 
+def round_up_to(x, y):
+    """ Round x away from zero to a nearest multiple of y """
+    return ((x + y - 1) // y) * y
+
+
 @contextlib.contextmanager
 def status_block(title):
     print(title, end="...")
