@@ -94,6 +94,9 @@ class Vector(collections.namedtuple("Vector", "x y z")):
     def as_matrix(self):
         return numpy.matrix([[self.x], [self.y], [self.z], [1]])
 
+    def __str__(self):
+        return "({}, {}, {})".format(self.x, self.y, self.z)
+
 
 class BoundingBox(collections.namedtuple("BoundingBox", "a b")):
     __slots__ = ()
