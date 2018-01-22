@@ -1,4 +1,6 @@
 import collections
+import functools
+import operator
 import math
 
 import numpy
@@ -59,10 +61,14 @@ def mass_properties(shape, resolution, grid_size=None):
     integral_xz = util.KahanSummation()
     integral_yz = util.KahanSummation()
 
+    kernel_invocations = 0
+    function_evaluations = 0
+
     def job(job_id):
         nonlocal integral_one, integral_x, integral_y, integral_z, \
                  integral_xx, integral_yy, integral_zz, \
                  integral_xy, integral_xz, integral_yz
+        nonlocal kernel_invocations, function_evaluations
 
         box_corner, level = job_id
 
@@ -92,6 +98,8 @@ def mass_properties(shape, resolution, grid_size=None):
                                                index_sums,
                                                intersecting_counter, intersecting_list,
                                                wait_for=[fill_ev])
+        kernel_invocations += 1
+        function_evaluations += functools.reduce(operator.mul, grid_dimensions)
 
         intersecting_count = intersecting_counter.read()[0]
         intersecting_event = intersecting_list.enqueue_read()
@@ -149,6 +157,12 @@ def mass_properties(shape, resolution, grid_size=None):
     integral_xy = integral_xy.result
     integral_xz = integral_xz.result
     integral_yz = integral_yz.result
+
+    # Relative speedup compared to just blindly dividing the bounding box to the
+    # final resolution in one step
+    # direct_evaluations = functools.reduce(operator.mul, (box.size() / resolution).applyfunc(math.ceil))
+    # speedup = 1 - function_evaluations / direct_evaluations
+    # print("speedup:", speedup)
 
     volume = integral_one
     if volume == 0:
