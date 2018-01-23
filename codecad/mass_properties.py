@@ -13,7 +13,11 @@ from . import subdivision
 from .cl_util import opencl_manager
 from . import nodes
 
-opencl_manager.add_compile_unit().append_file("mass_properties.cl")
+INNER_LOOP_SIDE = 3
+
+c = opencl_manager.add_compile_unit()
+c.append_define("INNER_LOOP_SIDE", INNER_LOOP_SIDE)
+c.append_file("mass_properties.cl")
 
 
 class MassProperties(collections.namedtuple("MassProperties", "volume centroid inertia_tensor")):
@@ -30,13 +34,13 @@ def mass_properties(shape, resolution, grid_size=None):
 
     if grid_size is None:
         # TODO: Determine default grid size
-        grid_size = 64
+        grid_size = INNER_LOOP_SIDE * 32
 
     assert shape.dimension() == 3, "2D objects are not supported yet"
     assert resolution > 0, "Non-positive resolution makes no sense"
-    assert grid_size > 1, "Grid needs to be at least 2x2x2"
-    assert grid_size**5 <= 2**32, "Centroid coordinate sums would overflow"
-    # TODO: Increase this limit, use 64bit or figure out something else ...
+    assert grid_size > 2, "Grid needs to be > 2"
+    assert grid_size % INNER_LOOP_SIDE == 0, "Grid size must be divisible by {}".format(INNER_LOOP_SIDE)
+    assert 0.5 * grid_size**5 <= 2**32, "Centroid coordinate sums would overflow uint32"
 
     program_buffer = nodes.make_program_buffer(shape)
 
@@ -45,8 +49,8 @@ def mass_properties(shape, resolution, grid_size=None):
                                                     shape.dimension(),
                                                     resolution,
                                                     grid_size,
-                                                    overlap=False)
-
+                                                    overlap=False,
+                                                    level_size_multiplier=INNER_LOOP_SIDE)
     block_sizes = [(resolution * cell_size, level_size)
                    for cell_size, level_size in block_sizes]
 
@@ -81,6 +85,7 @@ def mass_properties(shape, resolution, grid_size=None):
         box_step = block_sizes[level][0]
         grid_dimensions = block_sizes[level][1]
         assert all(x <= grid_size for x in grid_dimensions)
+        assert all(x % INNER_LOOP_SIDE == 0 for x in grid_dimensions)
         shifted_corner = box_corner + util.Vector.splat(box_step / 2)
         if level < len(block_sizes) - 1:
             distance_threshold = box_step * math.sqrt(3) / 2
@@ -91,7 +96,10 @@ def mass_properties(shape, resolution, grid_size=None):
         fill_ev = index_sums.enqueue_write(numpy.zeros(10, index_sums.dtype))
         fill_ev = intersecting_counter.enqueue_write(numpy.zeros(1, intersecting_counter.dtype), wait_for=[fill_ev])
 
-        yield opencl_manager.k.mass_properties(grid_dimensions, None,
+        global_work_size = [x // INNER_LOOP_SIDE for x in grid_dimensions]
+        #print(box_corner, box_step, grid_dimensions, global_work_size)
+
+        yield opencl_manager.k.mass_properties(global_work_size, None,
                                                program_buffer,
                                                shifted_corner.as_float4(), numpy.float32(box_step),
                                                numpy.float32(distance_threshold),
@@ -110,7 +118,7 @@ def mass_properties(shape, resolution, grid_size=None):
         s = block_sizes[level][0]
         s2 = s * s
         s3 = s * s2
-        b = box_corner + util.Vector.splat(s / 2)
+        b = shifted_corner
 
         # Order is defined in mass_properties.cl
         sum_xx, sum_xy, sum_xz, sum_x, sum_yy, sum_yz, \
@@ -160,9 +168,9 @@ def mass_properties(shape, resolution, grid_size=None):
 
     # Relative speedup compared to just blindly dividing the bounding box to the
     # final resolution in one step
-    # direct_evaluations = functools.reduce(operator.mul, (box.size() / resolution).applyfunc(math.ceil))
-    # speedup = 1 - function_evaluations / direct_evaluations
-    # print("speedup:", speedup)
+    direct_evaluations = functools.reduce(operator.mul, (box.size() / resolution).applyfunc(math.ceil))
+    speedup = 1 - function_evaluations / direct_evaluations
+    print("speedup:", speedup)
 
     volume = integral_one
     if volume == 0:

@@ -9,50 +9,58 @@ __kernel void mass_properties(__constant float* shape,
                               float distanceThreshold,
                               __global uint sum[10],
                               __global uint* intersectingCounter,
-                              __global uchar4* list)
+                              __global uchar3* list)
 {
-    // Using local buffer to decrease global atomic contention
-    __local uint sumBuffer[10];
+    __local uint localSumBuffer[10];
+    __private uint privateSumBuffer[10];
 
     bool isFirstInWorkgroup = get_local_id(0) == 0 && get_local_id(1) == 0 && get_local_id(2) == 0;
-    // Initialize the local buffer
-    if (isFirstInWorkgroup) {
+
+    if (isFirstInWorkgroup)
         for (size_t i = 0; i < 10; ++i)
-            sumBuffer[i] = 0;
-    }
+                localSumBuffer[i] = 0;
+
     barrier(CLK_LOCAL_MEM_FENCE);
 
-    float3 point = as_float3(boxCorner) + boxStep * (float3)(get_global_id(0),
-                                                             get_global_id(1),
-                                                             get_global_id(2));
+    for (size_t i = 0; i < 10; ++i)
+        privateSumBuffer[i] = 0;
 
-    float value = evaluate(shape, point).w;
+    uint3 globalOffset = INNER_LOOP_SIDE * (uint3)(get_global_id(0),
+                                                   get_global_id(1),
+                                                   get_global_id(2));
 
-    if (value <= -distanceThreshold)
-    {
-        // Definitely inside; count it in
-        uint coords[4] = { get_global_id(0),
-                           get_global_id(1),
-                           get_global_id(2),
-                           1 };
-        size_t i = 0;
-        for (size_t j = 0; j < 4; ++j)
-            for (size_t k = j; k < 4; ++k)
-                atomic_add(&sumBuffer[i++], coords[j] * coords[k]);
-    }
-    else if (value < distanceThreshold)
-        // Possibly intersecting the shape surface, needs to be split again
-        list[atomic_inc(intersectingCounter)] = (uchar4)(get_global_id(0),
-                                                         get_global_id(1),
-                                                         get_global_id(2),
-                                                         0);
+    for (size_t i = 0; i < INNER_LOOP_SIDE; ++i)
+        for (size_t j = 0; j < INNER_LOOP_SIDE; ++j)
+            for (size_t k = 0; k < INNER_LOOP_SIDE; ++k)
+            {
+                uint3 index = globalOffset + (uint3)(i, j, k);
+                float3 point = boxCorner.xyz + convert_float3(index) * boxStep;
 
-    // flush the buffers into the global result
+                float value = evaluate(shape, point).w;
+
+                if (value <= -distanceThreshold)
+                {
+                    // Definitely inside; count it in
+                    uint coords[4] = { index.x, index.y, index.z, 1 };
+                    size_t n = 0;
+                    for (size_t l = 0; l < 4; ++l)
+                        for (size_t m = l; m < 4; ++m)
+                            privateSumBuffer[n++] += coords[l] * coords[m];
+                }
+                else if (value < distanceThreshold)
+                    // Possibly intersecting the shape surface, needs to be split again
+                    // TODO: Figure out how to avoid the global atomic here
+                    list[atomic_inc(intersectingCounter)] = convert_uchar3(index);
+            }
+
+    for (size_t i = 0; i < 10; ++i)
+        atomic_add(&localSumBuffer[i], privateSumBuffer[i]);
+
     barrier(CLK_LOCAL_MEM_FENCE);
-    if (isFirstInWorkgroup) {
+
+    if (isFirstInWorkgroup)
         for (size_t i = 0; i < 10; ++i)
-            atomic_add(&sum[i], sumBuffer[i]);
-    }
+            atom_add(&sum[i], localSumBuffer[i]);
 }
 
 
