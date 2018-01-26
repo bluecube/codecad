@@ -153,44 +153,36 @@ def mass_properties(shape, precision=1e-4):
         # Everything in this part is calculated in blocks instead of in volumes
         # (Everything is divided by s3).
 
-        # Go through all intersecting sub blocks and calculate volume estimate
-        # and error bound based on their unbounding volumes
-        estimate = util.KahanSummation()
-        estimate += n
-        error_bound = util.KahanSummation()
-        processed_intersecting = []
-        intersecting_event.wait()
-        for i, j, k, l in intersecting_list[:intersecting_count]:
-            corner = util.Vector(i, j, k) * s + current_corner
-            volume_fraction = l / 127
-
-            weight = (1 - volume_fraction) / 2
-            error = (1 - abs(volume_fraction)) / 2
-
-            estimate += weight
-            error_bound += error
-
-            processed_intersecting.append((corner, weight, error))
-
-        estimate = estimate.result
-        error_bound = error_bound.result
 
         # TODO: The precision setting will not work correctly on mostly empty
         # models (eg. a grid of tiny balls at vertices of the initial grid)
         if current_allowed_error is None:
             # Handle first kernel launch
+            # We are using a rougher estimate here (counting all intersecting as
+            # having weight 0.5 and error bound 0.5), because it is only used
+            # for calculating the allowed absolute error.
+            # This might degrade precision if the shape has very little volume
+            # but many intersecting blocks. In this case the relative precision
+            # will be set based on bounding box volume and not the actual shape volume.
+            # TODO: Maybe track sum of weights in one of the integer counters in CL code.
+            estimate = n + intersecting_count / 2
+            error_bound = intersecting_count / 2
             current_allowed_error = precision * estimate
 
-        need_splitting = error_bound > current_allowed_error
         current_allowed_error_per_intersecting = current_allowed_error / intersecting_count
         next_step = current_step / GRID_SIZE
         next_grid = [GRID_SIZE,] * 3
         next_allowed_error = current_allowed_error_per_intersecting * GRID_SIZE**3
         next_jobs = []
 
-        for corner, weight, error in processed_intersecting:
-            if error < current_allowed_error_per_intersecting or not need_splitting:
-                weight *= s3
+        intersecting_event.wait()
+        for i, j, k, l in intersecting_list[:intersecting_count]:
+            corner = util.Vector(i, j, k) * s + current_corner
+            volume_fraction = l / 127
+            error = (1 - abs(volume_fraction)) / 2
+
+            if error < current_allowed_error_per_intersecting:
+                weight = s3 * (1 - volume_fraction) / 2
                 center = corner + util.Vector.splat(s / 2)
 
                 integral_one += weight
