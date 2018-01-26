@@ -6,10 +6,9 @@
  * Care must be taken when calling this not to overflow the 32bit counters. */
 __kernel void mass_properties(__constant float* shape,
                               float4 boxCorner, float boxStep,
-                              float distanceThreshold,
                               __global uint sum[10],
                               __global uint* intersectingCounter,
-                              __global uchar3* list)
+                              __global char4* list)
 {
     __local uint localSumBuffer[10];
     __private uint privateSumBuffer[10];
@@ -28,6 +27,7 @@ __kernel void mass_properties(__constant float* shape,
     uint3 globalOffset = INNER_LOOP_SIDE * (uint3)(get_global_id(0),
                                                    get_global_id(1),
                                                    get_global_id(2));
+    float distanceThreshold = boxStep * sqrt(3.0) / 2;
 
     for (size_t i = 0; i < INNER_LOOP_SIDE; ++i)
         for (size_t j = 0; j < INNER_LOOP_SIDE; ++j)
@@ -48,9 +48,48 @@ __kernel void mass_properties(__constant float* shape,
                             privateSumBuffer[n++] += coords[l] * coords[m];
                 }
                 else if (value < distanceThreshold)
+                {
                     // Possibly intersecting the shape surface, needs to be split again
+                    // We want to calculate what part of cube volume is covered by the
+                    // unbounding sphere.
+                    // This is easier to do with the cube having being 2x2x2 units big.
+                    // so we scale the value
+                    float radius = 2 * fabs(value) / boxStep;
+                    float volume;
+
+                    if (radius <= sqrt(2.0))
+                    {
+                        // Volume of the unbounding sphere itself
+                        volume = radius * radius * radius * M_PI * 4 / 3.0;
+                        float capHeight = radius - 1;
+                        if (capHeight > 0)
+                            // Subtract six spherical caps
+                            volume -= capHeight * capHeight * (3 * radius - capHeight) * 2 * M_PI;
+                    }
+                    else
+                    {
+                        // Because the case where sqrt(2) < radius < sqrt(3) is too
+                        // complicated, we use a lower bound on the unbounding volume
+                        // in this case.
+                        // The exact shape whose volume we're estimating is a cube
+                        // with corners chopped of by a sphere.
+                        // Instead we chop the corners off with trirectangular tetrahedrons
+                        // which have more volume than the original corners
+                        // (same vertices, but convex).
+                        float x = 1 - sqrt(radius * radius - 2);
+                        volume = 8 * (1 - x * x * x / 6);
+                    }
+
+                    // Encode volume for output
+                    // Truncation when converting to char is Ok, since we only
+                    // need lower bound of the volume
+                    char cVolume = copysign(volume * 127 / 8.0, value);
+                    //char cVolume = (volume) * 16;
+
                     // TODO: Figure out how to avoid the global atomic here
-                    list[atomic_inc(intersectingCounter)] = convert_uchar3(index);
+                    list[atomic_inc(intersectingCounter)] = (char4)(convert_char3(index),
+                                                                    cVolume);
+                }
             }
 
     for (size_t i = 0; i < 10; ++i)
