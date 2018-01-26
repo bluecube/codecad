@@ -13,7 +13,13 @@ from . import subdivision
 from .cl_util import opencl_manager
 from . import nodes
 
-INNER_LOOP_SIDE = 3
+INNER_LOOP_SIDE = 3  # Side of sample cube that gets calculated within private memory
+GRID_SIZE = INNER_LOOP_SIDE * 32  # Max allowed grid size
+assert GRID_SIZE > 2, "Grid side size needs to be > 2"
+assert GRID_SIZE % INNER_LOOP_SIDE == 0, "Grid size must be divisible by {}".format(INNER_LOOP_SIDE)
+assert GRID_SIZE < 2**7, "Grid coordinates must fit int8"
+assert GRID_SIZE**3 * (GRID_SIZE + 1)**2 / 2 <= 2**32, \
+    "Centroid coordinate sums must fit uint32"
 
 c = opencl_manager.add_compile_unit()
 c.append_define("INNER_LOOP_SIDE", INNER_LOOP_SIDE)
@@ -41,20 +47,13 @@ def mass_properties(shape, precision=1e-4):
     # integral(x, a, a + s, integral(y, b, b + s, integral(z, c, c + s, x))) = s**3 * (a + s / 2)
     # integral(x, a, a + s, integral(y, b, b + s, integral(z, c, c + s, x * y))) = s**3 * (a + s / 2) * (b + s / 2)
 
-    grid_size = INNER_LOOP_SIDE * 32  # Max allowed grid size
-
     assert shape.dimension() == 3, "2D objects are not supported yet"
-    assert grid_size > 2, "Grid side size needs to be > 2"
-    assert grid_size % INNER_LOOP_SIDE == 0, "Grid size must be divisible by {}".format(INNER_LOOP_SIDE)
-    assert grid_size < 2**7, "Grid coordinates must fit uint8"
-    assert 0.25 * grid_size**3 * (grid_size + 1)**2 <= 2**32, \
-        "Centroid coordinate sums must fit uint32"
 
     program_buffer = nodes.make_program_buffer(shape)
 
     box = shape.bounding_box()
     box_size = box.size()
-    initial_step = box_size.max() / grid_size
+    initial_step = box_size.max() / GRID_SIZE
     initial_grid = [int(util.round_up_to(s / initial_step, INNER_LOOP_SIDE)) for s in box_size]
 
     integral_one = util.KahanSummation()
@@ -80,14 +79,14 @@ def mass_properties(shape, precision=1e-4):
         nonlocal kernel_invocations, function_evaluations
 
         current_corner, current_step, current_grid, current_allowed_error = job_id
-        assert all(x <= grid_size for x in current_grid)
+        assert all(x <= GRID_SIZE for x in current_grid)
 
         current_evaluations = functools.reduce(operator.mul, current_grid)
 
         index_sums = cl_util.Buffer(numpy.uint32, 10, pyopencl.mem_flags.READ_WRITE)
         intersecting_counter = cl_util.Buffer(numpy.uint32, 1, pyopencl.mem_flags.READ_WRITE)
         intersecting_list = cl_util.Buffer(pyopencl.cltypes.char4,
-                                           grid_size**3,
+                                           GRID_SIZE**3,
                                            pyopencl.mem_flags.WRITE_ONLY)
 
         # Enqueue write instead of fill to work around pyopencl bug #168
@@ -178,9 +177,9 @@ def mass_properties(shape, precision=1e-4):
 
         need_splitting = error_bound > current_allowed_error
         current_allowed_error_per_intersecting = current_allowed_error / intersecting_count
-        next_step = current_step / grid_size
-        next_grid = [grid_size,] * 3
-        next_allowed_error = current_allowed_error_per_intersecting * grid_size**3
+        next_step = current_step / GRID_SIZE
+        next_grid = [GRID_SIZE,] * 3
+        next_allowed_error = current_allowed_error_per_intersecting * GRID_SIZE**3
         next_jobs = []
 
         for corner, weight, error in processed_intersecting:
