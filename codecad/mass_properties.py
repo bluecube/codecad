@@ -2,6 +2,7 @@ import collections
 import functools
 import operator
 import math
+import time
 
 import numpy
 import pyopencl
@@ -68,6 +69,7 @@ def mass_properties(shape, precision=1e-4):
     integral_yz = util.KahanSummation()
     total_error = util.KahanSummation()
 
+    time_computing = 0
     kernel_invocations = 0
     function_evaluations = 0
 
@@ -75,6 +77,7 @@ def mass_properties(shape, precision=1e-4):
         nonlocal integral_one, integral_x, integral_y, integral_z, \
                  integral_xx, integral_yy, integral_zz, \
                  integral_xy, integral_xz, integral_yz, total_error
+        nonlocal time_computing
 
         nonlocal kernel_invocations, function_evaluations
 
@@ -98,12 +101,15 @@ def mass_properties(shape, precision=1e-4):
         assert all(x % INNER_LOOP_SIDE == 0 for x in current_grid)
         global_work_size = [x // INNER_LOOP_SIDE for x in current_grid]
 
-        yield opencl_manager.k.mass_properties(global_work_size, None,
-                                               program_buffer,
-                                               shifted_corner.as_float4(), numpy.float32(current_step),
-                                               index_sums,
-                                               intersecting_counter, intersecting_list,
-                                               wait_for=[fill_ev])
+        ev = opencl_manager.k.mass_properties(global_work_size, None,
+                                              program_buffer,
+                                              shifted_corner.as_float4(), numpy.float32(current_step),
+                                              index_sums,
+                                              intersecting_counter, intersecting_list,
+                                              wait_for=[fill_ev])
+        yield ev
+
+        time_computing += ev.profile.end - ev.profile.start
         kernel_invocations += 1
         function_evaluations += current_evaluations
 
@@ -203,7 +209,11 @@ def mass_properties(shape, precision=1e-4):
 
         return next_jobs
 
+    start_time = time.time()
     cl_util.interleave2(job, [(box.a, initial_step, initial_grid, None)])
+    end_time = time.time()
+    #print("time spent", end_time - start_time, "opencl compute time", time_computing,
+    #      "efficiency", time_computing / (end_time - start_time))
 
     # Unwrap the integral values from the KahanSummation objects
     integral_one = integral_one.result
