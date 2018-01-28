@@ -15,6 +15,7 @@ from .cl_util import opencl_manager
 from . import nodes
 
 INNER_LOOP_SIDE = 3  # Side of sample cube that gets calculated within private memory
+assert INNER_LOOP_SIDE % 2 == 1, "Inner loop side has to be odd"
 GRID_SIZE = INNER_LOOP_SIDE * 32  # Max allowed grid size
 assert GRID_SIZE > 2, "Grid side size needs to be > 2"
 assert GRID_SIZE % INNER_LOOP_SIDE == 0, "Grid size must be divisible by {}".format(INNER_LOOP_SIDE)
@@ -169,6 +170,8 @@ def mass_properties(shape, precision=1e-4):
             error_bound = intersecting_count / 2
             current_allowed_error = precision * estimate
 
+            print(current_corner, current_step, "estimate", estimate * s3, "+-", error_bound * s3, "allowed error", current_allowed_error * s3)
+
         current_allowed_error_per_intersecting = current_allowed_error / intersecting_count
         next_step = current_step / GRID_SIZE
         next_grid = [GRID_SIZE,] * 3
@@ -176,36 +179,39 @@ def mass_properties(shape, precision=1e-4):
         next_jobs = []
 
         intersecting_event.wait()
-        for i, j, k, l in intersecting_list[:intersecting_count]:
-            corner = util.Vector(i, j, k) * s + current_corner
-            volume_fraction = l / 127
-            error = (1 - abs(volume_fraction)) / 2
+        with util.status_block("time spent in opencl {} s, processing {} intersecting".format((ev.profile.end - ev.profile.start) / 1e9, intersecting_count)):
+            for i, j, k, l in intersecting_list[:intersecting_count]:
+                corner = util.Vector(i, j, k) * s + current_corner
+                volume_fraction = l / 127
+                error = (1 - abs(volume_fraction)) / 2
 
-            if error < current_allowed_error_per_intersecting:
-                weight = s3 * (1 - volume_fraction) / 2
-                center = corner + util.Vector.splat(s / 2)
+                if error < current_allowed_error_per_intersecting:
+                    weight = s3 * (1 - volume_fraction) / 2
+                    center = corner + util.Vector.splat(s / 2)
 
-                integral_one += weight
-                integral_x +=  weight * center.x
-                integral_y +=  weight * center.y
-                integral_z +=  weight * center.z
-                integral_xx += weight * center.x**2
-                integral_yy += weight * center.y**2
-                integral_zz += weight * center.z**2
-                integral_xy += weight * center.x * center.y
-                integral_xz += weight * center.x * center.z
-                integral_yz += weight * center.y * center.z
-                total_error += s3 * error
-            else:
-                next_jobs.append((corner, next_step, next_grid, next_allowed_error))
+                    integral_one += weight
+                    integral_x +=  weight * center.x
+                    integral_y +=  weight * center.y
+                    integral_z +=  weight * center.z
+                    integral_xx += weight * center.x**2
+                    integral_yy += weight * center.y**2
+                    integral_zz += weight * center.z**2
+                    integral_xy += weight * center.x * center.y
+                    integral_xz += weight * center.x * center.z
+                    integral_yz += weight * center.y * center.z
+                    total_error += s3 * error
+                else:
+                    next_jobs.append((corner, next_step, next_grid, next_allowed_error))
+
+        print("    splitting", len(next_jobs), "out of", intersecting_count)
 
         return next_jobs
 
     start_time = time.time()
     cl_util.interleave2(job, [(box.a, initial_step, initial_grid, None)])
     end_time = time.time()
-    #print("time spent", end_time - start_time, "opencl compute time", time_computing,
-    #      "efficiency", time_computing / (end_time - start_time))
+    print("time spent", end_time - start_time, "opencl compute time", time_computing,
+          "efficiency", time_computing / (end_time - start_time))
 
     # Unwrap the integral values from the KahanSummation objects
     integral_one = integral_one.result
