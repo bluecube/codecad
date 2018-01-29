@@ -17,11 +17,13 @@ from . import nodes
 INNER_LOOP_SIDE = 3  # Side of sample cube that gets calculated within private memory
 assert INNER_LOOP_SIDE % 2 == 1, "Inner loop side has to be odd"
 GRID_SIZE = INNER_LOOP_SIDE * 32  # Max allowed grid size
-assert GRID_SIZE > 2, "Grid side size needs to be > 2"
+assert GRID_SIZE >= 2, "Grid side size needs to be >= 2"
 assert GRID_SIZE % INNER_LOOP_SIDE == 0, "Grid size must be divisible by {}".format(INNER_LOOP_SIDE)
 assert GRID_SIZE < 2**7, "Grid coordinates must fit int8"
-assert GRID_SIZE**3 * (GRID_SIZE + 1)**2 / 2 <= 2**32, \
-    "Centroid coordinate sums must fit uint32"
+assert GRID_SIZE**3 * (GRID_SIZE - 1)**2 / 4 <= 2**32, \
+    "Centroid coordinate sums must fit uint32 (i * j)"
+assert GRID_SIZE**3 * (GRID_SIZE - 1) * (2 * GRID_SIZE - 1) / 6 <= 2**32, \
+    "Centroid coordinate sums must fit uint32 (i * i)"
 
 c = opencl_manager.add_compile_unit()
 c.append_define("INNER_LOOP_SIDE", INNER_LOOP_SIDE)
