@@ -18,9 +18,10 @@
 /** Index of the center inner sub block  */
 #define INNER_LOOP_MID ((INNER_LOOP_SIDE - 1) / 2)
 
-/** Size of counters array. The last 10 items is for coordinate sums. */
-#define COUNTERS (10 + 1)
-#define INTERSECTING (0)
+/** Spreading local memory atomics across this many locations,
+ * merged into one in private memory before merging it into global memory.
+ * About 10% speedup. */
+#define LOCAL_ATOMIC_SPREAD 4
 
 /** Wrapper for evaluate that calculates the actual position from index and
  * stores it in temp array. Also the value is made relative to boxStep. */
@@ -119,13 +120,13 @@ __kernel void mass_properties_stage1(__constant float* shape,
                                      __global float* values,
                                      __global uint counters[22])
 {
-    __local uint localIntersecting;
+    __local uint localIntersecting[LOCAL_ATOMIC_SPREAD];
     __private uint privateIntersecting = 0;
 
-    bool isFirstInWorkgroup = get_local_id(0) == 0 && get_local_id(1) == 0 && get_local_id(2) == 0;
-
-    if (isFirstInWorkgroup)
-        localIntersecting = 0;
+    if (get_local_id(0) < LOCAL_ATOMIC_SPREAD &&
+        get_local_id(1) == 0 &&
+        get_local_id(2) == 0)
+        localIntersecting[get_local_id(0)] = 0;
 
     uint3 globalOffset = INNER_LOOP_SIDE * (uint3)(get_global_id(0),
                                                    get_global_id(1),
@@ -156,12 +157,17 @@ __kernel void mass_properties_stage1(__constant float* shape,
                 }
     }
 
-    atomic_add(&localIntersecting, privateIntersecting);
+    atomic_add(&localIntersecting[get_local_id(0) % LOCAL_ATOMIC_SPREAD], privateIntersecting);
 
     barrier(CLK_LOCAL_MEM_FENCE);
 
-    if (isFirstInWorkgroup)
-        atomic_add(&counters[0], localIntersecting);
+    if (get_local_id(0) == 0 && get_local_id(1) == 0 && get_local_id(2) == 0)
+    {
+        uint tmp = 0;
+        for (size_t i = 0; i < LOCAL_ATOMIC_SPREAD; ++i)
+            tmp += localIntersecting[i];
+        atomic_add(&counters[0], tmp);
+    }
 }
 
 __kernel void mass_properties_stage2(float maxTotalError,
@@ -169,14 +175,14 @@ __kernel void mass_properties_stage2(float maxTotalError,
                                      __global uchar3* splitList,
                                      __global uint counters[22])
 {
-    __local uint localCounters[10];
+    __local uint localCounters[10 * LOCAL_ATOMIC_SPREAD];
     __private uint privateCounters[10];
 
-    bool isFirstInWorkgroup = get_local_id(0) == 0 && get_local_id(1) == 0 && get_local_id(2) == 0;
-
-    if (isFirstInWorkgroup)
+    if (get_local_id(0) < LOCAL_ATOMIC_SPREAD &&
+        get_local_id(1) == 0 &&
+        get_local_id(2) == 0)
         for (size_t i = 0; i < 10; ++i)
-                localCounters[i] = 0;
+            localCounters[i + get_local_id(0) * 10] = 0;
 
     barrier(CLK_LOCAL_MEM_FENCE);
 
@@ -234,15 +240,21 @@ __kernel void mass_properties_stage2(float maxTotalError,
     }
 
     for (size_t i = 0; i < 10; ++i)
-        atomic_add(&localCounters[i], privateCounters[i]);
+        atomic_add(&localCounters[i + (get_local_id(0) % LOCAL_ATOMIC_SPREAD) * 10],
+                   privateCounters[i]);
 
     barrier(CLK_LOCAL_MEM_FENCE);
 
-    if (isFirstInWorkgroup)
-        for (size_t i = 0; i < COUNTERS; ++i)
+    if (get_local_id(0) == 0 && get_local_id(1) == 0 && get_local_id(2) == 0)
+        for (size_t i = 0; i < 10; ++i)
+        {
+            uint tmp = 0;
+            for (size_t j = 0; j < LOCAL_ATOMIC_SPREAD; ++j)
+                tmp += localCounters[i + j * 10];
+
             // Using the emulated 64bit atomic_add
-            atomic_add64(&counters[2 * i + 2], &counters[2 * i + 3],
-                         localCounters[i]);
+            atomic_add64(&counters[2 * i + 2], &counters[2 * i + 3], tmp);
+        }
 }
 
 

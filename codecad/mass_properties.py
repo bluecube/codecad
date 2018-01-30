@@ -91,6 +91,7 @@ def mass_properties(shape, allowedError=1e-3):
     integral_yz = util.KahanSummation()
 
     time_computing = 0
+    kernel_invocations = 0
 
     local_work_size = [LOCAL_GROUP_SIDE] * 3
 
@@ -98,7 +99,7 @@ def mass_properties(shape, allowedError=1e-3):
         nonlocal integral_one, integral_x, integral_y, integral_z, \
                  integral_xx, integral_yy, integral_zz, \
                  integral_xy, integral_xz, integral_yz
-        nonlocal time_computing
+        nonlocal time_computing, kernel_invocations
 
         current_corner, current_step, current_grid, current_allowed_error = job_id
         assert all(x <= GRID_SIZE for x in current_grid)
@@ -126,12 +127,10 @@ def mass_properties(shape, allowedError=1e-3):
                                                       wait_for=[ev1])
         yield ev2
 
-        t1 = (ev1.profile.end - ev1.profile.start) / 1e9
-        t2 = (ev2.profile.end - ev2.profile.start) / 1e9
-
         tt = (ev2.profile.end - ev1.profile.start) / 1e9
 
-        time_computing += t1 + t2
+        time_computing += tt
+        kernel_invocations += 1
 
         s = current_step
         s2 = s * s
@@ -145,8 +144,8 @@ def mass_properties(shape, allowedError=1e-3):
             index_sums = [(a + 2**32 * b) / MAX_WEIGHT_MULTIPLIER
                           for a, b in zip(array[2:len(array):2], array[3:len(array):2])]
 
-        #print("Spent {} s in kernels, {} intersections, splitting {}, current allowed error {}" \
-        #      .format(tt, intersecting_count, split_count,  current_allowed_error))
+        # print("Spent {} s in kernels, {} intersections, splitting {}, current allowed error {}, {}ki/s" \
+        #       .format(tt, intersecting_count, split_count,  current_allowed_error, kernel_invocations / time_computing))
 
         sum_xx, sum_xy, sum_xz, sum_x, sum_yy, sum_yz, \
             sum_y, sum_zz, sum_z, sum_one = index_sums
