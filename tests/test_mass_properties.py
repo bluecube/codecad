@@ -6,7 +6,6 @@ from pytest import approx
 
 import codecad
 import codecad.util
-import codecad.mass_properties
 
 drunk_box_matrix = codecad.util.Quaternion.from_degrees((7, 11, 13), 17).as_matrix()[:3, :3]
 
@@ -52,7 +51,7 @@ drunk_box_matrix = codecad.util.Quaternion.from_degrees((7, 11, 13), 17).as_matr
 ])
 def test_mass_properties(shape, volume, centroid, inertia_tensor):
     precision = 2e-3
-    result = codecad.mass_properties.mass_properties(shape, 10 * precision)  # Just experimentally selected value
+    result = codecad.mass_properties(shape, 10 * precision)  # Just experimentally selected value
 
     assert result.volume == approx(volume, abs=1e-4, rel=precision)
     assert result.centroid == approx(centroid, abs=1e-4, rel=precision)
