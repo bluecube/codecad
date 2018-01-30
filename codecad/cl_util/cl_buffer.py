@@ -88,16 +88,25 @@ class Buffer(pyopencl.Buffer):
         return pyopencl.enqueue_copy(self.queue, self, array,
                                      wait_for=wait_for, is_blocking=False)
 
+    def enqueue_zero_fill_compatible(self, wait_for=None):
+        return self.enqueue_write(numpy.zeros(self.shape, dtype=self.dtype),
+                                  wait_for=wait_for)
+
     @contextlib.contextmanager
-    def map(self, map_flags, wait_for=None):
+    def map(self, map_flags, offset=None, shape=None, wait_for=None):
         """ Context manager that maps the buffer data as a numpy array.
         `wait_for` can be either None or list of opencl.Event. """
 
+        if offset is None:
+            offset = 0
+        if shape is None:
+            shape = self.shape
+
         array, event = pyopencl.enqueue_map_buffer(self.queue, self, map_flags,
-                                                   0, (self.nitems,), self.dtype,
+                                                   offset, shape, self.dtype,
                                                    wait_for=wait_for, is_blocking=True)
         with array.base:
-            yield array.view(self.dtype)
+            yield array
 
     def __getitem__(self, key):
         return self.array[key]
