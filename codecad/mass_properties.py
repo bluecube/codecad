@@ -15,41 +15,54 @@ from .cl_util import opencl_manager
 from . import nodes
 
 INNER_LOOP_SIDE = 3  # Side of sample cube that gets calculated within private memory
-assert INNER_LOOP_SIDE % 2 == 1, "Inner loop side has to be odd"
 GRID_SIZE = INNER_LOOP_SIDE * 32  # Max allowed grid size
+LOCAL_GROUP_SIDE = 4 # LOCAL_GROUP_SIDE**3 work items in work group
+
+
+def _max_local_sum(m, n):
+    """ calculate maximum possible value of index sum, where index < n
+    summed over a region m**3 large.
+    Expressions here are derived in the notebook in docs. """
+    return m**3 * (2 * m**2 - 6 * m*n + 3 * m + 6 * n**2 - 6 * n + 1) // 6
+
+
+MAX_WEIGHT_MULTIPLIER = int((2**32 - 1) // _max_local_sum(INNER_LOOP_SIDE * LOCAL_GROUP_SIDE, GRID_SIZE))
+
+assert INNER_LOOP_SIDE % 2 == 1, "Inner loop side has to be odd to allow skipping space based on midpoint value"
 assert GRID_SIZE >= 2, "Grid side size needs to be >= 2"
 assert GRID_SIZE % INNER_LOOP_SIDE == 0, "Grid size must be divisible by {}".format(INNER_LOOP_SIDE)
-assert GRID_SIZE < 2**7, "Grid coordinates must fit int8"
-assert GRID_SIZE**3 * (GRID_SIZE - 1)**2 / 4 <= 2**32, \
-    "Centroid coordinate sums must fit uint32 (i * j)"
-assert GRID_SIZE**3 * (GRID_SIZE - 1) * (2 * GRID_SIZE - 1) / 6 <= 2**32, \
-    "Centroid coordinate sums must fit uint32 (i * i)"
+assert GRID_SIZE < 2**8, "Grid coordinates must fit uint8"
+assert MAX_WEIGHT_MULTIPLIER > 127, "Index sum multiplier needs enough resolution"
+assert MAX_WEIGHT_MULTIPLIER * _max_local_sum(INNER_LOOP_SIDE * LOCAL_GROUP_SIDE, GRID_SIZE) < 2**32, \
+    "Local index sum must fit uint32"
+assert MAX_WEIGHT_MULTIPLIER * _max_local_sum(GRID_SIZE, GRID_SIZE) < 2**64, \
+    "Global index sum must fit in uint64"
 
 c = opencl_manager.add_compile_unit()
 c.append_define("INNER_LOOP_SIDE", INNER_LOOP_SIDE)
+c.append_define("MAX_WEIGHT_MULTIPLIER", MAX_WEIGHT_MULTIPLIER)
+c.append_define("LOCAL_GROUP_SIDE", LOCAL_GROUP_SIDE)
 c.append_file("mass_properties.cl")
 
 
-class MassProperties(collections.namedtuple("MassProperties", "volume centroid inertia_tensor max_volume_error")):
-    """
-    Contains volume of a body, position of its centroid and its inertia tensor.
-    The inertia tensor is referenced to the centroid, not origin!
-    max_volume_error returns maximum deviation of the volume field from the actual
-    volume of the shape.
-    """
+class MassProperties(collections.namedtuple("MassProperties", "volume centroid inertia_tensor")):
+    """ Contains volume of a body, position of its centroid and its inertia tensor.
+    The inertia tensor is referenced to the centroid, not origin! """
     __slots__ = ()
 
 
-def mass_properties(shape, precision=1e-4):
+def mass_properties(shape, allowedError=1e-3):
     """ Calculate volume, centroid and inertia tensor of the shape.
     Iteratively subdivides the shape until
-    abs(actual_volume - computed_volume) < precision * actual_volume """
+    abs(actual_volume - computed_volume) < allowedError """
     # Inertia tensor info:
     # http://farside.ph.utexas.edu/teaching/336k/Newtonhtml/node64.html
     #
     # Some useful integrals:
     # integral(x, a, a + s, integral(y, b, b + s, integral(z, c, c + s, x))) = s**3 * (a + s / 2)
     # integral(x, a, a + s, integral(y, b, b + s, integral(z, c, c + s, x * y))) = s**3 * (a + s / 2) * (b + s / 2)
+
+    #TODO: Support relative errors
 
     assert shape.dimension() == 3, "2D objects are not supported yet"
 
@@ -58,7 +71,13 @@ def mass_properties(shape, precision=1e-4):
     box = shape.bounding_box()
     box_size = box.size()
     initial_step = box_size.max() / GRID_SIZE
-    initial_grid = [int(util.round_up_to(s / initial_step, INNER_LOOP_SIDE)) for s in box_size]
+    initial_grid = [min(int(util.round_up_to(s / initial_step,
+                                             LOCAL_GROUP_SIDE * INNER_LOOP_SIDE)),
+                        GRID_SIZE)
+                    for s in box_size]
+    initial_step = min(bs / gs for bs, gs in zip(box_size, initial_grid))
+    assert all(gs * initial_step >= bs for bs, gs in zip(box_size, initial_grid))
+    initial_allowed_error = allowedError / initial_step**3
 
     integral_one = util.KahanSummation()
     integral_x = util.KahanSummation()
@@ -70,57 +89,49 @@ def mass_properties(shape, precision=1e-4):
     integral_xy = util.KahanSummation()
     integral_xz = util.KahanSummation()
     integral_yz = util.KahanSummation()
-    total_error = util.KahanSummation()
 
     time_computing = 0
-    kernel_invocations = 0
-    function_evaluations = 0
+
+    local_work_size = [LOCAL_GROUP_SIDE] * 3
 
     def job(job_id):
         nonlocal integral_one, integral_x, integral_y, integral_z, \
                  integral_xx, integral_yy, integral_zz, \
-                 integral_xy, integral_xz, integral_yz, total_error
+                 integral_xy, integral_xz, integral_yz
         nonlocal time_computing
-
-        nonlocal kernel_invocations, function_evaluations
 
         current_corner, current_step, current_grid, current_allowed_error = job_id
         assert all(x <= GRID_SIZE for x in current_grid)
 
-        current_evaluations = functools.reduce(operator.mul, current_grid)
-
-        index_sums = cl_util.Buffer(numpy.uint32, 10, pyopencl.mem_flags.READ_WRITE)
-        intersecting_counter = cl_util.Buffer(numpy.uint32, 1, pyopencl.mem_flags.READ_WRITE)
-        intersecting_list = cl_util.Buffer(pyopencl.cltypes.char4,
-                                           GRID_SIZE**3,
-                                           pyopencl.mem_flags.WRITE_ONLY)
-
-        # Enqueue write instead of fill to work around pyopencl bug #168
-        fill_ev = index_sums.enqueue_write(numpy.zeros(10, index_sums.dtype))
-        fill_ev = intersecting_counter.enqueue_write(numpy.zeros(1, intersecting_counter.dtype), wait_for=[fill_ev])
+        counters = cl_util.Buffer(numpy.uint32, 22, pyopencl.mem_flags.READ_WRITE)
+        values = cl_util.Buffer(numpy.float32, [GRID_SIZE]*3,
+                                pyopencl.mem_flags.READ_WRITE | pyopencl.mem_flags.ALLOC_HOST_PTR)
+        split_list = cl_util.Buffer(pyopencl.cltypes.uchar3, GRID_SIZE**3,
+                                    pyopencl.mem_flags.WRITE_ONLY | pyopencl.mem_flags.ALLOC_HOST_PTR)
+        fill_ev = counters.enqueue_zero_fill_compatible()
 
         shifted_corner = current_corner + util.Vector.splat(current_step / 2)
 
         assert all(x % INNER_LOOP_SIDE == 0 for x in current_grid)
         global_work_size = [x // INNER_LOOP_SIDE for x in current_grid]
 
-        ev = opencl_manager.k.mass_properties(global_work_size, None,
-                                              program_buffer,
-                                              shifted_corner.as_float4(), numpy.float32(current_step),
-                                              index_sums,
-                                              intersecting_counter, intersecting_list,
-                                              wait_for=[fill_ev])
-        yield ev
+        ev1 = opencl_manager.k.mass_properties_stage1(global_work_size, local_work_size,
+                                                      program_buffer,
+                                                      shifted_corner.as_float4(), numpy.float32(current_step),
+                                                      values, counters,
+                                                      wait_for=[fill_ev])
+        ev2 = opencl_manager.k.mass_properties_stage2(global_work_size, local_work_size,
+                                                      numpy.float32(current_allowed_error),
+                                                      values, split_list, counters,
+                                                      wait_for=[ev1])
+        yield ev2
 
-        time_computing += ev.profile.end - ev.profile.start
-        kernel_invocations += 1
-        function_evaluations += current_evaluations
+        t1 = (ev1.profile.end - ev1.profile.start) / 1e9
+        t2 = (ev2.profile.end - ev2.profile.start) / 1e9
 
-        intersecting_count = intersecting_counter.read()[0]
-        intersecting_event = intersecting_list.enqueue_read()
+        tt = (ev2.profile.end - ev1.profile.start) / 1e9
 
-        # For all the functions in question, convert `sum f(I)` (where I are indices
-        # of occupied cells) to `integral f(X)` over all occupied cells.
+        time_computing += t1 + t2
 
         s = current_step
         s2 = s * s
@@ -128,9 +139,19 @@ def mass_properties(shape, precision=1e-4):
         b = shifted_corner
 
         # Order is defined in mass_properties.cl
-        sum_xx, sum_xy, sum_xz, sum_x, sum_yy, sum_yz, \
-            sum_y, sum_zz, sum_z, n = index_sums.read()
+        with counters.map(pyopencl.map_flags.READ) as array:
+            intersecting_count = array[0]
+            split_count = array[1]
+            index_sums = [(a + 2**32 * b) / MAX_WEIGHT_MULTIPLIER
+                          for a, b in zip(array[2:len(array):2], array[3:len(array):2])]
 
+        #print("Spent {} s in kernels, {} intersections, splitting {}, current allowed error {}" \
+        #      .format(tt, intersecting_count, split_count,  current_allowed_error))
+
+        sum_xx, sum_xy, sum_xz, sum_x, sum_yy, sum_yz, \
+            sum_y, sum_zz, sum_z, sum_one = index_sums
+
+        tmp_one = sum_one
         tmp_x = s * sum_x
         tmp_y = s * sum_y
         tmp_z = s * sum_z
@@ -141,76 +162,35 @@ def mass_properties(shape, precision=1e-4):
         tmp_xz = s2 * sum_xz
         tmp_yz = s2 * sum_yz
 
-        integral_one += s3 * n
-        integral_x += s3 * (n * b.x + tmp_x)
-        integral_y += s3 * (n * b.y + tmp_y)
-        integral_z += s3 * (n * b.z + tmp_z)
-        integral_xx += s3 * (n * (b.x * b.x + s2 / 12) + 2 * b.x * tmp_x + tmp_xx)
-        integral_yy += s3 * (n * (b.y * b.y + s2 / 12) + 2 * b.y * tmp_y + tmp_yy)
-        integral_zz += s3 * (n * (b.z * b.z + s2 / 12) + 2 * b.z * tmp_z + tmp_zz)
-        integral_xy += s3 * (n * b.x * b.y + b.x * tmp_y + b.y * tmp_x + tmp_xy)
-        integral_xz += s3 * (n * b.x * b.z + b.x * tmp_z + b.z * tmp_x + tmp_xz)
-        integral_yz += s3 * (n * b.y * b.z + b.y * tmp_z + b.z * tmp_y + tmp_yz)
+        integral_one += s3 * sum_one
+        integral_x  += s3 * (tmp_one * b.x + tmp_x)
+        integral_y  += s3 * (tmp_one * b.y + tmp_y)
+        integral_z  += s3 * (tmp_one * b.z + tmp_z)
+        integral_xx += s3 * (tmp_one * (b.x * b.x + s2 / 12) + 2 * b.x * tmp_x + tmp_xx)
+        integral_yy += s3 * (tmp_one * (b.y * b.y + s2 / 12) + 2 * b.y * tmp_y + tmp_yy)
+        integral_zz += s3 * (tmp_one * (b.z * b.z + s2 / 12) + 2 * b.z * tmp_z + tmp_zz)
+        integral_xy += s3 * (tmp_one * b.x * b.y + b.x * tmp_y + b.y * tmp_x + tmp_xy)
+        integral_xz += s3 * (tmp_one * b.x * b.z + b.x * tmp_z + b.z * tmp_x + tmp_xz)
+        integral_yz += s3 * (tmp_one * b.y * b.z + b.y * tmp_z + b.z * tmp_y + tmp_yz)
 
-        # The adaptive part:
-        # Everything in this part is calculated in blocks instead of in volumes
-        # (Everything is divided by s3).
+        if split_count == 0:
+            return []
 
-
-        # TODO: The precision setting will not work correctly on mostly empty
-        # models (eg. a grid of tiny balls at vertices of the initial grid)
-        if current_allowed_error is None:
-            # Handle first kernel launch
-            # We are using a rougher estimate here (counting all intersecting as
-            # having weight 0.5 and error bound 0.5), because it is only used
-            # for calculating the allowed absolute error.
-            # This might degrade precision if the shape has very little volume
-            # but many intersecting blocks. In this case the relative precision
-            # will be set based on bounding box volume and not the actual shape volume.
-            # TODO: Maybe track sum of weights in one of the integer counters in CL code.
-            estimate = n + intersecting_count / 2
-            error_bound = intersecting_count / 2
-            current_allowed_error = precision * estimate
-
-            print(current_corner, current_step, "estimate", estimate * s3, "+-", error_bound * s3, "allowed error", current_allowed_error * s3)
-
-        current_allowed_error_per_intersecting = current_allowed_error / intersecting_count
         next_step = current_step / GRID_SIZE
         next_grid = [GRID_SIZE,] * 3
-        next_allowed_error = current_allowed_error_per_intersecting * GRID_SIZE**3
+        next_allowed_error = current_allowed_error * GRID_SIZE**3 / split_count
         next_jobs = []
 
-        intersecting_event.wait()
-        with util.status_block("time spent in opencl {} s, processing {} intersecting".format((ev.profile.end - ev.profile.start) / 1e9, intersecting_count)):
-            for i, j, k, l in intersecting_list[:intersecting_count]:
-                corner = util.Vector(i, j, k) * s + current_corner
-                volume_fraction = l / 127
-                error = (1 - abs(volume_fraction)) / 2
-
-                if error < current_allowed_error_per_intersecting:
-                    weight = s3 * (1 - volume_fraction) / 2
-                    center = corner + util.Vector.splat(s / 2)
-
-                    integral_one += weight
-                    integral_x +=  weight * center.x
-                    integral_y +=  weight * center.y
-                    integral_z +=  weight * center.z
-                    integral_xx += weight * center.x**2
-                    integral_yy += weight * center.y**2
-                    integral_zz += weight * center.z**2
-                    integral_xy += weight * center.x * center.y
-                    integral_xz += weight * center.x * center.z
-                    integral_yz += weight * center.y * center.z
-                    total_error += s3 * error
-                else:
-                    next_jobs.append((corner, next_step, next_grid, next_allowed_error))
-
-        print("    splitting", len(next_jobs), "out of", intersecting_count)
+        with split_list.map(pyopencl.map_flags.READ, shape=split_count) as array:
+            assert len(array) == split_count
+            for i, j, k, l in array:
+                corner = util.Vector(i * s, j * s, k * s) + current_corner
+                next_jobs.append((corner, next_step, next_grid, next_allowed_error))
 
         return next_jobs
 
     start_time = time.time()
-    cl_util.interleave2(job, [(box.a, initial_step, initial_grid, None)])
+    cl_util.interleave2(job, [(box.a, initial_step, initial_grid, initial_allowed_error)])
     end_time = time.time()
     print("time spent", end_time - start_time, "opencl compute time", time_computing,
           "efficiency", time_computing / (end_time - start_time))
@@ -250,4 +230,4 @@ def mass_properties(shape, precision=1e-4):
                                   [I_xy, I_yy, I_yz],
                                   [I_xz, I_yz, I_zz]])
 
-    return MassProperties(volume, centroid, inertia_tensor, total_error.result)
+    return MassProperties(volume, centroid, inertia_tensor)
