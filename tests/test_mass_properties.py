@@ -1,8 +1,10 @@
 import math
 import numpy
+import scipy.integrate
 
 import pytest
 from pytest import approx
+import pyopencl
 
 import codecad
 import codecad.util
@@ -58,3 +60,26 @@ def test_mass_properties(shape, volume, centroid, inertia_tensor):
 
     if inertia_tensor is not None:
         assert numpy.allclose(result.inertia_tensor, inertia_tensor)
+
+
+@pytest.mark.parametrize("radius", [0.2 * x - 1 for x in range(11)])
+def test_mass_properties_unbounding_volume(radius):
+    """ Test of a helper function inside mass properties CL code """
+
+    integral = scipy.integrate.tplquad(lambda z, y, x: 1,
+                                       0, min(0.5, abs(radius)),
+                                       lambda x: 0,
+                                       lambda x: min(0.5, math.sqrt(radius**2 - x**2)),
+                                       lambda x, y: 0,
+                                       lambda x, y: min(0.5, math.sqrt(radius**2 - x**2 - y**2)),
+                                       epsabs=1e-5,
+                                       epsrel=1e-5)
+
+    expected = math.copysign(integral[0] * 8, radius)
+
+    b = codecad.cl_util.Buffer(pyopencl.cltypes.float, 1, pyopencl.mem_flags.WRITE_ONLY)
+    ev = codecad.cl_util.opencl_manager.k.test_mass_properties_unbounding_volume([1], None, numpy.float32(radius), b)
+    b.read(wait_for=[ev])
+
+    assert abs(b[0]) <= abs(expected) * (1 + 1e-3)
+    assert b[0] == pytest.approx(expected, abs=0.1)
