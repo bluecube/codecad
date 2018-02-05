@@ -33,6 +33,7 @@ class OpenClAssertionError(Exception):
 class AssertBuffer(cl_buffer.Buffer):
     """ Buffer subclass for processing asserts. """
     ASSERT_BUFFER_SIZE = 1024
+    ASSERT_ENABLED = __debug__
 
     def __init__(self, queue=None):
         dtype_list = [("assert_count", numpy.uint32),
@@ -54,6 +55,10 @@ class AssertBuffer(cl_buffer.Buffer):
     def check(self, wait_for=None):
         """ Check if there were any assertion failures reported in this buffer and
         possibly raise an exception. """
+
+        if not self.ASSERT_ENABLED:
+            return
+
         # TODO: This operation is blocking
         with self.map(pyopencl.map_flags.READ, wait_for=wait_for) as mapped:
             if mapped["assert_count"][0] == 0:
@@ -81,8 +86,8 @@ class AssertBuffer(cl_buffer.Buffer):
 
 
 opencl_manager.common_header.append_define("ASSERT_BUFFER_SIZE", AssertBuffer.ASSERT_BUFFER_SIZE)
-if __debug__:
-    opencl_manager.common_header.append_define("DEBUG", 1)
+if AssertBuffer.ASSERT_ENABLED:
+    opencl_manager.common_header.append_define("ASSERT_ENABLED", 1)
 opencl_manager.common_header.append_file("assert.h")
 
 opencl_manager.add_compile_unit().append_file("assert.cl")
