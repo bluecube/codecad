@@ -2,6 +2,7 @@ import math
 import collections
 import itertools
 import numpy
+import pyopencl.cltypes
 
 
 class Vector(collections.namedtuple("Vector", "x y z")):
@@ -85,11 +86,11 @@ class Vector(collections.namedtuple("Vector", "x y z")):
     def perpendicular2d(self):
         return Vector(self.y, -self.x, self.z)
 
-    def as_float4(self):
-        return numpy.array((self.x, self.y, self.z, 0), dtype=numpy.float32)
+    def as_float4(self, w=0):
+        return numpy.array((self.x, self.y, self.z, w), dtype=pyopencl.cltypes.float4)
 
     def as_float2(self):
-        return numpy.array((self.x, self.y), dtype=numpy.float32)
+        return numpy.array((self.x, self.y), dtype=pyopencl.cltypes.float2)
 
     def as_matrix(self):
         return numpy.matrix([[self.x], [self.y], [self.z], [1]])
@@ -213,10 +214,10 @@ class Quaternion(collections.namedtuple("Quaternion", "v w")):
         Currently this is slow (but robust) and only intended for testing.
         """
 
-        ret = numpy.matrix([self.transform_vector(Vector(1, 0, 0)).as_float4(),
-                            self.transform_vector(Vector(0, 1, 0)).as_float4(),
-                            self.transform_vector(Vector(0, 0, 1)).as_float4(),
-                            [0, 0, 0, 1]]).T
+        ret = numpy.hstack([self.transform_vector(Vector(1, 0, 0)).as_matrix(),
+                            self.transform_vector(Vector(0, 1, 0)).as_matrix(),
+                            self.transform_vector(Vector(0, 0, 1)).as_matrix(),
+                            [[0], [0], [0], [1]]])
         return ret
 
 
