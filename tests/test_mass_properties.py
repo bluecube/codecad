@@ -53,9 +53,10 @@ drunk_box_matrix = codecad.util.Quaternion.from_degrees((7, 11, 13), 17).as_matr
                  id="drunk_box"),
 ])
 def test_mass_properties(shape, volume, centroid, inertia_tensor):
-    result = codecad.mass_properties(shape, 1e-3)  # Just experimentally selected value
+    result = codecad.mass_properties(shape, shape.bounding_box().volume() * 1e-3)
 
-    assert result.volume == approx(volume)
+    print(result)
+    assert result.volume == approx(volume, abs=result.volume_error)
     assert result.centroid == approx(centroid)
 
     if inertia_tensor is not None:

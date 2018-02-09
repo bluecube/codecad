@@ -91,9 +91,8 @@ def assert_shapes_equal(shape, expected, resolution=0.1):
     assert expected_box.volume() == pytest.approx(intersection_box.volume())
 
     difference = (shape - expected) | (expected - shape)
-    volume = codecad.mass_properties(difference, resolution).volume
-    print(volume, box.volume())
-    assert volume <= box.volume() * 0.001
+    mp = codecad.mass_properties(difference, box.volume() * 1e-3)
+    assert mp.volume <= mp.volume_error
 
     shape_render = io.BytesIO()
     codecad.rendering.image.render_PIL_image(shape, size=(800, 400)).save(shape_render, format="png")

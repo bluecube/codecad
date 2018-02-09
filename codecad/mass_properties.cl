@@ -71,15 +71,12 @@ __kernel void test_mass_properties_unbounding_volume(float value, __global float
  * shape: Shape we're working with
  * startOffset: Index of the first work item in the input arrays.
  *              Should be a multiple of 8 to keep memory access aligned.
+ * allowedError: Error allowed for this node.
  * locations: xyz coordinates of a corner of tree nodes to process,
  *            w is size of the child node (w * TREE_SIZE is size of this node).
  *            get_global_size(0) items large.
- * allowedErrors: Error budgets of the nodes
- *                get_global_size(0) items large.
  * tempLocations: locations get copied in here for use in stage3
  *                get_global_size(0) items large.
- * nextAllowedErrors: allowedError for the next round. Temporarily collected here
- *                    for use in stage3
  * integral1 - integral3: Partial integral values that need to get summed.
  *                        //get_num_groups(0) items large.
  *                        get_global_size(0) items large.
@@ -90,20 +87,19 @@ __kernel void test_mass_properties_unbounding_volume(float value, __global float
  *                        integral3.xyz ~ integral point.zxy * point.yzx
  *                        integral3.w ~ total error used
  * splitCounts - Numbers of children that need to be split. Must be prefix summed
- *               in stage 2 to generate placement indices for the new locations and allowedErrors.
+ *               in stage 2 to generate placement indices for the new locations.
  *               get_global_size(0) items large.
  * splitMasks - Bitmasks determining which children need to be split in stage 3.
- *              in stage 2 to generate placement indices for the new locations and allowedErrors.
+ *              in stage 2 to generate placement indices for the new locations.
  *              get_global_size(0) items large.
  */
 __kernel void mass_properties_evaluate(__constant float* restrict shape,
 
                                        uint startOffset,
-                                       __global float4* restrict locations,
-                                       __global float* restrict allowedErrors,
+                                       float allowedError,
 
+                                       __global float4* restrict locations,
                                        __global float4* restrict tempLocations,
-                                       __global float* restrict nextAllowedErrors,
 
                                        __global float4* restrict integral1,
                                        __global float4* restrict integral2,
@@ -116,7 +112,6 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
 {
     uint index = startOffset + get_global_id(0);
     float4 location = locations[index];
-    float allowedError = allowedErrors[index];
     float errorBudget = allowedError;
 
     tempLocations[get_global_id(0)] = location;
@@ -160,8 +155,6 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
     //if (get_global_id(0) == 0)
     //printf("maxErrorPerChild1: %f, maxErrorPerChild2: %f\n", maxErrorPerChild1, maxErrorPerChild2);
     assert(assertBuffer, maxErrorPerChild2 > 0);
-
-    nextAllowedErrors[get_global_id(0)] = maxErrorPerChild2;
 
     float integralOne = 0;
     float3 integralX = 0;
@@ -298,18 +291,13 @@ __kernel void mass_properties_output(uint n,
 /** Write new locations and allowed errors to the stack. */
 __kernel void mass_properties_prepare_next(uint startOffset,
                                            __global float4* restrict locations,
-                                           __global float* restrict allowedErrors,
-
                                            __global float4* restrict tempLocations,
-                                           __global float* restrict nextAllowedErrors,
-
                                            __global uint* restrict splitCounts,
                                            __global uint* restrict splitMasks,
 
                                            __global AssertBuffer* restrict assertBuffer)
 {
     float4 location = tempLocations[get_global_id(0)];
-    float nextAllowedError = nextAllowedErrors[get_global_id(0)];
 
     uint index = startOffset;
     if (get_global_id(0) > 0)
@@ -336,7 +324,6 @@ __kernel void mass_properties_prepare_next(uint startOffset,
 
                 float3 corner = location.xyz + (float3)(i, j, k) * s;
                 locations[index] = (float4)(corner, nextS);
-                allowedErrors[index] = nextAllowedError;
                 ++index;
             }
 }

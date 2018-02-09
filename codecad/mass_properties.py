@@ -29,7 +29,7 @@ c.append_file("mass_properties.cl")
 logger = logging.getLogger(__name__)
 
 
-class MassProperties(collections.namedtuple("MassProperties", "volume centroid inertia_tensor")):
+class MassProperties(collections.namedtuple("MassProperties", "volume centroid inertia_tensor volume_error")):
     """ Contains volume of a body, position of its centroid and its inertia tensor.
     The inertia tensor is referenced to the centroid, not origin! """
     __slots__ = ()
@@ -60,9 +60,7 @@ def mass_properties(shape, allowed_error=1e-3):
 
     program_buffer = nodes.make_program_buffer(shape)
     locations = cl_util.Buffer(cltypes.float4, max_locations2, pyopencl.mem_flags.READ_WRITE)
-    allowed_errors = cl_util.Buffer(cltypes.float, max_locations2, pyopencl.mem_flags.READ_WRITE)
     temp_locations = cl_util.Buffer(cltypes.float4, MAX_WORK_SIZE, pyopencl.mem_flags.READ_WRITE)
-    next_allowed_errors = cl_util.Buffer(cltypes.float, MAX_WORK_SIZE, pyopencl.mem_flags.READ_WRITE)
     integral1 = cl_util.Buffer(cltypes.float4, MAX_WORK_SIZE, pyopencl.mem_flags.READ_WRITE)
     integral2 = cl_util.Buffer(cltypes.float4, MAX_WORK_SIZE, pyopencl.mem_flags.READ_WRITE)
     integral3 = cl_util.Buffer(cltypes.float2, MAX_WORK_SIZE, pyopencl.mem_flags.READ_WRITE)
@@ -72,8 +70,7 @@ def mass_properties(shape, allowed_error=1e-3):
     assert_buffer = cl_util.AssertBuffer()
 
     # Initialize the first location
-    ev = locations.enqueue_write(box.a.as_float4(initial_step_size))
-    prepare_next_ev = allowed_errors.enqueue_write(numpy.array([allowed_error], dtype=allowed_errors.dtype), wait_for=[ev])
+    prepare_next_ev = locations.enqueue_write(box.a.as_float4(initial_step_size))
     locations_to_process = 1
 
     integral_one = util.KahanSummation()
@@ -106,11 +103,6 @@ def mass_properties(shape, allowed_error=1e-3):
             work_size = min(work_size, MAX_WORK_SIZE, locations_to_process)
             work_size = 0
             if work_size == 0:
-                with locations.map(pyopencl.map_flags.READ, wait_for=[prev_prepare_next_ev]) as mapped:
-                    logger.debug("locations after: %s", str(mapped[:locations_to_process][-5:]))
-                with allowed_errors.map(pyopencl.map_flags.READ, wait_for=[prev_prepare_next_ev]) as mapped:
-                    logger.debug("allowed_errors after: %s", str(mapped[:locations_to_process][-5:]))
-
                 raise Exception("Maximum location buffer size exceeded. "
                                 "This is likely a bug in CodeCad. "
                                 "As a workaround try specifying lower precision.")
@@ -126,11 +118,13 @@ def mass_properties(shape, allowed_error=1e-3):
         assert start_offset + work_size == locations_to_process
         assert start_offset + work_size * TREE_CHILD_COUNT <= max_locations2
 
+        current_allowed_error = 0.5 * (allowed_error - total_error.result) / locations_to_process
+
         evaluate_ev = opencl_manager.k.mass_properties_evaluate([work_size], None,
                                                                 program_buffer,
                                                                 cltypes.uint(start_offset),
-                                                                locations, allowed_errors,
-                                                                temp_locations, next_allowed_errors,
+                                                                cltypes.float(current_allowed_error),
+                                                                locations, temp_locations,
                                                                 integral1, integral2, integral3,
                                                                 split_counts, split_masks,
                                                                 assert_buffer,
@@ -148,8 +142,7 @@ def mass_properties(shape, allowed_error=1e-3):
                                                             wait_for=[sum_ev])
         prepare_next_ev = opencl_manager.k.mass_properties_prepare_next([work_size], None,
                                                                         cltypes.uint(start_offset),
-                                                                        locations, allowed_errors,
-                                                                        temp_locations, next_allowed_errors,
+                                                                        locations, temp_locations,
                                                                         split_counts, split_masks,
                                                                         assert_buffer,
                                                                         wait_for=[sum_ev])
@@ -191,8 +184,6 @@ def mass_properties(shape, allowed_error=1e-3):
 
         progress = integral_all.result / volume_to_process
 
-        #logger.debug("Iteration finished: locations to process: %i",
-        #             locations_to_process)
         time_spent = time.time() - start_time
         logger.debug("Iteration finished: %.4f%%, total error used: %f, split count: %i, locations to process: %i, "
                      "time elapsed: %f s, opencl compute time: %f s, efficiency: %f, "
@@ -254,4 +245,4 @@ def mass_properties(shape, allowed_error=1e-3):
                                   [I_xy, I_yy, I_yz],
                                   [I_xz, I_yz, I_zz]])
 
-    return MassProperties(volume, centroid, inertia_tensor)
+    return MassProperties(volume, centroid, inertia_tensor, total_error.result)
