@@ -3,6 +3,8 @@ from . cl_assert import *
 from . codegen import *
 from . opencl_manager import instance as opencl_manager
 
+def event_time_spent(ev):
+    return (ev.profile.end - ev.profile.start) / 1e9
 
 def interleave2(job_func, initial_jobs):
     """ Runs two instances of job_func in (pseudo)parallel, switching between them every time

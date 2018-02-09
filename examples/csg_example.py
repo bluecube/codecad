@@ -4,6 +4,8 @@
 https://en.wikipedia.org/wiki/Constructive_solid_geometry#/media/File:Csg_tree.png """
 
 import codecad
+import logging
+logging.basicConfig(level=logging.DEBUG)
 
 sphere = codecad.shapes.sphere(130)
 cube = codecad.shapes.box(100)
@@ -16,4 +18,5 @@ holes = cylinder + \
 o = sphere & cube - holes
 
 if __name__ == "__main__":
-    codecad.commandline_render(o, 1)
+    print(codecad.mass_properties(o, 1000))
+    #codecad.commandline_render(o, 1)

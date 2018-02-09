@@ -86,8 +86,9 @@ __kernel void test_mass_properties_unbounding_volume(float value, __global float
  *                        integral1.xyz ~ integral point.xyz
  *                        integral1.w ~ integral 1
  *                        integral2.xyz ~ integral point.xyz**2
- *                        integral2.w ~ (integral point.zxy * point.yzx).z
- *                        integral3 ~ (integral point.zxy * point.yzx).xy
+ *                        integral2.w ~ integralAll (all volume processed, for progress reporting)
+ *                        integral3.xyz ~ integral point.zxy * point.yzx
+ *                        integral3.w ~ total error used
  * splitCounts - Numbers of children that need to be split. Must be prefix summed
  *               in stage 2 to generate placement indices for the new locations and allowedErrors.
  *               get_global_size(0) items large.
@@ -95,36 +96,39 @@ __kernel void test_mass_properties_unbounding_volume(float value, __global float
  *              in stage 2 to generate placement indices for the new locations and allowedErrors.
  *              get_global_size(0) items large.
  */
-__kernel void mass_properties_stage1(__constant float* restrict shape,
+__kernel void mass_properties_evaluate(__constant float* restrict shape,
 
-                                     uint startOffset,
-                                     __global float4* restrict locations,
-                                     __global float* restrict allowedErrors,
+                                       uint startOffset,
+                                       __global float4* restrict locations,
+                                       __global float* restrict allowedErrors,
 
-                                     __global float4* restrict tempLocations,
-                                     __global float* restrict nextAllowedErrors,
+                                       __global float4* restrict tempLocations,
+                                       __global float* restrict nextAllowedErrors,
 
-                                     __global float4* restrict integral1,
-                                     __global float4* restrict integral2,
-                                     __global float2* restrict integral3,
+                                       __global float4* restrict integral1,
+                                       __global float4* restrict integral2,
+                                       __global float4* restrict integral3,
 
-                                     __global uint* restrict splitCounts,
-                                     __global uint* restrict splitMasks,
+                                       __global uint* restrict splitCounts,
+                                       __global uint* restrict splitMasks,
 
-                                     __global AssertBuffer* restrict assertBuffer)
+                                       __global AssertBuffer* restrict assertBuffer)
 {
     uint index = startOffset + get_global_id(0);
     float4 location = locations[index];
     float allowedError = allowedErrors[index];
+    float errorBudget = allowedError;
 
     tempLocations[get_global_id(0)] = location;
 
     float s = location.w;
     float s3 = s * s * s;
 
+    //printf("evaluate: %f, %f, %f / %f, s3 = %f allowedError = %f\n", location.x, location.y, location.z, location.w, s3, allowedError);
+
     float4 volumesAndPositions[TREE_CHILD_COUNT];
-    WHEN_ASSERT(float errorCheck = allowedError);
     float maxErrorPerChild1 = allowedError / TREE_CHILD_COUNT;
+
     uint possiblyNeedSplitting = 0;
     uint n = 0;
     #pragma unroll
@@ -139,22 +143,32 @@ __kernel void mass_properties_stage1(__constant float* restrict shape,
                 float volume = get_unbounding_volume(value, s);
                 volumesAndPositions[n++] = (float4)(center, volume);
 
-                float error = s3 * (1 - fabs(volume)) / 2;
+                float error = s3 * (1 - fabs(volume)) / 2.0;
+                //printf("%i, %i, %i (%i): center = %f, %f, %f, value = %f, volume = %f, error = %f (%s %f)\n",
+                //       i, j, k, n, center.x, center.y, center.z, value, volume, error,
+                //       maxErrorPerChild1, (error < maxErrorPerChild1 ? "<" : ">="));
+
                 if (error < maxErrorPerChild1)
-                    allowedError -= error;
+                    errorBudget -= error;
                 else
                     possiblyNeedSplitting += 1;
             }
 
-    float maxErrorPerChild2 = allowedError / possiblyNeedSplitting;
+    float maxErrorPerChild2 = errorBudget / possiblyNeedSplitting;
     assert(assertBuffer, maxErrorPerChild2 >= maxErrorPerChild1);
 
-    nextAllowedErrors[get_local_id(0)] = maxErrorPerChild2;
+    //if (get_global_id(0) == 0)
+    //printf("maxErrorPerChild1: %f, maxErrorPerChild2: %f\n", maxErrorPerChild1, maxErrorPerChild2);
+    assert(assertBuffer, maxErrorPerChild2 > 0);
+
+    nextAllowedErrors[get_global_id(0)] = maxErrorPerChild2;
 
     float integralOne = 0;
     float3 integralX = 0;
     float3 integralXX = 0;
     float3 integralXY = 0;
+    float integralAll = 0;
+    float totalError = 0;
     uint splitCount = 0;
     uint splitMask = 0;
 
@@ -162,7 +176,7 @@ __kernel void mass_properties_stage1(__constant float* restrict shape,
     for (uint i = 0; i < TREE_CHILD_COUNT; ++i)
     {
         float volume = volumesAndPositions[i].w;
-        float error = (1 - fabs(volume)) / 2.0;
+        float error = s3 * (1 - fabs(volume)) / 2.0;
 
         if (error < maxErrorPerChild2)
         {
@@ -173,30 +187,30 @@ __kernel void mass_properties_stage1(__constant float* restrict shape,
             integralX += weight * center;
             integralXX += weight * (center * center + s * s / 12);
             integralXY += weight * center.zxy * center.yzx;
-
-            WHEN_ASSERT(errorCheck -= error);
+            integralAll += s3;
+            totalError += error;
         }
         else
         {
             splitCount += 1;
             splitMask |= 1 << i;
-            WHEN_ASSERT(errorCheck -= maxErrorPerChild2);
         }
     }
-    assert(assertBuffer, errorCheck > 0);
+    assert(assertBuffer, totalError + maxErrorPerChild2 * splitCount < allowedError * (1 + 1e-6));
 
-    // Do a first step of parallel reduction in this function already
+    assert(assertBuffer, !isnan(integralOne));
     integral1[get_global_id(0)] = (float4)(integralX, integralOne);
-    integral2[get_global_id(0)] = (float4)(integralXX, integralXY.z);
-    integral3[get_global_id(0)] = integralXY.xy;
+    integral2[get_global_id(0)] = (float4)(integralXX, integralAll);
+    integral3[get_global_id(0)] = (float4)(integralXY, totalError);
     splitCounts[get_global_id(0)] = splitCount;
     splitMasks[get_global_id(0)] = splitMask;
 
     /*
+    // Do a first step of parallel reduction in this function already
     // Pack the integrals for storage and prepare for the first step of summing.
     __local float4 localIntegral1[WG_SIZE];
     __local float4 localIntegral2[WG_SIZE];
-    __local float2 localIntegral3[WG_SIZE];
+    __local float4 localIntegral3[WG_SIZE];
     __local uint localSplitCouts[WG_SIZE];
 
     localIntegral1[get_local_id(0)] = (float4)(integralX, integralOne);
@@ -232,14 +246,14 @@ __kernel void mass_properties_stage1(__constant float* restrict shape,
     */
 }
 
-/** Stage 2 of mass properties calculation sums up the integrals and split counts. */
-__kernel void mass_properties_stage2(__global float4* restrict integral1,
-                                     __global float4* restrict integral2,
-                                     __global float2* restrict integral3,
+/** Sum up the integrals and split counts. */
+__kernel void mass_properties_sum(__global float4* restrict integral1,
+                                  __global float4* restrict integral2,
+                                  __global float4* restrict integral3,
 
-                                     __global uint* restrict splitCounts,
+                                  __global uint* restrict splitCounts,
 
-                                     __global AssertBuffer* restrict assertBuffer)
+                                  __global AssertBuffer* restrict assertBuffer)
 {
     // TODO: This is just proof of concept sequential implementation
     if (get_global_id(0) != 0)
@@ -247,7 +261,7 @@ __kernel void mass_properties_stage2(__global float4* restrict integral1,
 
     float4 sum1 = integral1[0];
     float4 sum2 = integral2[0];
-    float2 sum3 = integral3[0];
+    float4 sum3 = integral3[0];
     unsigned sc = splitCounts[0];
     for (uint i = 1; i < get_global_size(0); ++i)
     {
@@ -263,25 +277,36 @@ __kernel void mass_properties_stage2(__global float4* restrict integral1,
     integral3[get_global_size(0) - 1] = sum3;
 }
 
-/** Stage 3 of mass properties writes new locations and allowed errors to the stack
- * and merges integrals and final split count to single output buffer for python to read from. */
-__kernel void mass_properties_stage3(uint startOffset,
-                                     __global float4* restrict locations,
-                                     __global float* restrict allowedErrors,
-
-                                     __global float4* restrict tempLocations,
-                                     __global float* restrict nextAllowedErrors,
-
+/** Collect integrals and final split count to single output buffer for python to read from. */
+__kernel void mass_properties_output(uint n,
                                      __global float4* restrict integral1,
                                      __global float4* restrict integral2,
-                                     __global float2* restrict integral3,
-
+                                     __global float4* restrict integral3,
                                      __global uint* restrict splitCounts,
-                                     __global uint* restrict splitMasks,
+                                     __global float* restrict outputBuffer)
+{
+    uint last = n - 1;
+    outputBuffer[0] = integral1[last].w; // integral 1
+    vstore3(integral1[last].xyz, 0, outputBuffer + 1); // integral xyz
+    vstore3(integral2[last].xyz, 0, outputBuffer + 4); // integral xyz**2
+    vstore3(integral3[last].xyz, 0, outputBuffer + 7); // integral xyz * yzx
+    outputBuffer[10] = integral2[last].w; // integralAll
+    outputBuffer[11] = integral3[last].w; // totalError
+    outputBuffer[12] = splitCounts[last]; // split count
+}
 
-                                     __global float* restrict outputBuffer,
+/** Write new locations and allowed errors to the stack. */
+__kernel void mass_properties_prepare_next(uint startOffset,
+                                           __global float4* restrict locations,
+                                           __global float* restrict allowedErrors,
 
-                                     __global AssertBuffer* restrict assertBuffer)
+                                           __global float4* restrict tempLocations,
+                                           __global float* restrict nextAllowedErrors,
+
+                                           __global uint* restrict splitCounts,
+                                           __global uint* restrict splitMasks,
+
+                                           __global AssertBuffer* restrict assertBuffer)
 {
     float4 location = tempLocations[get_global_id(0)];
     float nextAllowedError = nextAllowedErrors[get_global_id(0)];
@@ -291,6 +316,10 @@ __kernel void mass_properties_stage3(uint startOffset,
         index += splitCounts[get_global_id(0) - 1]; // TODO: This makes the mem access misaligned
 
     uint splitMask = splitMasks[get_global_id(0)];
+
+    //printf("prepare: %f, %f, %f / %f, nextAllowedError = %f, index = %i (-%i), splitMask = %i\n",
+    //       location.x, location.y, location.z, location.w,
+    //       nextAllowedError, index, startOffset, splitMask);
 
     float s = location.w;
     float nextS = s / TREE_SIZE;
@@ -310,17 +339,6 @@ __kernel void mass_properties_stage3(uint startOffset,
                 allowedErrors[index] = nextAllowedError;
                 ++index;
             }
-
-    if (get_global_id(0) == 0)
-    {
-        uint last = get_global_size(0) - 1;
-        outputBuffer[0] = integral1[last].w;
-        vstore3(integral1[last].xyz, 0, outputBuffer + 1);
-        vstore3(integral2[last].xyz, 0, outputBuffer + 4);
-        vstore2(integral3[last], 0, outputBuffer + 7);
-        outputBuffer[9] = integral2[last].w;
-        outputBuffer[10] = splitCounts[last];
-    }
 }
 
 // vim: filetype=c

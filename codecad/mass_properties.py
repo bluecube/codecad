@@ -15,12 +15,12 @@ from . import subdivision
 from .cl_util import opencl_manager
 from . import nodes
 
-TREE_SIZE = 2  # Cube root of tree children count (2 => octree)
-WORK_SIZE = 2**15
-MAX_SPLITS = TREE_SIZE**3 * WORK_SIZE
+TREE_SIZE = 3  # Cube root of tree children count (2 => octree)
+MAX_WORK_SIZE = 2**16
+TREE_CHILD_COUNT = TREE_SIZE**3
 
-assert TREE_SIZE**3 < 32, "Set of node children must be representable by uint bitmask"
-assert MAX_SPLITS <= 2**23, "Maximum number of split nodes per run must be exactly representable as float"
+assert TREE_CHILD_COUNT < 32, "Set of node children must be representable by uint bitmask"
+assert TREE_CHILD_COUNT * MAX_WORK_SIZE <= 2**23, "Maximum number of split nodes per run must be exactly representable as float"
 
 c = opencl_manager.add_compile_unit()
 c.append_define("TREE_SIZE", TREE_SIZE)
@@ -35,16 +35,12 @@ class MassProperties(collections.namedtuple("MassProperties", "volume centroid i
     __slots__ = ()
 
 
-def mass_properties(shape, allowedError=1e-3):
+def mass_properties(shape, allowed_error=1e-3):
     """ Calculate volume, centroid and inertia tensor of the shape.
     Iteratively subdivides the shape until
-    abs(actual_volume - computed_volume) < allowedError """
+    abs(actual_volume - computed_volume) < allowed_error """
     # Inertia tensor info:
     # http://farside.ph.utexas.edu/teaching/336k/Newtonhtml/node64.html
-    #
-    # Some useful integrals:
-    # integral(x, a, a + s, integral(y, b, b + s, integral(z, c, c + s, x))) = s**3 * (a + s / 2)
-    # integral(x, a, a + s, integral(y, b, b + s, integral(z, c, c + s, x * y))) = s**3 * (a + s / 2) * (b + s / 2)
 
     #TODO: Support relative errors
 
@@ -53,34 +49,31 @@ def mass_properties(shape, allowedError=1e-3):
     box = shape.bounding_box()
     box_size = box.size()
     initial_step_size = box_size.max() / TREE_SIZE
+    volume_to_process = box_size.max()**3
     # TODO: Figure out correct max_depth
     # final_step_size = ??? shape.get_epsilon() / 2 ???
     # max_depth = 1 + math.log(initial_step_size / final_step_size, TREE_SIZE)
-    max_depth = 10
-    max_locations = TREE_SIZE**3 * WORK_SIZE * max_depth
-    print("max_locations", max_locations)
+    max_depth = 20
+    max_locations1 = MAX_WORK_SIZE + MAX_WORK_SIZE * (TREE_CHILD_COUNT - 1) * max_depth
+    max_locations2 = max_locations1 + MAX_WORK_SIZE * (TREE_CHILD_COUNT - 1)
+    logger.debug("max_location1: %i, max_locations2: %i", max_locations1, max_locations2)
 
     program_buffer = nodes.make_program_buffer(shape)
-    locations = cl_util.Buffer(cltypes.float4, max_locations, pyopencl.mem_flags.READ_WRITE)
-    allowed_errors = cl_util.Buffer(cltypes.float, max_locations, pyopencl.mem_flags.READ_WRITE)
-    temp_locations = cl_util.Buffer(cltypes.float4, WORK_SIZE, pyopencl.mem_flags.READ_WRITE)
-    next_allowed_errors = cl_util.Buffer(cltypes.float, WORK_SIZE, pyopencl.mem_flags.READ_WRITE)
-    integral1 = cl_util.Buffer(cltypes.float4, WORK_SIZE, pyopencl.mem_flags.READ_WRITE)
-    integral2 = cl_util.Buffer(cltypes.float4, WORK_SIZE, pyopencl.mem_flags.READ_WRITE)
-    integral3 = cl_util.Buffer(cltypes.float2, WORK_SIZE, pyopencl.mem_flags.READ_WRITE)
-    split_counts = cl_util.Buffer(cltypes.uint, WORK_SIZE, pyopencl.mem_flags.READ_WRITE)
-    split_masks = cl_util.Buffer(cltypes.uint, WORK_SIZE, pyopencl.mem_flags.READ_WRITE)
-    output_buffer = cl_util.Buffer(cltypes.float, 11, pyopencl.mem_flags.WRITE_ONLY | pyopencl.mem_flags.ALLOC_HOST_PTR)
+    locations = cl_util.Buffer(cltypes.float4, max_locations2, pyopencl.mem_flags.READ_WRITE)
+    allowed_errors = cl_util.Buffer(cltypes.float, max_locations2, pyopencl.mem_flags.READ_WRITE)
+    temp_locations = cl_util.Buffer(cltypes.float4, MAX_WORK_SIZE, pyopencl.mem_flags.READ_WRITE)
+    next_allowed_errors = cl_util.Buffer(cltypes.float, MAX_WORK_SIZE, pyopencl.mem_flags.READ_WRITE)
+    integral1 = cl_util.Buffer(cltypes.float4, MAX_WORK_SIZE, pyopencl.mem_flags.READ_WRITE)
+    integral2 = cl_util.Buffer(cltypes.float4, MAX_WORK_SIZE, pyopencl.mem_flags.READ_WRITE)
+    integral3 = cl_util.Buffer(cltypes.float2, MAX_WORK_SIZE, pyopencl.mem_flags.READ_WRITE)
+    split_counts = cl_util.Buffer(cltypes.uint, MAX_WORK_SIZE, pyopencl.mem_flags.READ_WRITE)
+    split_masks = cl_util.Buffer(cltypes.uint, MAX_WORK_SIZE, pyopencl.mem_flags.READ_WRITE)
+    output_buffer = cl_util.Buffer(cltypes.float, 13, pyopencl.mem_flags.WRITE_ONLY | pyopencl.mem_flags.ALLOC_HOST_PTR)
     assert_buffer = cl_util.AssertBuffer()
 
     # Initialize the first location
-    with locations.map(pyopencl.map_flags.WRITE, shape=1) as mapped:
-        mapped[0]["x"] = box.a.x
-        mapped[0]["y"] = box.a.y
-        mapped[0]["z"] = box.a.z
-        mapped[0]["w"] = initial_step_size
-    with allowed_errors.map(pyopencl.map_flags.WRITE, shape=1) as mapped:
-        mapped[0] = allowedError
+    ev = locations.enqueue_write(box.a.as_float4(initial_step_size))
+    prepare_next_ev = allowed_errors.enqueue_write(numpy.array([allowed_error], dtype=allowed_errors.dtype), wait_for=[ev])
     locations_to_process = 1
 
     integral_one = util.KahanSummation()
@@ -93,38 +86,74 @@ def mass_properties(shape, allowedError=1e-3):
     integral_xy = util.KahanSummation()
     integral_xz = util.KahanSummation()
     integral_yz = util.KahanSummation()
+    integral_all = util.KahanSummation()
+    total_error = util.KahanSummation()
 
-    time_computing = 0
+    time_computing = util.KahanSummation()
     iteration_count = 0
     locations_processed = 0
     start_time = time.time()
 
+    prev_prepare_next_ev = None
+
     while locations_to_process > 0:
-        work_size = min(WORK_SIZE, locations_to_process)
+        work_size = min(MAX_WORK_SIZE, locations_to_process)
+
         start_offset = locations_to_process - work_size  # TODO: Divisible by 16!
-        ev1 = opencl_manager.k.mass_properties_stage1([work_size], None,
-                                                      program_buffer,
-                                                      cltypes.uint(start_offset),
-                                                      locations, allowed_errors,
-                                                      temp_locations, next_allowed_errors,
-                                                      integral1, integral2, integral3,
-                                                      split_counts, split_masks,
-                                                      assert_buffer)
-        ev2 = opencl_manager.k.mass_properties_stage2([1], None,
+
+        if start_offset + work_size * TREE_CHILD_COUNT >= max_locations1:
+            work_size = (max_locations2 - locations_to_process) // (TREE_CHILD_COUNT - 1)
+            work_size = min(work_size, MAX_WORK_SIZE, locations_to_process)
+            work_size = 0
+            if work_size == 0:
+                with locations.map(pyopencl.map_flags.READ, wait_for=[prev_prepare_next_ev]) as mapped:
+                    logger.debug("locations after: %s", str(mapped[:locations_to_process][-5:]))
+                with allowed_errors.map(pyopencl.map_flags.READ, wait_for=[prev_prepare_next_ev]) as mapped:
+                    logger.debug("allowed_errors after: %s", str(mapped[:locations_to_process][-5:]))
+
+                raise Exception("Maximum location buffer size exceeded. "
+                                "This is likely a bug in CodeCad. "
+                                "As a workaround try specifying lower precision.")
+
+            logger.warning("Limiting work size to %i to avoid exceeding location buffer size. "
+                           "This is likely a bug in CodeCad, but should only affect performance.",
+                           work_size)
+            start_offset = locations_to_process - work_size  # TODO: Divisible by 16!
+
+        assert work_size > 0
+        assert work_size <= MAX_WORK_SIZE
+        assert start_offset >= 0
+        assert start_offset + work_size == locations_to_process
+        assert start_offset + work_size * TREE_CHILD_COUNT <= max_locations2
+
+        evaluate_ev = opencl_manager.k.mass_properties_evaluate([work_size], None,
+                                                                program_buffer,
+                                                                cltypes.uint(start_offset),
+                                                                locations, allowed_errors,
+                                                                temp_locations, next_allowed_errors,
+                                                                integral1, integral2, integral3,
+                                                                split_counts, split_masks,
+                                                                assert_buffer,
+                                                                wait_for=[prepare_next_ev])
+        sum_ev = opencl_manager.k.mass_properties_sum([work_size], None,
                                                       integral1, integral2, integral3,
                                                       split_counts,
                                                       assert_buffer,
-                                                      wait_for=[ev1])
-        ev3 = opencl_manager.k.mass_properties_stage3([work_size], None,
-                                                      cltypes.uint(start_offset),
-                                                      locations, allowed_errors,
-                                                      temp_locations, next_allowed_errors,
-                                                      integral1, integral2, integral3,
-                                                      split_counts, split_masks,
-                                                      output_buffer,
-                                                      assert_buffer,
-                                                      wait_for=[ev2])
-        with output_buffer.map(pyopencl.map_flags.READ, wait_for=[ev3]) as mapped:
+                                                      wait_for=[evaluate_ev])
+        output_ev = opencl_manager.k.mass_properties_output([1], None,
+                                                            cltypes.uint(work_size),
+                                                            integral1, integral2, integral3,
+                                                            split_counts,
+                                                            output_buffer,
+                                                            wait_for=[sum_ev])
+        prepare_next_ev = opencl_manager.k.mass_properties_prepare_next([work_size], None,
+                                                                        cltypes.uint(start_offset),
+                                                                        locations, allowed_errors,
+                                                                        temp_locations, next_allowed_errors,
+                                                                        split_counts, split_masks,
+                                                                        assert_buffer,
+                                                                        wait_for=[sum_ev])
+        with output_buffer.map(pyopencl.map_flags.READ, wait_for=[output_ev]) as mapped:
             integral_one += mapped[0]
             integral_x += mapped[1]
             integral_y += mapped[2]
@@ -135,27 +164,58 @@ def mass_properties(shape, allowedError=1e-3):
             integral_yz += mapped[7]
             integral_xz += mapped[8]
             integral_xy += mapped[9]
-            locations_to_process += int(mapped[10])
-        if locations_to_process > max_locations:
-            raise Exception("Maximum location buffer size exceeded. "
-                            "This is likely a bug in CodeCad. "
-                            "As a workaround try specifying lower precision.")
+            integral_all += mapped[10]
+            total_error += mapped[11]
+            splits = int(mapped[12])
+        #assert_buffer.check()
 
-        time_computing_this_iteration = (ev3.profile.end - ev1.profile.start) * 1e-9
+        assert splits <= work_size * TREE_CHILD_COUNT
+        locations_to_process += splits - work_size
 
-        time_computing += time_computing_this_iteration
+        #with locations.map(pyopencl.map_flags.READ, wait_for=[prepare_next_ev]) as mapped:
+        #    logger.debug("locations after: %s", str(mapped[:locations_to_process]))
+        #with allowed_errors.map(pyopencl.map_flags.READ, wait_for=[prepare_next_ev]) as mapped:
+        #    logger.debug("allowed_errors after: %s", str(mapped[:locations_to_process]))
+
+        # Computing time spent in OpenCL is a bit tricky here.
+        # Because we try to give stage 4 as much time as possible, it might be
+        # still running at this point, so we need to measure its time times one step behind.
+        # The other stages are calculated immediately
+        time_computing += cl_util.event_time_spent(evaluate_ev) + cl_util.event_time_spent(sum_ev) + cl_util.event_time_spent(output_ev)
+        if prev_prepare_next_ev is not None:
+            time_computing += cl_util.event_time_spent(prev_prepare_next_ev)
         iteration_count += 1
         locations_processed += work_size
 
-        logger.debug("Iteration finished: time_computing: %f s, locations to process: %i",
-                     time_computing_this_iteration, locations_to_process)
+        prev_prepare_next_ev = prepare_next_ev
+
+        progress = integral_all.result / volume_to_process
+
+        #logger.debug("Iteration finished: locations to process: %i",
+        #             locations_to_process)
+        time_spent = time.time() - start_time
+        logger.debug("Iteration finished: %.4f%%, total error used: %f, split count: %i, locations to process: %i, "
+                     "time elapsed: %f s, opencl compute time: %f s, efficiency: %f, "
+                     "iteration count: %i (%f iterations/s), "
+                     "locations processed: %i (%f locations/iteration, %f locations/s)",
+                     100 * progress, total_error.result, splits, locations_to_process,
+                     time_spent, time_computing.result, time_computing.result / time_spent,
+                     iteration_count, iteration_count / time_spent,
+                     locations_processed, locations_processed / iteration_count, locations_processed / time_spent)
+
+        #break
+
+    assert_buffer.check()
+
+    prev_prepare_next_ev.wait() # Wait for the last event to finalize timing stats
+    time_computing += cl_util.event_time_spent(prev_prepare_next_ev)
 
     time_spent = time.time() - start_time
     logger.info("Mass properties finished: "
                 "time elapsed: %f s, opencl compute time: %f s, efficiency: %f, "
-                "iteration count: %f (%f iterations / s), "
-                "locations processed: %f (%f locations / iteration, %f locations / s)",
-                time_spent, time_computing, time_computing / time_spent,
+                "iteration count: %i (%f iterations/s), "
+                "locations processed: %i (%f locations/iteration, %f locations/s)",
+                time_spent, time_computing.result, time_computing.result / time_spent,
                 iteration_count, iteration_count / time_spent,
                 locations_processed, locations_processed / iteration_count, locations_processed / time_spent)
 

@@ -5,6 +5,7 @@ import scipy.integrate
 import pytest
 from pytest import approx
 import pyopencl
+from pyopencl import cltypes
 
 import codecad
 import codecad.util
@@ -82,3 +83,44 @@ def test_mass_properties_unbounding_volume(radius):
 
     assert abs(b[0]) <= abs(expected) * (1 + 1e-3)
     assert b[0] == pytest.approx(expected, abs=0.1)
+
+
+def test_mass_properties_stage2_and_stage4():
+    size = 10
+    integral1 = codecad.cl_util.Buffer(cltypes.float4, size, pyopencl.mem_flags.READ_WRITE)
+    integral2 = codecad.cl_util.Buffer(cltypes.float4, size, pyopencl.mem_flags.READ_WRITE)
+    integral3 = codecad.cl_util.Buffer(cltypes.float4, size, pyopencl.mem_flags.READ_WRITE)
+    split_counts = codecad.cl_util.Buffer(cltypes.uint, size, pyopencl.mem_flags.READ_WRITE)
+    output_buffer = codecad.cl_util.Buffer(cltypes.float, 13, pyopencl.mem_flags.WRITE_ONLY)
+    assert_buffer = codecad.cl_util.AssertBuffer()
+
+    evs = []
+    evs.append(integral1.enqueue_write(numpy.full(size, 1, dtype=integral1.dtype)))
+    evs.append(integral2.enqueue_write(numpy.full(size, 2, dtype=integral2.dtype)))
+    evs.append(integral3.enqueue_write(numpy.full(size, 3, dtype=integral3.dtype)))
+    evs.append(split_counts.enqueue_write(numpy.ones(shape=size, dtype=split_counts.dtype)))
+
+    ev = codecad.cl_util.opencl_manager.k.mass_properties_sum([size], None,
+                                                              integral1, integral2, integral3,
+                                                              split_counts,
+                                                              assert_buffer,
+                                                              wait_for=evs)
+    assert_buffer.check(wait_for=[ev])
+
+    integral1.read()
+    integral2.read()
+    integral3.read()
+    split_counts.read()
+
+    assert integral1[-1] == numpy.full(1, 1 * size, dtype=integral1.dtype)[0]
+    assert integral2[-1] == numpy.full(1, 2 * size, dtype=integral2.dtype)[0]
+    assert integral3[-1] == numpy.full(1, 3 * size, dtype=integral3.dtype)[0]
+    assert (split_counts[:] == numpy.arange(1, size + 1)).all()
+
+    ev = codecad.cl_util.opencl_manager.k.mass_properties_output([1], None,
+                                                                 cltypes.uint(size),
+                                                                 integral1, integral2, integral3,
+                                                                 split_counts,
+                                                                 output_buffer)
+    output_buffer.read(wait_for=[ev])
+    assert (output_buffer[:] == [10, 10, 10, 10, 20, 20, 20, 30, 30, 30, 20, 30, 10]).all()
