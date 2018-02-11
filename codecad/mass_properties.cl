@@ -70,8 +70,9 @@ __kernel void test_mass_properties_unbounding_volume(float value, __global float
  *
  * shape: Shape we're working with
  * startOffset: Index of the first work item in the input arrays.
- *              Should be a multiple of 8 to keep memory access aligned.
- * allowedError: Error allowed for this node.
+ *              Should be a multiple of 8 (or 16?) to keep memory access aligned.
+ * locationQueueSize: Size of the location queue to wrap the indices
+ * allowedErrorPerVolume: Error allowed per unit of block volume.
  * locations: xyz coordinates of a corner of tree nodes to process,
  *            w is size of the child node (w * TREE_SIZE is size of this node).
  *            get_global_size(0) items large.
@@ -96,7 +97,8 @@ __kernel void test_mass_properties_unbounding_volume(float value, __global float
 __kernel void mass_properties_evaluate(__constant float* restrict shape,
 
                                        uint startOffset,
-                                       float allowedError,
+                                       uint locationQueueSize,
+                                       float allowedErrorPerVolume,
 
                                        __global float4* restrict locations,
                                        __global float4* restrict tempLocations,
@@ -110,19 +112,23 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
 
                                        __global AssertBuffer* restrict assertBuffer)
 {
-    uint index = startOffset + get_global_id(0);
+    uint index = startOffset + get_global_id(0) % locationQueueSize;
     float4 location = locations[index];
-    float errorBudget = allowedError;
 
     tempLocations[get_global_id(0)] = location;
 
     float s = location.w;
     float s3 = s * s * s;
 
-    //printf("evaluate: %f, %f, %f / %f, s3 = %f allowedError = %f\n", location.x, location.y, location.z, location.w, s3, allowedError);
+    float maxErrorPerChild1 = allowedErrorPerVolume;
+
+    if (any(location.xyz + s == location.xyz))
+        maxErrorPerChild1 = 1; // Avoid issues with too small values of s
+
+    float totalAllowedError = maxErrorPerChild1 * TREE_CHILD_COUNT;
+    float errorBudget = totalAllowedError;
 
     float4 volumesAndPositions[TREE_CHILD_COUNT];
-    float maxErrorPerChild1 = allowedError / TREE_CHILD_COUNT;
 
     uint possiblyNeedSplitting = 0;
     uint n = 0;
@@ -138,7 +144,7 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
                 float volume = get_unbounding_volume(value, s);
                 volumesAndPositions[n++] = (float4)(center, volume);
 
-                float error = s3 * (1 - fabs(volume)) / 2.0;
+                float error = (1 - fabs(volume)) / 2.0;
                 //printf("%i, %i, %i (%i): center = %f, %f, %f, value = %f, volume = %f, error = %f (%s %f)\n",
                 //       i, j, k, n, center.x, center.y, center.z, value, volume, error,
                 //       maxErrorPerChild1, (error < maxErrorPerChild1 ? "<" : ">="));
@@ -151,9 +157,6 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
 
     float maxErrorPerChild2 = errorBudget / possiblyNeedSplitting;
     assert(assertBuffer, maxErrorPerChild2 >= maxErrorPerChild1);
-
-    //if (get_global_id(0) == 0)
-    //printf("maxErrorPerChild1: %f, maxErrorPerChild2: %f\n", maxErrorPerChild1, maxErrorPerChild2);
     assert(assertBuffer, maxErrorPerChild2 > 0);
 
     float integralOne = 0;
@@ -169,18 +172,18 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
     for (uint i = 0; i < TREE_CHILD_COUNT; ++i)
     {
         float volume = volumesAndPositions[i].w;
-        float error = s3 * (1 - fabs(volume)) / 2.0;
+        float error = (1 - fabs(volume)) / 2.0;
 
         if (error < maxErrorPerChild2)
         {
-            float weight = s3 * (1 - volume) / 2.0;
+            float weight = (1 - volume) / 2.0;
             float3 center = volumesAndPositions[i].xyz + s / 2;
 
             integralOne += weight;
             integralX += weight * center;
             integralXX += weight * (center * center + s * s / 12);
             integralXY += weight * center.zxy * center.yzx;
-            integralAll += s3;
+            integralAll += 1;
             totalError += error;
         }
         else
@@ -189,12 +192,11 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
             splitMask |= 1 << i;
         }
     }
-    assert(assertBuffer, totalError + maxErrorPerChild2 * splitCount < allowedError * (1 + 1e-6));
+    assert(assertBuffer, (totalAllowedError - totalError) / splitCount >= maxErrorPerChild1);
 
-    assert(assertBuffer, !isnan(integralOne));
-    integral1[get_global_id(0)] = (float4)(integralX, integralOne);
-    integral2[get_global_id(0)] = (float4)(integralXX, integralAll);
-    integral3[get_global_id(0)] = (float4)(integralXY, totalError);
+    integral1[get_global_id(0)] = s3 * (float4)(integralX, integralOne);
+    integral2[get_global_id(0)] = s3 * (float4)(integralXX, integralAll);
+    integral3[get_global_id(0)] = s3 * (float4)(integralXY, totalError);
     splitCounts[get_global_id(0)] = splitCount;
     splitMasks[get_global_id(0)] = splitMask;
 
@@ -290,6 +292,7 @@ __kernel void mass_properties_output(uint n,
 
 /** Write new locations and allowed errors to the stack. */
 __kernel void mass_properties_prepare_next(uint startOffset,
+                                           uint locationQueueSize,
                                            __global float4* restrict locations,
                                            __global float4* restrict tempLocations,
                                            __global uint* restrict splitCounts,
@@ -323,7 +326,7 @@ __kernel void mass_properties_prepare_next(uint startOffset,
                     continue;
 
                 float3 corner = location.xyz + (float3)(i, j, k) * s;
-                locations[index] = (float4)(corner, nextS);
+                locations[index % locationQueueSize] = (float4)(corner, nextS);
                 ++index;
             }
 }
