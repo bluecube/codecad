@@ -1,3 +1,5 @@
+import math
+
 class KahanSummation:
     """ Helper class that allows summing many floating point numbers with better precision
     Algorithm adapted from wikipedia. """
@@ -16,3 +18,16 @@ class KahanSummation:
     def __isub__(self, x):
         self += -x
         return self
+
+
+def round_up_to(x, y):
+    """ Round x away from zero to a nearest multiple of y """
+    return ((x + y - 1) // y) * y
+
+
+def round_up_to_power_of_2(x):
+    return 2**math.ceil(math.log2(x))
+
+
+def clamp(v, lower, upper):
+    return max(lower, min(v, upper))
