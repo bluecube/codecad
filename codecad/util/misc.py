@@ -3,11 +3,6 @@ import time
 import sys
 
 
-def round_up_to(x, y):
-    """ Round x away from zero to a nearest multiple of y """
-    return ((x + y - 1) // y) * y
-
-
 @contextlib.contextmanager
 def status_block(title):
     print(title, end="...")
@@ -27,7 +22,3 @@ class Concatenate:
     def __iter__(self):
         for iterable in self._iterables:
             yield from iterable
-
-
-def clamp(v, lower, upper):
-    return max(lower, min(v, upper))
