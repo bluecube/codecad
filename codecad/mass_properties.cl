@@ -120,17 +120,23 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
     float s = location.w;
     float s3 = s * s * s;
 
-    float maxErrorPerChild1 = allowedErrorPerVolume;
+    assert(assertBuffer, s > 0);
+    assert(assertBuffer, all(location.xyz + s != location.xyz));
 
     if (any(location.xyz + s == location.xyz))
-        maxErrorPerChild1 = 1; // Avoid issues with too small values of s
-
-    float totalAllowedError = maxErrorPerChild1 * TREE_CHILD_COUNT;
-    float errorBudget = totalAllowedError;
+        allowedErrorPerVolume = 1; // Avoid issues with too small values of s
 
     float4 volumesAndPositions[TREE_CHILD_COUNT];
 
-    uint possiblyNeedSplitting = 0;
+    float integralOne = 0;
+    float3 integralX = 0;
+    float3 integralXX = 0;
+    float3 integralXY = 0;
+    float integralAll = 0;
+    float totalError = 0;
+    uint splitCount = 0;
+    uint splitMask = 0;
+
     uint n = 0;
     #pragma unroll
     for (uint i = 0; i < TREE_SIZE; ++i)
@@ -142,57 +148,30 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
                 float3 center = location.xyz + (float3)(i, j, k) * s + s / 2;
                 float value = evaluate(shape, center).w;
                 float volume = get_unbounding_volume(value, s);
-                volumesAndPositions[n++] = (float4)(center, volume);
 
                 float error = (1 - fabs(volume)) / 2.0;
                 //printf("%i, %i, %i (%i): center = %f, %f, %f, value = %f, volume = %f, error = %f (%s %f)\n",
                 //       i, j, k, n, center.x, center.y, center.z, value, volume, error,
                 //       maxErrorPerChild1, (error < maxErrorPerChild1 ? "<" : ">="));
 
-                if (error < maxErrorPerChild1)
-                    errorBudget -= error;
+                if (error < allowedErrorPerVolume)
+                {
+                    float weight = (1 - volume) / 2.0;
+
+                    integralOne += weight;
+                    integralX += weight * center;
+                    integralXX += weight * (center * center + s * s / 12);
+                    integralXY += weight * center.zxy * center.yzx;
+                    integralAll += 1;
+                    totalError += error;
+                }
                 else
-                    possiblyNeedSplitting += 1;
+                {
+                    splitCount += 1;
+                    splitMask |= 1 << n;
+                }
+                ++n;
             }
-
-    float maxErrorPerChild2 = errorBudget / possiblyNeedSplitting;
-    assert(assertBuffer, maxErrorPerChild2 >= maxErrorPerChild1);
-    assert(assertBuffer, maxErrorPerChild2 > 0);
-
-    float integralOne = 0;
-    float3 integralX = 0;
-    float3 integralXX = 0;
-    float3 integralXY = 0;
-    float integralAll = 0;
-    float totalError = 0;
-    uint splitCount = 0;
-    uint splitMask = 0;
-
-    #pragma unroll
-    for (uint i = 0; i < TREE_CHILD_COUNT; ++i)
-    {
-        float volume = volumesAndPositions[i].w;
-        float error = (1 - fabs(volume)) / 2.0;
-
-        if (error < maxErrorPerChild2)
-        {
-            float weight = (1 - volume) / 2.0;
-            float3 center = volumesAndPositions[i].xyz + s / 2;
-
-            integralOne += weight;
-            integralX += weight * center;
-            integralXX += weight * (center * center + s * s / 12);
-            integralXY += weight * center.zxy * center.yzx;
-            integralAll += 1;
-            totalError += error;
-        }
-        else
-        {
-            splitCount += 1;
-            splitMask |= 1 << i;
-        }
-    }
-    assert(assertBuffer, (totalAllowedError - totalError) / splitCount >= maxErrorPerChild1);
 
     integral1[get_global_id(0)] = s3 * (float4)(integralX, integralOne);
     integral2[get_global_id(0)] = s3 * (float4)(integralXX, integralAll);

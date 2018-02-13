@@ -16,8 +16,9 @@ from .cl_util import opencl_manager
 from . import nodes
 
 TREE_SIZE = 3  # Cube root of tree children count (2 => octree)
-MAX_WORK_SIZE = 2**10
+MAX_WORK_SIZE = 2**16
 TREE_CHILD_COUNT = TREE_SIZE**3
+LOCATION_QUEUE_SIZE = MAX_WORK_SIZE * util.round_up_to_power_of_2(TREE_CHILD_COUNT - 1) * 2**5
 
 assert TREE_CHILD_COUNT < 32, "Set of node children must be representable by uint bitmask"
 assert TREE_CHILD_COUNT * MAX_WORK_SIZE <= 2**23, "Maximum number of split nodes per run must be exactly representable as float"
@@ -50,16 +51,10 @@ def mass_properties(shape, allowed_error=1e-3):
     box_size = box.size()
     initial_step_size = box_size.max() / TREE_SIZE
     volume_to_process = box_size.max()**3
-    # TODO: Figure out correct max_depth
-    # final_step_size = ??? shape.get_epsilon() / 2 ???
-    # max_depth = 1 + math.log(initial_step_size / final_step_size, TREE_SIZE)
-    max_depth = 20
-    location_queue_size = 2**math.ceil(math.log2(MAX_WORK_SIZE + MAX_WORK_SIZE * (TREE_CHILD_COUNT - 1) * max_depth))
-    location_queue_size = 2**25
-    logger.debug("location_queue_size %i", location_queue_size)
+    min_alllowed_error_per_volume = allowed_error / volume_to_process
 
     program_buffer = nodes.make_program_buffer(shape)
-    locations = cl_util.Buffer(cltypes.float4, location_queue_size, pyopencl.mem_flags.READ_WRITE)
+    locations = cl_util.Buffer(cltypes.float4, LOCATION_QUEUE_SIZE, pyopencl.mem_flags.READ_WRITE)
     temp_locations = cl_util.Buffer(cltypes.float4, MAX_WORK_SIZE, pyopencl.mem_flags.READ_WRITE)
     integral1 = cl_util.Buffer(cltypes.float4, MAX_WORK_SIZE, pyopencl.mem_flags.READ_WRITE)
     integral2 = cl_util.Buffer(cltypes.float4, MAX_WORK_SIZE, pyopencl.mem_flags.READ_WRITE)
@@ -98,28 +93,54 @@ def mass_properties(shape, allowed_error=1e-3):
         logger.debug("*********************************")
         work_size = min(MAX_WORK_SIZE, location_count)
 
-        if location_count + work_size * (TREE_CHILD_COUNT - 1) >= location_queue_size:
+        logger.debug("first_location: %i, location_count: %i, LOCATION_QUEUE_SIZE: %i, work size: %i",
+                     first_location, location_count, LOCATION_QUEUE_SIZE, work_size)
+
+        work_size_limit = (LOCATION_QUEUE_SIZE - location_count) // (TREE_CHILD_COUNT - 1)
+        if work_size_limit == 0:
             raise Exception("Maximum location buffer size exceeded. "
                             "This is likely a bug in CodeCad. "
                             "As a workaround try specifying lower precision.")
+        elif work_size_limit >= work_size:
+            # If we have enough free space in the buffer, we run in BFS mode.
+            # This has the advantage of possibly chopping off large areas that are 
+            # covered as whole, which will let the allowed error to be distributed over
+            # the whole calculation better. Also BFS doesn't have the tendency to get
+            # stuck in hard to solve corners.
+            start_offset = first_location
+            first_location_move = work_size
+        else:
+            # Otherwise we run in a DFS mode, because it tends to completely solve
+            # an area before continuing elsewhere and thus saves buffer space.
+            # We also limit work size for the case where we couldn't handle all
+            # the nodes expanding at once.
+            work_size = work_size_limit
+            logger.warning("Limiting work size to %i to avoid exceeding location buffer size. "
+                           "This is likely a bug in CodeCad, but should only affect performance.",
+                           work_size)
 
-            #logger.warning("Limiting work size to %i to avoid exceeding location buffer size. "
-            #               "This is likely a bug in CodeCad, but should only affect performance.",
-            #               work_size)
+            start_offset = first_location
+            first_location_move = work_size
+            #start_offset = (first_location + location_count - work_size) % LOCATION_QUEUE_SIZE
+            #first_location_move = 0
 
         assert work_size > 0
         assert work_size <= MAX_WORK_SIZE
+        assert work_size <= location_count
+
+        logger.debug("allowed_error = %f, total_error = %f, volume_to_process = %f, integral_all = %f",
+                     allowed_error, total_error.result, volume_to_process, integral_all.result)
 
         allowed_error_per_volume = (allowed_error - total_error.result) / (volume_to_process - integral_all.result)
+        allowed_error_per_volume = max(allowed_error_per_volume, min_alllowed_error_per_volume)  # Rounding errors cause problems near the end of calculation
+        allowed_error_per_volume *= TREE_SIZE
+
 
         logger.debug("allowed_error_per_volume = %f", allowed_error_per_volume)
-        logger.debug("first_location: %i, location_count: %i, location_queue_size: %i, work size: %i",
-                     first_location, location_count, location_queue_size, work_size)
-
         evaluate_ev = opencl_manager.k.mass_properties_evaluate([work_size], None,
                                                                 program_buffer,
-                                                                cltypes.uint(first_location),
-                                                                cltypes.uint(location_queue_size),
+                                                                cltypes.uint(start_offset),
+                                                                cltypes.uint(LOCATION_QUEUE_SIZE),
                                                                 cltypes.float(allowed_error_per_volume),
                                                                 locations, temp_locations,
                                                                 integral1, integral2, integral3,
@@ -138,8 +159,8 @@ def mass_properties(shape, allowed_error=1e-3):
                                                             output_buffer,
                                                             wait_for=[sum_ev])
         prepare_next_ev = opencl_manager.k.mass_properties_prepare_next([work_size], None,
-                                                                        cltypes.uint((first_location + location_count) % location_queue_size),
-                                                                        cltypes.uint(location_queue_size),
+                                                                        cltypes.uint((first_location + location_count) % LOCATION_QUEUE_SIZE),
+                                                                        cltypes.uint(LOCATION_QUEUE_SIZE),
                                                                         locations, temp_locations,
                                                                         split_counts, split_masks,
                                                                         assert_buffer,
@@ -160,8 +181,10 @@ def mass_properties(shape, allowed_error=1e-3):
             splits = int(mapped[12])
         assert_buffer.check()
 
+        logger.debug("splits: %i", splits)
+
         assert splits <= work_size * TREE_CHILD_COUNT
-        first_location = (first_location + work_size) % location_queue_size
+        first_location = (first_location + first_location_move) % LOCATION_QUEUE_SIZE
         location_count += splits - work_size
 
         #with locations.map(pyopencl.map_flags.READ, wait_for=[prepare_next_ev]) as mapped:
