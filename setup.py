@@ -18,7 +18,7 @@ setup(name="codecad",
                         "py-flags",
                         ],
       setup_requires=["pytest-runner"],
-      tests_require=["pytest", "trimesh"],
+      tests_require=["pytest>=3.1.0", "trimesh"],
       python_requires="~=3.4",
 
       zip_safe=False,
