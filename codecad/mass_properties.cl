@@ -112,7 +112,8 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
 
                                        __global AssertBuffer* restrict assertBuffer)
 {
-    uint index = startOffset + get_global_id(0) % locationQueueSize;
+    uint index = (startOffset + get_global_id(0)) % locationQueueSize;
+
     float4 location = locations[index];
 
     tempLocations[get_global_id(0)] = location;
