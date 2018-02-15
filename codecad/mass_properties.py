@@ -87,6 +87,7 @@ def mass_properties(shape, allowed_error=1e-3):
     total_error = util.KahanSummation()
 
     time_computing = util.KahanSummation()
+    time_summing = util.KahanSummation()
     iteration_count = 0
     locations_processed = 0
 
@@ -194,6 +195,7 @@ def mass_properties(shape, allowed_error=1e-3):
         # still running at this point, so we need to measure its time times one step behind.
         # The other stages are calculated immediately
         time_computing += cl_util.event_time_spent(evaluate_ev) + cl_util.event_time_spent(sum_ev) + cl_util.event_time_spent(output_ev)
+        time_summing += cl_util.event_time_spent(sum_ev)
         if prev_prepare_next_ev is not None:
             time_computing += cl_util.event_time_spent(prev_prepare_next_ev)
         iteration_count += 1
@@ -222,10 +224,10 @@ def mass_properties(shape, allowed_error=1e-3):
 
     time_spent = time.time() - start_time
     logger.info("Mass properties finished: "
-                "time elapsed: %.2f s, OpenCL time: %.2f s, OpenCL utilization: %.3f, "
+                "time elapsed: %.2f s, OpenCL time: %.2f s, OpenCL utilization: %.3f, OpenCL relative sum time: %.3f, "
                 "iteration count: %i (%.1f iterations/s), "
                 "locations processed: %.2e (%.0f locations/iteration, %.0f locations/s)",
-                time_spent, time_computing.result, time_computing.result / time_spent,
+                time_spent, time_computing.result, time_computing.result / time_spent, time_summing.result / time_computing.result,
                 iteration_count, iteration_count / time_spent,
                 locations_processed, locations_processed / iteration_count, locations_processed / time_spent)
 
