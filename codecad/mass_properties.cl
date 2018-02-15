@@ -98,10 +98,13 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
 
                                        uint startOffset,
                                        uint locationQueueSize,
-                                       float allowedErrorPerVolume,
+                                       float bonusAllowedError,
+                                       uint keepRemainingError,
 
                                        __global float4* restrict locations,
+                                       __global float* restrict allowedErrors,
                                        __global float4* restrict tempLocations,
+                                       __global float* restrict tempAllowedErrors,
 
                                        __global float4* restrict integral1,
                                        __global float4* restrict integral2,
@@ -115,19 +118,62 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
     uint index = (startOffset + get_global_id(0)) % locationQueueSize;
 
     float4 location = locations[index];
+    float allowedErrorFromLocation = allowedErrors[index];
+    float allowedError = allowedErrorFromLocation + bonusAllowedError;
 
-    tempLocations[get_global_id(0)] = location;
-
+    float3 cellOrigin = location.xyz;
     float s = location.w;
     float s3 = s * s * s;
 
+    //printf("allowedError = %f, bonusAllowedError = %f, s3 = %f\n", allowedError, bonusAllowedError, s3);
+
     assert(assertBuffer, s > 0);
-    assert(assertBuffer, all(location.xyz + s != location.xyz));
+    assert(assertBuffer, all(cellOrigin + s != cellOrigin));
+    assert(assertBuffer, all(cellOrigin + s / TREE_SIZE != cellOrigin)); // debug only, this can happen IRL
 
-    if (any(location.xyz + s == location.xyz))
-        allowedErrorPerVolume = 1; // Avoid issues with too small values of s
+    if (any(cellOrigin + s / TREE_SIZE == cellOrigin))
+        // If step is too small, expanding the cell will not help, because
+        // coordinates of the expanded items will end up at identical positions.
+        // Just accept any error and don't expand anything.
+        allowedError = 1; // Avoid issues with too small values of s
 
-    float4 volumesAndPositions[TREE_CHILD_COUNT];
+    float volumes[TREE_CHILD_COUNT];
+    uint n = 0;
+    uint potentialSplitCount = 0;
+    float remainingAllowedError = allowedError * TREE_CHILD_COUNT;
+
+    #pragma unroll
+    for (uint i = 0; i < TREE_SIZE; ++i)
+        #pragma unroll
+        for (uint j = 0; j < TREE_SIZE; ++j)
+            #pragma unroll
+            for (uint k = 0; k < TREE_SIZE; ++k)
+            {
+                float3 center = cellOrigin + (float3)(i, j, k) * s + s / 2;
+                float value = evaluate(shape, center).w;
+                float volume = get_unbounding_volume(value, s);
+                volumes[n++] = volume;
+
+                float error = (1 - fabs(volume)) / 2.0;
+                //printf("%i, %i, %i (%i): center = %f, %f, %f, value = %f, volume = %f, error = %f (%s %f)\n",
+                //       i, j, k, n, center.x, center.y, center.z, value, volume, error,
+                //       maxErrorPerChild1, (error < maxErrorPerChild1 ? "<" : ">="));
+
+                if (error < allowedError)
+                    remainingAllowedError -= error;
+                else
+                    potentialSplitCount++;
+
+            }
+
+    float allowedError2;
+    if (keepRemainingError)
+    {
+        allowedError2 = remainingAllowedError / potentialSplitCount;
+        assert(assertBuffer, allowedError2 >= allowedError);
+    }
+    else
+        allowedError2 = allowedError;
 
     float integralOne = 0;
     float3 integralX = 0;
@@ -138,7 +184,8 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
     uint splitCount = 0;
     uint splitMask = 0;
 
-    uint n = 0;
+    remainingAllowedError = allowedError * TREE_CHILD_COUNT;
+    n = 0;
     #pragma unroll
     for (uint i = 0; i < TREE_SIZE; ++i)
         #pragma unroll
@@ -146,16 +193,15 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
             #pragma unroll
             for (uint k = 0; k < TREE_SIZE; ++k)
             {
-                float3 center = location.xyz + (float3)(i, j, k) * s + s / 2;
-                float value = evaluate(shape, center).w;
-                float volume = get_unbounding_volume(value, s);
+                float3 center = cellOrigin + (float3)(i, j, k) * s + s / 2;
+                float volume = volumes[n];
 
                 float error = (1 - fabs(volume)) / 2.0;
                 //printf("%i, %i, %i (%i): center = %f, %f, %f, value = %f, volume = %f, error = %f (%s %f)\n",
                 //       i, j, k, n, center.x, center.y, center.z, value, volume, error,
                 //       maxErrorPerChild1, (error < maxErrorPerChild1 ? "<" : ">="));
 
-                if (error < allowedErrorPerVolume)
+                if (error < allowedError2)
                 {
                     float weight = (1 - volume) / 2.0;
 
@@ -165,6 +211,8 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
                     integralXY += weight * center.zxy * center.yzx;
                     integralAll += 1;
                     totalError += error;
+
+                    remainingAllowedError -= error;
                 }
                 else
                 {
@@ -173,6 +221,20 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
                 }
                 ++n;
             }
+
+    tempLocations[get_global_id(0)] = location;
+
+    float allowedError3;;
+    if (!keepRemainingError)
+        remainingAllowedError = 0;
+
+    allowedError3 = remainingAllowedError / splitCount;
+    assert(assertBuffer, !keepRemainingError || allowedError3 >= allowedError2);
+
+    tempAllowedErrors[get_global_id(0)] = allowedError3;
+
+    // Allowed error stored in locations needs to be taken into account
+    totalError += remainingAllowedError - allowedErrorFromLocation * TREE_CHILD_COUNT;
 
     integral1[get_global_id(0)] = s3 * (float4)(integralX, integralOne);
     integral2[get_global_id(0)] = s3 * (float4)(integralXX, integralAll);
@@ -274,13 +336,15 @@ __kernel void mass_properties_output(uint n,
 __kernel void mass_properties_prepare_next(uint startOffset,
                                            uint locationQueueSize,
                                            __global float4* restrict locations,
+                                           __global float* restrict allowedErrors,
                                            __global float4* restrict tempLocations,
+                                           __global float* restrict tempAllowedErrors,
                                            __global uint* restrict splitCounts,
                                            __global uint* restrict splitMasks,
-
                                            __global AssertBuffer* restrict assertBuffer)
 {
     float4 location = tempLocations[get_global_id(0)];
+    float allowedError = tempAllowedErrors[get_global_id(0)];
 
     uint index = startOffset;
     if (get_global_id(0) > 0)
@@ -307,6 +371,7 @@ __kernel void mass_properties_prepare_next(uint startOffset,
 
                 float3 corner = location.xyz + (float3)(i, j, k) * s;
                 locations[index % locationQueueSize] = (float4)(corner, nextS);
+                allowedErrors[index % locationQueueSize] = allowedError;
                 ++index;
             }
 }

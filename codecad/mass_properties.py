@@ -47,15 +47,18 @@ def mass_properties(shape, allowed_error=1e-3):
 
     assert shape.dimension() == 3, "2D objects are not supported yet"
 
+    opencl_manager.get_program() # Force build here so that it doesn't skew timings later
+
     box = shape.bounding_box()
     box_size = box.size()
     initial_step_size = box_size.max() / TREE_SIZE
     volume_to_process = box_size.max()**3
-    min_alllowed_error_per_volume = allowed_error / volume_to_process
 
     program_buffer = nodes.make_program_buffer(shape)
     locations = cl_util.Buffer(cltypes.float4, LOCATION_QUEUE_SIZE, pyopencl.mem_flags.READ_WRITE)
+    allowed_errors = cl_util.Buffer(cltypes.float, LOCATION_QUEUE_SIZE, pyopencl.mem_flags.READ_WRITE)
     temp_locations = cl_util.Buffer(cltypes.float4, MAX_WORK_SIZE, pyopencl.mem_flags.READ_WRITE)
+    temp_allowed_errors = cl_util.Buffer(cltypes.float, MAX_WORK_SIZE, pyopencl.mem_flags.READ_WRITE)
     integral1 = cl_util.Buffer(cltypes.float4, MAX_WORK_SIZE, pyopencl.mem_flags.READ_WRITE)
     integral2 = cl_util.Buffer(cltypes.float4, MAX_WORK_SIZE, pyopencl.mem_flags.READ_WRITE)
     integral3 = cl_util.Buffer(cltypes.float4, MAX_WORK_SIZE, pyopencl.mem_flags.READ_WRITE)
@@ -65,7 +68,8 @@ def mass_properties(shape, allowed_error=1e-3):
     assert_buffer = cl_util.AssertBuffer()
 
     # Initialize the first location
-    prepare_next_ev = locations.enqueue_write(box.a.as_float4(initial_step_size))
+    ev = allowed_errors.enqueue_zero_fill_compatible()
+    prepare_next_ev = locations.enqueue_write(box.a.as_float4(initial_step_size), wait_for=[ev])
     first_location = 0
     location_count = 1
 
@@ -85,64 +89,64 @@ def mass_properties(shape, allowed_error=1e-3):
     time_computing = util.KahanSummation()
     iteration_count = 0
     locations_processed = 0
-    start_time = time.time()
 
     prev_prepare_next_ev = None
 
+    start_time = time.time()
+
     while location_count > 0:
-        logger.debug("*********************************")
+        #logger.debug("*********************************")
         work_size = min(MAX_WORK_SIZE, location_count)
 
-        logger.debug("first_location: %i, location_count: %i, LOCATION_QUEUE_SIZE: %i, work size: %i",
-                     first_location, location_count, LOCATION_QUEUE_SIZE, work_size)
+        #logger.debug("first_location: %i, location_count: %i, LOCATION_QUEUE_SIZE: %i, work size: %i",
+        #             first_location, location_count, LOCATION_QUEUE_SIZE, work_size)
 
-        work_size_limit = (LOCATION_QUEUE_SIZE - location_count) // (TREE_CHILD_COUNT - 1)
-        if work_size_limit == 0:
-            raise Exception("Maximum location buffer size exceeded. "
-                            "This is likely a bug in CodeCad. "
-                            "As a workaround try specifying lower precision.")
-        elif work_size_limit >= work_size:
+        if location_count + work_size * (TREE_CHILD_COUNT - 1) <= LOCATION_QUEUE_SIZE // 2:
             # If we have enough free space in the buffer, we run in BFS mode.
             # This has the advantage of possibly chopping off large areas that are 
             # covered as whole, which will let the allowed error to be distributed over
             # the whole calculation better. Also BFS doesn't have the tendency to get
             # stuck in hard to solve corners.
+
             start_offset = first_location
             first_location_move = work_size
+            bfs_mode = True
         else:
             # Otherwise we run in a DFS mode, because it tends to completely solve
             # an area before continuing elsewhere and thus saves buffer space.
             # We also limit work size for the case where we couldn't handle all
             # the nodes expanding at once.
-            work_size = work_size_limit
-            logger.warning("Limiting work size to %i to avoid exceeding location buffer size. "
-                           "This is likely a bug in CodeCad, but should only affect performance.",
-                           work_size)
 
-            start_offset = first_location
-            first_location_move = work_size
-            #start_offset = (first_location + location_count - work_size) % LOCATION_QUEUE_SIZE
-            #first_location_move = 0
+            # Limit the work size if the location buffer is almost full
+            work_size_limit = (LOCATION_QUEUE_SIZE - location_count) // (TREE_CHILD_COUNT - 1)
+            if work_size_limit == 0:
+                raise Exception("Maximum location buffer size exceeded. "
+                                "This is likely a bug in CodeCad. "
+                                "As a workaround try specifying lower precision.")
+            elif work_size_limit < work_size:
+                work_size = work_size_limit
+                logger.warning("Limiting work size to %i to avoid exceeding location buffer size. "
+                               "This is likely a bug in CodeCad, but should only affect performance.",
+                               work_size)
+
+            start_offset = (first_location + location_count - work_size) % LOCATION_QUEUE_SIZE
+            first_location_move = 0
+            bfs_mode = False
 
         assert work_size > 0
         assert work_size <= MAX_WORK_SIZE
         assert work_size <= location_count
 
-        logger.debug("allowed_error = %f, total_error = %f, volume_to_process = %f, integral_all = %f",
-                     allowed_error, total_error.result, volume_to_process, integral_all.result)
-
         allowed_error_per_volume = (allowed_error - total_error.result) / (volume_to_process - integral_all.result)
-        allowed_error_per_volume = max(allowed_error_per_volume, min_alllowed_error_per_volume)  # Rounding errors cause problems near the end of calculation
-        allowed_error_per_volume *= TREE_SIZE
+        allowed_error_per_volume = max(allowed_error_per_volume, 0)  # Rounding errors cause problems near the end of calculation
 
-
-        logger.debug("allowed_error_per_volume = %f", allowed_error_per_volume)
         evaluate_ev = opencl_manager.k.mass_properties_evaluate([work_size], None,
                                                                 program_buffer,
                                                                 cltypes.uint(start_offset),
                                                                 cltypes.uint(LOCATION_QUEUE_SIZE),
                                                                 cltypes.float(allowed_error_per_volume),
-                                                                locations, temp_locations,
+                                                                cltypes.uint(0 if bfs_mode else 1), # keepRemainingError
+                                                                locations, allowed_errors, temp_locations, temp_allowed_errors,
                                                                 integral1, integral2, integral3,
                                                                 split_counts, split_masks,
                                                                 assert_buffer,
@@ -161,7 +165,7 @@ def mass_properties(shape, allowed_error=1e-3):
         prepare_next_ev = opencl_manager.k.mass_properties_prepare_next([work_size], None,
                                                                         cltypes.uint((first_location + location_count) % LOCATION_QUEUE_SIZE),
                                                                         cltypes.uint(LOCATION_QUEUE_SIZE),
-                                                                        locations, temp_locations,
+                                                                        locations, allowed_errors, temp_locations, temp_allowed_errors,
                                                                         split_counts, split_masks,
                                                                         assert_buffer,
                                                                         wait_for=[sum_ev])
@@ -179,18 +183,11 @@ def mass_properties(shape, allowed_error=1e-3):
             integral_all += mapped[10]
             total_error += mapped[11]
             splits = int(mapped[12])
-        assert_buffer.check()
-
-        logger.debug("splits: %i", splits)
+        #assert_buffer.check()
 
         assert splits <= work_size * TREE_CHILD_COUNT
         first_location = (first_location + first_location_move) % LOCATION_QUEUE_SIZE
         location_count += splits - work_size
-
-        #with locations.map(pyopencl.map_flags.READ, wait_for=[prepare_next_ev]) as mapped:
-        #    logger.debug("locations after: %s", str(mapped[:locations_to_process]))
-        #with allowed_errors.map(pyopencl.map_flags.READ, wait_for=[prepare_next_ev]) as mapped:
-        #    logger.debug("allowed_errors after: %s", str(mapped[:locations_to_process]))
 
         # Computing time spent in OpenCL is a bit tricky here.
         # Because we try to give stage 4 as much time as possible, it might be
@@ -207,16 +204,16 @@ def mass_properties(shape, allowed_error=1e-3):
         progress = integral_all.result / volume_to_process
 
         time_spent = time.time() - start_time
-        logger.debug("Iteration finished: %.4f%%, total error used: %f, split count: %i, location count: %i, "
-                     "time elapsed: %f s, opencl compute time: %f s, efficiency: %f, "
-                     "iteration count: %i (%f iterations/s), "
-                     "locations processed: %i (%f locations/iteration, %f locations/s)",
-                     100 * progress, total_error.result, splits, location_count,
-                     time_spent, time_computing.result, time_computing.result / time_spent,
-                     iteration_count, iteration_count / time_spent,
-                     locations_processed, locations_processed / iteration_count, locations_processed / time_spent)
-
-        #break
+        # logger.debug("Iteration finished: %.4f%%, total error used: %.2f, split count: %i, location count: %i, "
+        #              "time elapsed: %.2f s, OpenCL time: %.2f s, OpenCL utilization: %.3f, "
+        #              "iteration count: %i (%.1f iterations/s), "
+        #              "locations processed: %.2e (%.0f locations/iteration, %.0f locations/s) "
+        #              "%s mode, bonus allowed error: %f",
+        #              100 * progress, total_error.result, splits, location_count,
+        #              time_spent, time_computing.result, time_computing.result / time_spent,
+        #              iteration_count, iteration_count / time_spent,
+        #              locations_processed, locations_processed / iteration_count, locations_processed / time_spent,
+        #              "BFS" if bfs_mode else "DFS", allowed_error_per_volume)
 
     assert_buffer.check()
 
@@ -225,9 +222,9 @@ def mass_properties(shape, allowed_error=1e-3):
 
     time_spent = time.time() - start_time
     logger.info("Mass properties finished: "
-                "time elapsed: %f s, opencl compute time: %f s, efficiency: %f, "
-                "iteration count: %i (%f iterations/s), "
-                "locations processed: %i (%f locations/iteration, %f locations/s)",
+                "time elapsed: %.2f s, OpenCL time: %.2f s, OpenCL utilization: %.3f, "
+                "iteration count: %i (%.1f iterations/s), "
+                "locations processed: %.2e (%.0f locations/iteration, %.0f locations/s)",
                 time_spent, time_computing.result, time_computing.result / time_spent,
                 iteration_count, iteration_count / time_spent,
                 locations_processed, locations_processed / iteration_count, locations_processed / time_spent)
