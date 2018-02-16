@@ -40,30 +40,29 @@ def _frameinfo_from_stacklevel(stacklevel):
     return inspect.getframeinfo(frame, context=0)
 
 
-def string_with_origin(string, stacklevel=1):
+def string_with_origin(string, stacklevel=1, include_origin=True):
     """ Prepend a C #line directive in front of a string, for generating C files.
+    Ignores newlines at the beginning of the string (useful for keeping alignment).
 
     stacklevel determines how many stack levels above this function we look when
     determining location of the origin. The default value is correct when calling
     this function directly with a string literal (its call site will be marked as
     the origin). """
 
-    frameinfo = _frameinfo_from_stacklevel(stacklevel)
-    if frameinfo is None:
-        return string
-
-    lines = string.count("\n")
-    line = frameinfo.lineno - lines
-
     # Trim initial newlines
-    l = len(string)
     string = string.lstrip("\n")
-    line += l - len(string)
 
-    return '#line {} {}\n'.format(line, format_c_string_literal(frameinfo.filename)) + string
+    if include_origin:
+        frameinfo = _frameinfo_from_stacklevel(stacklevel)
+        if frameinfo is not None:
+            lines = string.count("\n")
+            line = frameinfo.lineno - lines
 
+            return '#line {} {}\n'.format(line, format_c_string_literal(frameinfo.filename)) + string
 
-def file_with_origin(path, stacklevel=1):
+    return string
+
+def file_with_origin(path, stacklevel=1, include_origin=True):
     """ Read content of a file and prepend a #line directive to it.
 
     Unless `path` is absolute, filename is taken as relative to caller filename's directory.
@@ -82,4 +81,7 @@ def file_with_origin(path, stacklevel=1):
     rel_path = os.path.relpath(abs_path)
 
     with open(abs_path, "r") as fp:
-        return '#line 1 {}\n'.format(format_c_string_literal(rel_path)) + fp.read()
+        if include_origin:
+            return '#line 1 {}\n'.format(format_c_string_literal(rel_path)) + fp.read()
+        else:
+            return fp.read()

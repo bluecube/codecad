@@ -19,6 +19,7 @@ DEFAULT_COMPILER_OPTIONS = ["-Werror",
 class CompileUnit:
     def __init__(self, options=DEFAULT_COMPILER_OPTIONS):
         self.options = options
+        self.include_origin = True
         self.clear()
 
     def clear(self):
@@ -33,16 +34,22 @@ class CompileUnit:
         return "\n".join(itertools.chain(extra_headers, self.pieces))
 
     def append_file(self, filename, stacklevel=1):
+        """ Append content of a file to this compile unit.
+        Unless `filename` is absolute, filename is taken as relative to caller filename's directory."""
+
         self.pieces.append(codegen.file_with_origin(filename,
-                                                    stacklevel=stacklevel + 1))
+                                                    stacklevel=stacklevel + 1,
+                                                    include_origin=self.include_origin))
 
     def append_define(self, name, value, stacklevel=1):
         self.append("#define {} {}".format(name, value),
                     stacklevel=stacklevel + 1)
 
     def append(self, code, stacklevel=1):
+        """ Append a string to the compile unit. Ignores leading newlines. """
         self.pieces.append(codegen.string_with_origin(code,
-                                                      stacklevel=stacklevel + 1))
+                                                      stacklevel=stacklevel + 1,
+                                                      include_origin=self.include_origin))
 
 
 class _Kernels:
