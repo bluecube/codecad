@@ -12,7 +12,6 @@ cylinder = codecad.shapes.cylinder(d=40, h=200)
 holes = cylinder + \
         cylinder.rotated((1, 0, 0), 90) + \
         cylinder.rotated((0, 1, 0), 90)
-holes = cylinder
 
 o = sphere & cube - holes
 
