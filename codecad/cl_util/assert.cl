@@ -1,7 +1,7 @@
 int _assert_internal(int result,
                      __global AssertBuffer* restrict assertBuffer,
                      const __constant char* restrict file,
-                     int line,
+                     uint line,
                      const __constant char* restrict expr)
 {
     if (result)
@@ -19,14 +19,22 @@ int _assert_internal(int result,
 
     // Copy file name and separator
     while (i < ASSERT_BUFFER_SIZE && *file)
-        assertBuffer->text[i++] = *file++;
+    {
+        assertBuffer->text[i] = *file;
+        ++i;
+        ++file;
+    }
     if (i == ASSERT_BUFFER_SIZE)
         return 1;
     assertBuffer->text[i++] = '\0';
 
     // Copy failed expression and separator
     while (i < ASSERT_BUFFER_SIZE && *expr)
-        assertBuffer->text[i++] = *expr++;
+    {
+        assertBuffer->text[i] = *expr;
+        ++i;
+        ++expr;
+    }
     if (i == ASSERT_BUFFER_SIZE)
         return 1;
     assertBuffer->text[i++] = '\0';

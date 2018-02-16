@@ -1,7 +1,6 @@
 from .. import nodes
 
-from ..nodes import program
-from ..nodes import scheduler
+from ..nodes import program, scheduler, codegen, node
 
 
 def render_nodes_graph(shape, resolution, filename):
@@ -29,3 +28,14 @@ def render_nodes_graph(shape, resolution, filename):
                 fp.write('  node{}:s -> node{}:{};\n'.format(id(dep), id(node), direction))
 
         fp.write("}")
+
+
+def render_c_evaluator(shape, resolution, filename):
+    shape_node = program.get_shape_nodes(shape)
+    scheduler.calculate_node_refcounts(shape_node)
+    _, ordered = scheduler.randomized_scheduler(shape_node)
+
+    c_file = codegen.generate_fixed_eval_source_code(ordered, node.Node)
+
+    with open(filename, "w") as fp:
+        fp.write(c_file.code())

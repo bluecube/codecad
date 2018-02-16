@@ -39,6 +39,22 @@ def get_shape_nodes(shape):
     return return_node
 
 
+def get_opcode(n):
+    opcode = node.Node._node_types[n.name][2]
+    if n.name == "_load":
+        assert len(n.dependencies) == 1
+        assert n.dependencies[0].name == "_store"
+        secondaryRegister = n.dependencies[0].register
+    elif n.name == "_store":
+        secondaryRegister = n.register
+    elif len(n.dependencies) >= 2:
+        secondaryRegister = n.dependencies[1].register
+    else:
+        secondaryRegister = 0
+
+    return opcode, secondaryRegister
+
+
 def _make_program_pieces(shape):
     nodes = get_shape_nodes(shape)
     scheduler.calculate_node_refcounts(nodes)
@@ -49,13 +65,7 @@ def _make_program_pieces(shape):
     for n in schedule:
         assert len(n.dependencies) <= 2
 
-        opcode = node.Node._node_types[n.name][2]
-        if n.name in ("_load", "_store"):
-            secondaryRegister = n.register
-        elif len(n.dependencies) >= 2:
-            secondaryRegister = n.dependencies[1].register
-        else:
-            secondaryRegister = 0
+        opcode, secondaryRegister = get_opcode(n)
         instruction = opcode * opencl_manager.max_register_count + secondaryRegister
 
         assert int(numpy.float32(instruction)) == instruction

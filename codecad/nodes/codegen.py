@@ -1,5 +1,5 @@
 from ..cl_util import opencl_manager
-from . import node
+from . import node, program
 
 
 def generate_eval_source_code(node_class, register_count):
@@ -45,8 +45,7 @@ float4 evaluate(__constant float* program, float3 point)
     c.append('''
        }
     }
-}
-             ''')
+}''')
 
 
 def _format_function(before, args):
@@ -62,7 +61,7 @@ def _generate_op_decl(c_file, name, params, arity, code):
     if params is node._Variable:
         args.append('__constant float* restrict* restrict params')
     else:
-        args.extend('float parameter{}'.format(i + 1) for i in range(params))
+        args.extend('float param{}'.format(i + 1) for i in range(params))
 
     if arity == 0:
         args.append('float3 point')
@@ -100,3 +99,46 @@ def _generate_op_handler(c_file, name, params, arity, code):
                 program += {};'''.format(params))
     c_file.append('''
                 break;''')
+
+
+def generate_fixed_eval_source_code(schedule, node_class):
+    c = opencl_manager.add_compile_unit()
+    c.include_origin = False
+
+    for name, (params, arity, code) in node_class._node_types.items():
+        _generate_op_decl(c, name, params, arity, code)
+    c.append('''
+float4 evaluate(__constant float*, float3 point)
+{''')
+    registers_declared = set()
+    for node in schedule:
+        registers_declared.add(node.register)
+
+    for register in sorted(registers_declared):
+        c.append('''
+    float4 r{};'''.format(register))
+    c.append('')
+
+    for node in schedule:
+        if node.name == "_return":
+            c.append('''
+    return r{};'''.format(node.dependencies[0].register))
+        elif node.name == "_store" or node.name == "_load":
+            c.append('''
+    r{} = r{}; // {}'''.format(node.register, node.dependencies[0].register, node.name))
+        else:
+            args = [str(param) for param in node.params]
+            if len(node.dependencies) == 0:
+                args.append("point")
+            else:
+                assert 1 <= len(node.dependencies) <= 2
+                args.extend("r{}".format(dep.register) for dep in node.dependencies)
+
+            c.append(_format_function('''
+    r{} = {}_op'''.format(node.register, node.name), args))
+        c.append('''
+        // opcode: {}, secondary register: {}'''.format(*program.get_opcode(node)))
+    c.append('''
+}''')
+
+    return c
