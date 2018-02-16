@@ -31,7 +31,7 @@ class CompileUnit:
     #     return program.compile(self.options)
 
     def code(self, extra_headers=[]):
-        return "\n".join(itertools.chain(extra_headers, self.pieces))
+        return "\n".join(itertools.chain(extra_headers, self.pieces)) + "\n"
 
     def append_file(self, filename, stacklevel=1):
         """ Append content of a file to this compile unit.
