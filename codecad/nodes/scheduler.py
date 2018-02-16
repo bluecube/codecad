@@ -93,7 +93,8 @@ def _contiguous_schedule_recursive(node, need_store, ordering_selector, state):
             yield from _contiguous_schedule_recursive(dep, dep_need_store,
                                                       ordering_selector, state)
 
-        node.dependencies[i] = dep.store_node
+        if i > 0 or state.last_node is not node.dependencies[0]:
+            node.dependencies[i] = dep.store_node
 
     # Decref dependency registers before selecting a register for output,
     # because we want to reuse input registers for output when possible
@@ -102,9 +103,8 @@ def _contiguous_schedule_recursive(node, need_store, ordering_selector, state):
             state.decref_register(dep.register)
 
     if need_store:
-        node.register = state.allocate_register(node.refcount)
-    else:
-        node.register = _last_value
+        store_register = state.allocate_register(node.refcount)
+    node.register = _last_value
 
     need_load = len(node.dependencies) > 0 and \
         node.dependencies[0].name == "_store" and \
@@ -112,7 +112,7 @@ def _contiguous_schedule_recursive(node, need_store, ordering_selector, state):
 
     if need_load:
         load_node = Node("_load", (), (node.dependencies[0],))
-        load_node.register = node.dependencies[0].register
+        load_node.register = _last_value
         load_node.refcount = 1
         node.dependencies[0] = load_node
         state.load_count += 1
@@ -128,7 +128,7 @@ def _contiguous_schedule_recursive(node, need_store, ordering_selector, state):
 
     if need_store:
         store_node = Node("_store", (), (node,))
-        store_node.register = node.register
+        store_node.register = store_register
         store_node.refcount = node.refcount
         node.refcount = 1
         node.store_node = store_node
