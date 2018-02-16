@@ -7,9 +7,9 @@ typedef union
 {
     struct
     {
-        unsigned assertCount;
-        unsigned globalId[4];
-        unsigned line;
+        uint assertCount;
+        uint globalId[4];
+        uint line;
     } details;
     char text[ASSERT_BUFFER_SIZE];
 } AssertBuffer;
@@ -17,7 +17,7 @@ typedef union
 int _assert_internal(int result,
                      __global AssertBuffer* restrict assertBuffer,
                      const __constant char* restrict file,
-                     int line,
+                     uint line,
                      const __constant char* restrict expr);
 
 // Evaluates to 1 if the assertion failed, 0 otherwise, contrary to assert in
