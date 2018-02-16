@@ -155,6 +155,21 @@ def test_assert_fail():
     assert exc_info.value.global_id == [5, 5, 0, 0]
 
 
+def test_assert_fail_multiple():
+    assertBuffer = codecad.cl_util.AssertBuffer()
+    ev = codecad.cl_util.opencl_manager.k.assert_tester((10, 10, 1000), None,
+                                                        numpy.uint32(5), assertBuffer)
+
+    with pytest.raises(codecad.cl_util.cl_assert.OpenClAssertionError) as exc_info:
+        assertBuffer.check(wait_for=[ev])
+
+    assert exc_info.value.count == 1000
+    assert os.path.basename(exc_info.value.filename) == "test_clutil.cl"
+    assert exc_info.value.global_id[0] == 5
+    assert exc_info.value.global_id[1] == 5
+    assert exc_info.value.global_id[3] == 0
+
+
 def test_assert_chaining_pass():
     assertBuffer = codecad.cl_util.AssertBuffer()
     ev = codecad.cl_util.opencl_manager.k.assert_tester((10, 10), None,
