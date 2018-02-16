@@ -62,6 +62,7 @@ def string_with_origin(string, stacklevel=1, include_origin=True):
 
     return string
 
+
 def file_with_origin(path, stacklevel=1, include_origin=True):
     """ Read content of a file and prepend a #line directive to it.
 

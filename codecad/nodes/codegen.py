@@ -129,7 +129,7 @@ float4 evaluate(__constant float*, float3 point)
         else:
             args = [str(param) for param in node.params]
             if len(node.dependencies) == 0:
-                args.append("point");
+                args.append("point")
             else:
                 assert 1 <= len(node.dependencies) <= 2
                 args.extend("r{}".format(dep.register) for dep in node.dependencies)

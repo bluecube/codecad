@@ -1,5 +1,6 @@
 import math
 
+
 class KahanSummation:
     """ Helper class that allows summing many floating point numbers with better precision
     Algorithm adapted from wikipedia. """
