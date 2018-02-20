@@ -73,6 +73,9 @@ __kernel void test_mass_properties_unbounding_volume(float value, __global float
  *              Should be a multiple of 8 (or 16?) to keep memory access aligned.
  * locationQueueSize: Size of the location queue to wrap the indices
  * allowedErrorPerVolume: Error allowed per unit of block volume.
+ * monteCarloLeafThrreshold - Maximom value of cell size to allow using monte carlo integrals
+ *                            instead of further splitting cells.
+ * seed - 32bit random number for seeding the random generator.
  * locations: xyz coordinates of a corner of tree nodes to process,
  *            w is size of the child node (w * TREE_SIZE is size of this node).
  *            get_global_size(0) items large.
@@ -100,6 +103,8 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
                                        uint locationQueueSize,
                                        float bonusAllowedError,
                                        uint keepRemainingError,
+                                       float monteCarloLeafThrreshold,
+                                       uint seed,
 
                                        __global float4* restrict locations,
                                        __global float* restrict allowedErrors,
@@ -120,6 +125,7 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
     float4 location = locations[index];
     float allowedErrorFromLocation = allowedErrors[index];
     float allowedError = allowedErrorFromLocation + bonusAllowedError;
+    float totalAllowedError = allowedError * TREE_CHILD_COUNT;
 
     float3 cellOrigin = location.xyz;
     float s = location.w;
@@ -142,6 +148,12 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
     uint potentialSplitCount = 0;
     float remainingAllowedError = allowedError * TREE_CHILD_COUNT;
 
+    float4 firstPlane;
+    float4 avgPlaneSum = 0;
+    float maxPlaneNormalError = 0;
+    float maxPlaneDistanceError = 0;
+    float volumeEstimateSum = 0;
+
     #pragma unroll
     for (uint i = 0; i < TREE_SIZE; ++i)
         #pragma unroll
@@ -149,21 +161,36 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
             #pragma unroll
             for (uint k = 0; k < TREE_SIZE; ++k)
             {
-                float3 center = cellOrigin + (float3)(i, j, k) * s + s / 2;
-                float value = evaluate(shape, center).w;
-                float volume = get_unbounding_volume(value, s);
-                volumes[n++] = volume;
+                float3 ijk = (float3)(i, j, k);
+                float3 center = cellOrigin + ijk * s + s / 2;
+                float4 value = evaluate(shape, center);
+                float unboundingVolume = get_unbounding_volume(value.w, s);
 
-                float error = (1 - fabs(volume)) / 2.0;
-                //printf("%i, %i, %i (%i): center = %f, %f, %f, value = %f, volume = %f, error = %f (%s %f)\n",
-                //       i, j, k, n, center.x, center.y, center.z, value, volume, error,
-                //       maxErrorPerChild1, (error < maxErrorPerChild1 ? "<" : ">="));
-
+                // Preparations for splitting sub nodes
+                volumes[n] = unboundingVolume;
+                float error = (1 - fabs(unboundingVolume)) / 2.0;
                 if (error < allowedError)
                     remainingAllowedError -= error;
                 else
                     potentialSplitCount++;
 
+                // Preparations for using Monte Carlo integration with single plane
+                float4 currentPlane = value;
+                currentPlane.w -= s * dot(ijk - ((float3)(TREE_SIZE, TREE_SIZE, TREE_SIZE) - 1) / 2, value.xyz);
+                avgPlaneSum += currentPlane;
+                volumeEstimateSum += (1 - unboundingVolume) / 2.0;
+                if (n == 0)
+                    firstPlane = currentPlane;
+                else
+                {
+                    maxPlaneNormalError = max(maxPlaneNormalError, 1 - dot(firstPlane.xyz, currentPlane.xyz));
+                    maxPlaneDistanceError = max(maxPlaneDistanceError, fabs(firstPlane.w - currentPlane.w) / s);
+                }
+
+                //printf("%i, %i, %i, normal: (%f, %f, %f), distance: %f, correctedDistance: %f, s=%f, unboundingVolume = %f\n",
+                //       i, j, k, value.x, value.y, value.z, value.w, currentPlane.w, s, unboundingVolume);
+
+                n++;
             }
 
     float allowedError2;
@@ -184,61 +211,134 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
     uint splitCount = 0;
     uint splitMask = 0;
 
-    remainingAllowedError = allowedError * TREE_CHILD_COUNT;
-    n = 0;
-    #pragma unroll
-    for (uint i = 0; i < TREE_SIZE; ++i)
+    bool usePlane = s < monteCarloLeafThrreshold &&
+                    allowedError2 < 0.5 && // If no splitting is necessary, it's better to not use monte carlo
+                    maxPlaneNormalError < 1e-4 && // TODO: Magic number here!
+                    maxPlaneDistanceError < 1e-4; // TODO: Magic number here!
+
+
+    if (usePlane)
+    {
+        /// Calculate the integrals using monte carlo and don't split any nodes.
+
+        //printf("s = %e, maxPlaneS = %e, potentialSplitCount = %i, maxPlaneNormalError = %e, maxPlaneDistanceError = %e, usePlane=%i\n",
+        //       s, maxPlaneS, potentialSplitCount, maxPlaneNormalError, maxPlaneDistanceError, usePlane);
+
+        float volumeEstimate = volumeEstimateSum / TREE_CHILD_COUNT;
+
+        uint sampleCount = 4 * volumeEstimate * (1 - volumeEstimate) / (totalAllowedError * totalAllowedError);
+        sampleCount = max(sampleCount, (uint)10); // TODO: Magic number here!
+        //printf("sampleCount=%i\n", sampleCount);
+
+        float3 normal = normalize(avgPlaneSum.xyz);
+        float distance = avgPlaneSum.w / TREE_CHILD_COUNT;
+        float3 cellCenter = cellOrigin + 0.5 * s * ((float3)(TREE_SIZE, TREE_SIZE, TREE_SIZE) - 1);
+
+        //printf("normal = (%f, %f, %f), distance=%f, cellCenter=(%f, %f, %f), volumeEstimate=%f, totalAllowedError=%f\n",
+        //       normal.x, normal.y, normal.z, distance, cellCenter.x, cellCenter.y, cellCenter.z, volumeEstimate, totalAllowedError);
+
+        uint rngState = combineState(seed, get_global_id(0));
+        uint sumOne = 0;
+        float3 sumX = 0;
+        float3 sumXX = 0;
+        float3 sumXY = 0;
+
+        for (uint i = 0; i < sampleCount; ++i)
+        {
+            float3 coords = (randFloat3(&rngState) - 0.5) * s * TREE_SIZE;
+            bool isInside = dot(coords, normal) < -distance;
+            //printf("	%f. %f, %f -> %i\n", coords.x, coords.y, coords.z, isInside);
+
+            if (!isInside)
+                continue;
+
+            coords += cellCenter;
+
+            sumOne += 1;
+            sumX += coords;
+            sumXX += coords * coords;
+            sumXY += coords.zxy * coords.yzx;
+        }
+
+        integralAll = TREE_CHILD_COUNT * s3;
+        float scale = integralAll / sampleCount;
+
+        integralOne = sumOne * scale;
+        integralX = sumX * scale;
+        integralXX = sumXX * scale;
+        integralXY = sumXY * scale;
+        totalError = 2 * sqrt(sumOne * (sampleCount - sumOne) / (float)sampleCount) * scale;
+
+        //printf("sumOne = %i, totalError = %e, totalAllowedError = %e\n", sumOne, totalError, totalAllowedError);
+        assert(assertBuffer, totalError < totalAllowedError);
+        //assert(assertBuffer, totalError > totalAllowedError / 10); // Check that we didn't do too many samples
+    }
+    else
+    {
+        // Potentially split nodes.
+
+
+        remainingAllowedError = totalAllowedError;
+        n = 0;
         #pragma unroll
-        for (uint j = 0; j < TREE_SIZE; ++j)
+        for (uint i = 0; i < TREE_SIZE; ++i)
             #pragma unroll
-            for (uint k = 0; k < TREE_SIZE; ++k)
-            {
-                float3 center = cellOrigin + (float3)(i, j, k) * s + s / 2;
-                float volume = volumes[n];
-
-                float error = (1 - fabs(volume)) / 2.0;
-                //printf("%i, %i, %i (%i): center = %f, %f, %f, value = %f, volume = %f, error = %f (%s %f)\n",
-                //       i, j, k, n, center.x, center.y, center.z, value, volume, error,
-                //       maxErrorPerChild1, (error < maxErrorPerChild1 ? "<" : ">="));
-
-                if (error < allowedError2)
+            for (uint j = 0; j < TREE_SIZE; ++j)
+                #pragma unroll
+                for (uint k = 0; k < TREE_SIZE; ++k)
                 {
-                    float weight = (1 - volume) / 2.0;
+                    float3 center = cellOrigin + (float3)(i, j, k) * s + s / 2;
+                    float volume = volumes[n];
 
-                    integralOne += weight;
-                    integralX += weight * center;
-                    integralXX += weight * (center * center + s * s / 12);
-                    integralXY += weight * center.zxy * center.yzx;
-                    integralAll += 1;
-                    totalError += error;
+                    float error = (1 - fabs(volume)) / 2.0;
+                    //printf("%i, %i, %i (%i): center = %f, %f, %f, value = %f, volume = %f, error = %f (%s %f)\n",
+                    //       i, j, k, n, center.x, center.y, center.z, value, volume, error,
+                    //       maxErrorPerChild1, (error < maxErrorPerChild1 ? "<" : ">="));
 
-                    remainingAllowedError -= error;
+                    if (error < allowedError2)
+                    {
+                        float weight = (1 - volume) / 2.0;
+
+                        integralOne += weight;
+                        integralX += weight * center;
+                        integralXX += weight * (center * center + s * s / 12);
+                        integralXY += weight * center.zxy * center.yzx;
+                        integralAll += 1;
+                        totalError += error;
+
+                        remainingAllowedError -= error;
+                    }
+                    else
+                    {
+                        splitCount += 1;
+                        splitMask |= 1 << n;
+                    }
+                    ++n;
                 }
-                else
-                {
-                    splitCount += 1;
-                    splitMask |= 1 << n;
-                }
-                ++n;
-            }
 
-    tempLocations[get_global_id(0)] = location;
+        tempLocations[get_global_id(0)] = location;
 
-    float allowedError3;;
-    if (!keepRemainingError)
-        remainingAllowedError = 0;
+        float allowedError3;;
+        if (!keepRemainingError)
+            remainingAllowedError = 0;
 
-    allowedError3 = remainingAllowedError / splitCount;
-    assert(assertBuffer, !keepRemainingError || allowedError3 >= allowedError2);
+        allowedError3 = remainingAllowedError / splitCount;
+        assert(assertBuffer, !keepRemainingError || allowedError3 >= allowedError2);
 
-    tempAllowedErrors[get_global_id(0)] = allowedError3;
+        tempAllowedErrors[get_global_id(0)] = allowedError3;
+        totalError += remainingAllowedError; // The remaining allowed error gets passed to children
 
-    // Allowed error stored in locations needs to be taken into account
-    totalError += remainingAllowedError - allowedErrorFromLocation * TREE_CHILD_COUNT;
+       integralOne *= s3;
+       integralX *= s3;
+       integralXX *= s3;
+       integralXY *= s3;
+       integralAll *= s3;
+       totalError *= s3;
+    }
 
-    integral1[get_global_id(0)] = s3 * (float4)(integralX, integralOne);
-    integral2[get_global_id(0)] = s3 * (float4)(integralXX, integralAll);
-    integral3[get_global_id(0)] = s3 * (float4)(integralXY, totalError);
+    integral1[get_global_id(0)] = (float4)(integralX, integralOne);
+    integral2[get_global_id(0)] = (float4)(integralXX, integralAll);
+    integral3[get_global_id(0)] = (float4)(integralXY, totalError);
     splitCounts[get_global_id(0)] = splitCount;
     splitMasks[get_global_id(0)] = splitMask;
 

@@ -4,8 +4,10 @@ import operator
 import math
 import time
 import logging
+import random
 
 import numpy
+import flags
 import pyopencl
 from pyopencl import cltypes
 
@@ -14,6 +16,11 @@ from . import cl_util
 from . import subdivision
 from .cl_util import opencl_manager
 from . import nodes
+
+
+class MassPropertiesOptions(flags.Flags):
+    no_monte_carlo_leafs = ()
+
 
 TREE_SIZE = 3  # Cube root of tree children count (2 => octree)
 MAX_WORK_SIZE = 2**16
@@ -36,7 +43,7 @@ class MassProperties(collections.namedtuple("MassProperties", "volume centroid i
     __slots__ = ()
 
 
-def mass_properties(shape, allowed_error=1e-3):
+def mass_properties(shape, allowed_error=1e-3, options=MassPropertiesOptions.no_flags):
     """ Calculate volume, centroid and inertia tensor of the shape.
     Iteratively subdivides the shape until
     abs(actual_volume - computed_volume) < allowed_error """
@@ -72,6 +79,11 @@ def mass_properties(shape, allowed_error=1e-3):
     prepare_next_ev = locations.enqueue_write(box.a.as_float4(initial_step_size), wait_for=[ev])
     first_location = 0
     location_count = 1
+
+    if MassPropertiesOptions.no_monte_carlo_leafs in options:
+        monte_carlo_leaf_threshold = cltypes.float(0)
+    else:
+        monte_carlo_leaf_threshold = cltypes.float("inf")
 
     integral_one = util.KahanSummation()
     integral_x = util.KahanSummation()
@@ -138,8 +150,12 @@ def mass_properties(shape, allowed_error=1e-3):
         assert work_size <= MAX_WORK_SIZE
         assert work_size <= location_count
 
-        allowed_error_per_volume = (allowed_error - total_error.result) / (volume_to_process - integral_all.result)
-        allowed_error_per_volume = max(allowed_error_per_volume, 0)  # Rounding errors cause problems near the end of calculation
+        if volume_to_process > integral_all.result:
+            allowed_error_per_volume = (allowed_error - total_error.result) / (volume_to_process - integral_all.result)
+        else:
+            allowed_error_per_volume = float("inf")
+            # In case the remaining volume would become negative because of
+            # rounding errors), we want the allowed error to be infinite
 
         evaluate_ev = opencl_manager.k.mass_properties_evaluate([work_size], None,
                                                                 program_buffer,
@@ -147,6 +163,8 @@ def mass_properties(shape, allowed_error=1e-3):
                                                                 cltypes.uint(LOCATION_QUEUE_SIZE),
                                                                 cltypes.float(allowed_error_per_volume),
                                                                 cltypes.uint(0 if bfs_mode else 1), # keepRemainingError
+                                                                monte_carlo_leaf_threshold,
+                                                                cltypes.uint(random.getrandbits(32)), # Seed for Monte Carlo integration
                                                                 locations, allowed_errors, temp_locations, temp_allowed_errors,
                                                                 integral1, integral2, integral3,
                                                                 split_counts, split_masks,
@@ -184,7 +202,7 @@ def mass_properties(shape, allowed_error=1e-3):
             integral_all += mapped[10]
             total_error += mapped[11]
             splits = int(mapped[12])
-        #assert_buffer.check()
+        assert_buffer.check()
 
         assert splits <= work_size * TREE_CHILD_COUNT
         first_location = (first_location + first_location_move) % LOCATION_QUEUE_SIZE
