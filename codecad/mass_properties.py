@@ -150,12 +150,16 @@ def mass_properties(shape, allowed_error=1e-3, options=MassPropertiesOptions.no_
         assert work_size <= MAX_WORK_SIZE
         assert work_size <= location_count
 
+        if (allowed_error - total_error.result) > (volume_to_process - integral_all.result):
+            # If we have more allowed error left than unprocessed volume,
+            # we can ignore the locations remaining in the queue.
+            # We don't count unprocessed volume with weight 0.5 (which would
+            # decrease the error requirement), because while compensating the
+            # total volume for this would be easy enough, I don't know how to
+            # compensate centroid and inertia matrix. (TODO)
+            break
         if volume_to_process > integral_all.result:
             allowed_error_per_volume = (allowed_error - total_error.result) / (volume_to_process - integral_all.result)
-        else:
-            allowed_error_per_volume = float("inf")
-            # In case the remaining volume would become negative because of
-            # rounding errors), we want the allowed error to be infinite
 
         evaluate_ev = opencl_manager.k.mass_properties_evaluate([work_size], None,
                                                                 program_buffer,
@@ -202,7 +206,7 @@ def mass_properties(shape, allowed_error=1e-3, options=MassPropertiesOptions.no_
             integral_all += mapped[10]
             total_error += mapped[11]
             splits = int(mapped[12])
-        assert_buffer.check()
+        # assert_buffer.check()
 
         assert splits <= work_size * TREE_CHILD_COUNT
         first_location = (first_location + first_location_move) % LOCATION_QUEUE_SIZE
@@ -234,6 +238,8 @@ def mass_properties(shape, allowed_error=1e-3, options=MassPropertiesOptions.no_
         #              iteration_count, iteration_count / time_spent,
         #              locations_processed, locations_processed / iteration_count, locations_processed / time_spent,
         #              "BFS" if bfs_mode else "DFS", allowed_error_per_volume)
+
+    total_error += max(0, volume_to_process - integral_all.result) # All remaining volume is error
 
     assert_buffer.check()
 
