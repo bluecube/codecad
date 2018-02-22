@@ -232,7 +232,7 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
 
         float3 normal = normalize(avgPlaneSum.xyz);
         float distance = avgPlaneSum.w / TREE_CHILD_COUNT;
-        float3 cellCenter = cellOrigin + 0.5 * s * ((float3)(TREE_SIZE, TREE_SIZE, TREE_SIZE) - 1);
+        float3 cellCenter = cellOrigin + (float3)(0.5 * s * TREE_SIZE);
 
         //printf("normal = (%f, %f, %f), distance=%f, cellCenter=(%f, %f, %f), volumeEstimate=%f, totalAllowedError=%f\n",
         //       normal.x, normal.y, normal.z, distance, cellCenter.x, cellCenter.y, cellCenter.z, volumeEstimate, totalAllowedError);
