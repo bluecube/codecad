@@ -122,14 +122,14 @@ class BufferList:
     def __init__(self, buffers=[]):
         self.buffers = list(buffers)
 
-    def add(buff):
+    def add(self, buff):
         """ Add a new buffer to the list """
         self.buffers.append(buff)
 
     def release(self):
         """ Release the OpenCL resources on all buffers from the list and clear it. """
         try:
-            for buff in buffers:
+            for buff in self.buffers:
                 buff.release()
         finally:
             # Don't hold the references and give GC a chance to release it for us
