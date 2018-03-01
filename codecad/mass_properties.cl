@@ -1,18 +1,13 @@
-/* Mass properties are calculated in two stages:
- *
- * stage 1: Evaluate the distance function (possibly skipping boring inner blocks),
- * store the result, calculate number of intersecting sub-blocks.
- *
- * stage 2: At this point we know the allowed error per intersecting block.
- * Sum all internal non intersecting blocks and all intersecting blocks that
- * will cause small enough error, output the list of coordinates that need to be split.  */
-
 // #define TREE_SIZE from python
-
-// #define WG_SIZE 64
 
 /*** Actual child count of the tree node */
 #define TREE_CHILD_COUNT (TREE_SIZE * TREE_SIZE * TREE_SIZE)
+
+/*** How many standard deviaitons are counted as error for plane splits */
+#define PLANE_SPLIT_STDEV_MULTIPLE 2
+
+#define PLANE_SPLIT_MIN_SAMPLES 10
+#define PLANE_SPLIT_MAX_SAMPLES 50
 
 static float get_unbounding_volume(float value, float stepSize)
 {
@@ -124,12 +119,11 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
 
     float4 location = locations[index];
     float allowedErrorFromLocation = allowedErrors[index];
-    float allowedError = allowedErrorFromLocation + bonusAllowedError;
-    float totalAllowedError = allowedError * TREE_CHILD_COUNT;
+    float allowedError = allowedErrorFromLocation + bonusAllowedError; // == absAllowedErrorPerChild / s3 [units**3 error / units**3 volume]
 
     float3 cellOrigin = location.xyz;
     float s = location.w;
-    float s3 = s * s * s;
+    float s3 = s * s * s; // This is volume of a child sub node
 
     //printf("allowedError = %f, bonusAllowedError = %f, s3 = %f\n", allowedError, bonusAllowedError, s3);
 
@@ -193,42 +187,32 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
                 n++;
             }
 
-    float allowedError2;
-    if (keepRemainingError)
-    {
-        allowedError2 = remainingAllowedError / potentialSplitCount;
-        assert(assertBuffer, allowedError2 >= allowedError);
-    }
-    else
-        allowedError2 = allowedError;
+    float allowedError2 = remainingAllowedError / potentialSplitCount;
+    assert(assertBuffer, allowedError2 >= allowedError);
 
     float integralOne = 0;
     float3 integralX = 0;
     float3 integralXX = 0;
     float3 integralXY = 0;
     float integralAll = 0;
-    float totalError = 0;
+    float totalError = -allowedErrorFromLocation * TREE_CHILD_COUNT * s3;
     uint splitCount = 0;
     uint splitMask = 0;
+
+    float volumeEstimate = volumeEstimateSum / TREE_CHILD_COUNT; // range: 0 - 1
+    uint sampleCountEstimate = PLANE_SPLIT_STDEV_MULTIPLE * PLANE_SPLIT_STDEV_MULTIPLE *
+                               volumeEstimate * (1 - volumeEstimate) / (allowedError * allowedError);
 
     bool usePlane = s < monteCarloLeafThrreshold &&
                     allowedError2 < 0.5 && // If no splitting is necessary, it's better to not use monte carlo
                     maxPlaneNormalError < 1e-4 && // TODO: Magic number here!
-                    maxPlaneDistanceError < 1e-4; // TODO: Magic number here!
+                    maxPlaneDistanceError < 1e-4 && // TODO: Magic number here!
+                    sampleCountEstimate < PLANE_SPLIT_MAX_SAMPLES;
 
 
     if (usePlane)
     {
         /// Calculate the integrals using monte carlo and don't split any nodes.
-
-        //printf("s = %e, maxPlaneS = %e, potentialSplitCount = %i, maxPlaneNormalError = %e, maxPlaneDistanceError = %e, usePlane=%i\n",
-        //       s, maxPlaneS, potentialSplitCount, maxPlaneNormalError, maxPlaneDistanceError, usePlane);
-
-        float volumeEstimate = volumeEstimateSum / TREE_CHILD_COUNT;
-
-        uint sampleCount = 4 * volumeEstimate * (1 - volumeEstimate) / (totalAllowedError * totalAllowedError);
-        sampleCount = max(sampleCount, (uint)10); // TODO: Magic number here!
-        //printf("sampleCount=%i\n", sampleCount);
 
         float3 normal = normalize(avgPlaneSum.xyz);
         float distance = avgPlaneSum.w / TREE_CHILD_COUNT;
@@ -243,21 +227,34 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
         float3 sumXX = 0;
         float3 sumXY = 0;
 
-        for (uint i = 0; i < sampleCount; ++i)
+        uint sampleCount = 0;
+
+        float errorThreshold = (allowedError / PLANE_SPLIT_STDEV_MULTIPLE);
+        errorThreshold *= errorThreshold;
+        while (1)
         {
             float3 coords = (randFloat3(&rngState) - 0.5) * s * TREE_SIZE;
             bool isInside = dot(coords, normal) < -distance;
             //printf("	%f. %f, %f -> %i\n", coords.x, coords.y, coords.z, isInside);
 
-            if (!isInside)
-                continue;
+            if (isInside)
+            {
+                coords += cellCenter;
 
-            coords += cellCenter;
+                sumOne += 1;
+                sumX += coords;
+                sumXX += coords * coords;
+                sumXY += coords.zxy * coords.yzx;
+            }
+            sampleCount += 1;
 
-            sumOne += 1;
-            sumX += coords;
-            sumXX += coords * coords;
-            sumXY += coords.zxy * coords.yzx;
+            float errorTrigger = sumOne * (sampleCount - sumOne);
+            errorTrigger /= sampleCount;
+            errorTrigger /= sampleCount;
+            errorTrigger /= sampleCount;
+
+            if (sampleCount >= PLANE_SPLIT_MIN_SAMPLES && errorTrigger <= errorThreshold)
+                break;
         }
 
         integralAll = TREE_CHILD_COUNT * s3;
@@ -267,19 +264,17 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
         integralX = sumX * scale;
         integralXX = sumXX * scale;
         integralXY = sumXY * scale;
-        totalError = 2 * sqrt(sumOne * (sampleCount - sumOne) / (float)sampleCount) * scale;
+        totalError += PLANE_SPLIT_STDEV_MULTIPLE * sqrt(sumOne * (sampleCount - sumOne) / (float)sampleCount) * scale;
 
-        //printf("sumOne = %i, totalError = %e, totalAllowedError = %e\n", sumOne, totalError, totalAllowedError);
-        assert(assertBuffer, totalError < totalAllowedError);
-        //assert(assertBuffer, totalError > totalAllowedError / 10); // Check that we didn't do too many samples
+        if (totalError > integralAll * bonusAllowedError)
+            printf("%e > %e * %e = %e\n", totalError, integralAll, bonusAllowedError, integralAll * bonusAllowedError);
     }
     else
     {
         // Potentially split nodes.
 
-
-        remainingAllowedError = totalAllowedError;
         n = 0;
+        float errorSum = 0;
         #pragma unroll
         for (uint i = 0; i < TREE_SIZE; ++i)
             #pragma unroll
@@ -303,10 +298,7 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
                         integralX += weight * center;
                         integralXX += weight * (center * center + s * s / 12);
                         integralXY += weight * center.zxy * center.yzx;
-                        integralAll += 1;
-                        totalError += error;
-
-                        remainingAllowedError -= error;
+                        errorSum += error;
                     }
                     else
                     {
@@ -316,25 +308,31 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
                     ++n;
                 }
 
+        integralAll = s3 * (TREE_CHILD_COUNT - splitCount);
+        integralOne *= s3;
+        integralX *= s3;
+        integralXX *= s3;
+        integralXY *= s3;
+        totalError += s3 * errorSum;
+
+        if (splitCount > 0)
+        {
+            if (keepRemainingError)
+            {
+                float totalAllowedError = integralAll * bonusAllowedError; // This way bonusAllowedError will not decrease over time
+                float allowedError3 = (totalAllowedError - totalError) / (splitCount * s3);
+
+                //assert(assertBuffer, allowedError3 >= allowedError2);
+                tempAllowedErrors[get_global_id(0)] = allowedError3;
+                totalError = totalAllowedError; // The remaining allowed error gets passed to children
+            }
+            else
+                tempAllowedErrors[get_global_id(0)] = 0;
+        }
         tempLocations[get_global_id(0)] = location;
-
-        float allowedError3;;
-        if (!keepRemainingError)
-            remainingAllowedError = 0;
-
-        allowedError3 = remainingAllowedError / splitCount;
-        assert(assertBuffer, !keepRemainingError || allowedError3 >= allowedError2);
-
-        tempAllowedErrors[get_global_id(0)] = allowedError3;
-        totalError += remainingAllowedError; // The remaining allowed error gets passed to children
-
-       integralOne *= s3;
-       integralX *= s3;
-       integralXX *= s3;
-       integralXY *= s3;
-       integralAll *= s3;
-       totalError *= s3;
     }
+
+    assert(assertBuffer, totalError <= integralAll * bonusAllowedError);
 
     integral1[get_global_id(0)] = (float4)(integralX, integralOne);
     integral2[get_global_id(0)] = (float4)(integralXX, integralAll);
