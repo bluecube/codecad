@@ -118,6 +118,33 @@ class Buffer(pyopencl.Buffer):
         return self.nitems
 
 
+class BufferList:
+    def __init__(self, buffers=[]):
+        self.buffers = list(buffers)
+
+    def add(buff):
+        """ Add a new buffer to the list """
+        self.buffers.append(buff)
+
+    def release(self):
+        """ Release the OpenCL resources on all buffers from the list and clear it. """
+        try:
+            for buff in buffers:
+                buff.release()
+        finally:
+            # Don't hold the references and give GC a chance to release it for us
+            # in case something terrible happens
+            self.buffers = []
+
+    def __enter__(self):
+        """ Context manager does nothing on enter and releases on exit """
+        return self
+
+    def __exit__(self, *exc_info):
+        """ Context manager does nothing on enter and releases on exit """
+        self.release()
+
+
 class _InterleavingHelperWrapper:
     def __init__(self, helper):
         self._helper = helper
