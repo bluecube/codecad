@@ -19,5 +19,4 @@ holes = cylinder + \
 o = sphere & cube - holes
 
 if __name__ == "__main__":
-    print(codecad.mass_properties(o, 1000))
-    #codecad.commandline_render(o, 1)
+    codecad.commandline_render(o, 1)

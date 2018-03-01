@@ -25,7 +25,7 @@ class MassPropertiesOptions(flags.Flags):
 TREE_SIZE = 3  # Cube root of tree children count (2 => octree)
 MAX_WORK_SIZE = 2**16
 TREE_CHILD_COUNT = TREE_SIZE**3
-LOCATION_QUEUE_SIZE = MAX_WORK_SIZE * util.round_up_to_power_of_2(TREE_CHILD_COUNT - 1) * 2**5
+LOCATION_QUEUE_SIZE = 2**26 # More is faster, but we want even low end gpus to not have any problems
 
 assert TREE_CHILD_COUNT < 32, "Set of node children must be representable by uint bitmask"
 assert TREE_CHILD_COUNT * MAX_WORK_SIZE <= 2**23, "Maximum number of split nodes per run must be exactly representable as float"
@@ -52,7 +52,10 @@ def mass_properties(shape, allowed_error=1e-3, options=MassPropertiesOptions.no_
 
     #TODO: Support relative errors
 
-    assert shape.dimension() == 3, "2D objects are not supported yet"
+    if shape.dimension() != 3:
+        raise ValueError("2D objects are not supported yet")
+    if allowed_error <= 0:
+        raise ValueError("Allowed error must be positive")
 
     opencl_manager.get_program() # Force build here so that it doesn't skew timings later
 
@@ -104,8 +107,16 @@ def mass_properties(shape, allowed_error=1e-3, options=MassPropertiesOptions.no_
     locations_processed = 0
 
     prev_prepare_next_ev = None
+    prev_allowed_error_per_volume = 0
 
     start_time = time.time()
+
+    # If number of locations before an iteration is larger than this, the iteration
+    # must be done in DFS mode
+    # Set up so that the DFS mode can safely cross the whole dynamic range of float
+    # (as there can be no more splitting after that).
+    dfs_switch_threshold = LOCATION_QUEUE_SIZE - \
+                           math.ceil(math.log(2**23, TREE_SIZE)) * MAX_WORK_SIZE * (TREE_CHILD_COUNT - 1)
 
     while location_count > 0:
         #logger.debug("*********************************")
@@ -114,7 +125,7 @@ def mass_properties(shape, allowed_error=1e-3, options=MassPropertiesOptions.no_
         #logger.debug("first_location: %i, location_count: %i, LOCATION_QUEUE_SIZE: %i, work size: %i",
         #             first_location, location_count, LOCATION_QUEUE_SIZE, work_size)
 
-        if location_count + work_size * (TREE_CHILD_COUNT - 1) <= LOCATION_QUEUE_SIZE // 2:
+        if location_count <= dfs_switch_threshold:
             # If we have enough free space in the buffer, we run in BFS mode.
             # This has the advantage of possibly chopping off large areas that are 
             # covered as whole, which will let the allowed error to be distributed over
@@ -160,6 +171,8 @@ def mass_properties(shape, allowed_error=1e-3, options=MassPropertiesOptions.no_
             break
         if volume_to_process > integral_all.result:
             allowed_error_per_volume = (allowed_error - total_error.result) / (volume_to_process - integral_all.result)
+            assert allowed_error_per_volume >= prev_allowed_error_per_volume
+            prev_allowed_error_per_volume = allowed_error_per_volume
 
         evaluate_ev = opencl_manager.k.mass_properties_evaluate([work_size], None,
                                                                 program_buffer,
