@@ -126,6 +126,19 @@ static float3 map_color(float ambient, float diffuse, float specular)
     return color + specular * 128;
 }
 
+static float3 map_color_zebra(float3 point, float ambient, float diffuse, float specular)
+{
+    float3 intPoint;
+    fract(point, &intPoint);
+    int white = (/*(int)intPoint.x^ */(int)intPoint.y /*^ (int)intPoint.z*/) & 1;
+
+    float color = 50 + 150 * white;
+    color *= ambient + diffuse;
+    color += 128 * specular;
+
+    return (float3)color;
+}
+
 __kernel void ray_caster(__constant float* restrict scene,
                          float4 origin, float4 forward, float4 up, float4 right,
                          float pixelTolerance, float boxRadius,
@@ -215,7 +228,11 @@ __kernel void ray_caster(__constant float* restrict scene,
                                                 localEpsilon, maxDistance,
                                                 renderOptions);
         light += 0.2 * light_contribution_no_trace(point, normal, -SECONDARY_LIGHT_DIRECTION, -direction);
-        color = map_color(ambient, light.x, light.y);
+
+        if (renderOptions & RENDER_OPTIONS_ZEBRA)
+            color = map_color_zebra(point, ambient, light.x, light.y);
+        else
+            color = map_color(ambient, light.x, light.y);
     }
     else
         color = (float3)(230, 230, 241);
