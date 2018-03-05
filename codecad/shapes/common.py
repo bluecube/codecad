@@ -100,8 +100,8 @@ class MirrorMixin:
 
     def bounding_box(self):
         box = self.s.bounding_box()
-        return util.BoundingBox(util.Vector(-box.a.x, box.a.y, box.a.z),
-                                util.Vector(-box.b.x, box.b.y, box.b.z))
+        return util.BoundingBox(util.Vector(-box.b.x, box.a.y, box.a.z),
+                                util.Vector(-box.a.x, box.b.y, box.b.z))
 
     def get_node(self, point, cache):
         mirrored_point = cache.make_node("mirror", [], [point])
