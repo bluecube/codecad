@@ -21,3 +21,20 @@ def test_twisted_revolve_bounding_box():
     for a, b, expected in zip(box.a, box.b, v):
         assert a == pytest.approx(-expected)
         assert b == pytest.approx(expected)
+
+
+def test_mirrored_bounding_box():
+    shape = codecad.shapes.box(1, 2, 3).translated(0.5, 1, 1.5)
+    assert shape.bounding_box() == codecad.util.BoundingBox(codecad.util.Vector(0, 0, 0),
+                                                            codecad.util.Vector(1, 2, 3))
+
+    mx = shape.mirrored_x()
+    assert mx.bounding_box() == pytest.approx(codecad.util.BoundingBox(codecad.util.Vector(-1, 0, 0),
+                                                                       codecad.util.Vector(0, 2, 3)))
+    my = shape.mirrored_y()
+    assert my.bounding_box() == pytest.approx(codecad.util.BoundingBox(codecad.util.Vector(0, -2, 0),
+                                                                       codecad.util.Vector(1, 0, 3)))
+
+    mz = shape.mirrored_z()
+    assert mz.bounding_box() == pytest.approx(codecad.util.BoundingBox(codecad.util.Vector(0, 0, -3),
+                                                                       codecad.util.Vector(1, 2, 0)))

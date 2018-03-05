@@ -12,6 +12,7 @@ from .. import nodes
 
 class RenderOptions(flags.Flags):
     false_color = ()
+    zebra = ()
 
 
 _c_file = opencl_manager.add_compile_unit()
