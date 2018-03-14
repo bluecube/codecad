@@ -43,19 +43,24 @@ class MassProperties(collections.namedtuple("MassProperties", "volume centroid i
     __slots__ = ()
 
 
-def mass_properties(shape, allowed_error=1e-3, options=MassPropertiesOptions.no_flags):
+def mass_properties(shape,
+                    abs_allowed_error=1e-1, rel_allowed_error=1e-4,
+                    options=MassPropertiesOptions.no_flags):
     """ Calculate volume, centroid and inertia tensor of the shape.
     Iteratively subdivides the shape until
     abs(actual_volume - computed_volume) < allowed_error """
     # Inertia tensor info:
     # http://farside.ph.utexas.edu/teaching/336k/Newtonhtml/node64.html
 
-    #TODO: Support relative errors
+    #TODO: Default absolute error assumes that the model dimensions are in milimeters.
+    # We should have a global default scale defined somewhere and start from that.
 
     if shape.dimension() != 3:
         raise ValueError("2D objects are not supported yet")
-    if allowed_error <= 0:
-        raise ValueError("Allowed error must be positive")
+    if abs_allowed_error <= 0:
+        raise ValueError("Absolute allowed error must be positive")
+    if rel_allowed_error <= 0:
+        raise ValueError("Absolute allowed error must be positive")
 
     opencl_manager.get_program() # Force build here so that it doesn't skew timings later
 
@@ -173,6 +178,8 @@ def mass_properties(shape, allowed_error=1e-3, options=MassPropertiesOptions.no_
             assert work_size > 0
             assert work_size <= MAX_WORK_SIZE
             assert work_size <= location_count
+
+            allowed_error = max(abs_allowed_error, integral_one.result * rel_allowed_error)
 
             if (allowed_error - total_error.result) > (volume_to_process - integral_all.result):
                 # If we have more allowed error left than unprocessed volume,
