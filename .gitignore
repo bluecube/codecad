@@ -2,6 +2,7 @@
 /build/
 /dist/
 /.cache/
+/.pytest_cache/
 /.coverage
 /.eggs/
 /*.egg-info/

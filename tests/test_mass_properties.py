@@ -73,7 +73,7 @@ def test_mass_properties(shape, volume, centroid, inertia_tensor):
 
 @pytest.mark.parametrize("radius", [0.2 * x - 1 for x in range(11)])
 def test_mass_properties_unbounding_volume(radius):
-    """ Test of a helper function inside mass properties CL code """
+    """ Test of a get_unbounding_volume() helper function inside mass properties CL code """
 
     integral = scipy.integrate.tplquad(lambda z, y, x: 1,
                                        0, min(0.5, abs(radius)),

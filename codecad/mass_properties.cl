@@ -9,6 +9,8 @@
 #define PLANE_SPLIT_MIN_SAMPLES 10
 #define PLANE_SPLIT_MAX_SAMPLES 50
 
+/** Return fraction of volume of a cube with side `stepSize` that is covered by
+ * a sphere with radius `value`. Both centered at origin. */
 static float get_unbounding_volume(float value, float stepSize)
 {
     float radius = value / stepSize;
@@ -223,6 +225,9 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
         // If step is too small, expanding the cell will not help, because
         // coordinates of the expanded items will end up at identical positions.
         // Just accept any error and don't expand anything.
+
+        // TODO: Since this allows unlimited error, it destroys the assumption that
+        // the bonus allowed error may never decrease.
         allowedError = 1; // Avoid issues with too small values of s
 
     float volumes[TREE_CHILD_COUNT];
