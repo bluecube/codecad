@@ -50,10 +50,98 @@ static float get_unbounding_volume(float value, float stepSize)
     }
 }
 
+/** Return volume of a unit cube intersected with half-space dot(X, normal) < distance.
+ * See ../doc/mass_properties/cube_halfspace.ipynb for details on how this works. */
+static float cube_halfspace_volume(float3 normal, float distance,
+                                   __global AssertBuffer* restrict assertBuffer)
+{
+    bool negativeDist = distance < 0;
+    if (negativeDist)
+    {
+        distance = -distance;
+        normal = -normal;
+    }
+
+    normal = fabs(normal);
+
+    if (normal.z < normal.x)
+        normal = normal.zyx;
+    if (normal.z < normal.y)
+        normal = normal.xzy;
+    if (normal.y < normal.x)
+        normal = normal.yxz;
+
+    // Check the normalization assumptions
+    assert(assertBuffer, normal.z >= normal.y);
+    assert(assertBuffer, normal.y >= normal.x);
+    assert(assertBuffer, normal.x >= 0);
+    assert(assertBuffer, distance >= 0);
+
+    // Rescale the distance, so that we can work with a cube [-1, 1]**3
+    distance *= 2;
+
+    float volume;
+
+    if (-normal.x - normal.y + normal.z >= distance)
+    {
+        // Case 0
+        assert(assertBuffer, normal.x - normal.y + normal.z >= distance);
+        volume = 4 * (distance / normal.z + 1);
+    }
+    else if (normal.x - normal.y + normal.z >= distance)
+    {
+        // case 1
+        assert(assertBuffer, -normal.x + normal.y + normal.z >= distance);
+
+        float tmp = normal.x + normal.y - normal.z;
+
+        // case 1a
+        volume = -cb(distance + tmp);
+
+        if (tmp >= distance)
+        {
+            // case 1b
+            volume -= cb(distance - tmp);
+        }
+
+        volume = 4 * (distance / normal.z + 1) + volume / (6 * normal.x * normal.y * normal.z);
+    }
+    else if (-normal.x + normal.y + normal.z >= distance)
+    {
+        // case 2
+        assert(assertBuffer, normal.x + normal.y + normal.z >= distance);
+        volume = 8 - (sq(normal.x) / 3 + sq(normal.y + normal.z - distance)) / (normal.y * normal.z);
+    }
+    else if (normal.x + normal.y + normal.z >= distance)
+    {
+        // case 3
+        volume = 8 - cb(normal.x + normal.y + normal.z - distance) / (6 * normal.x * normal.y * normal.z);
+    }
+    else
+    {
+        // case 4
+        volume = 8;
+    }
+
+    // Scale back to a unit cube
+    volume /= 8;
+
+    if (negativeDist)
+        return 1 - volume;
+    else
+        return volume;
+}
+
 #ifdef CODECAD_TEST
 __kernel void test_mass_properties_unbounding_volume(float value, __global float* volume)
 {
     *volume = get_unbounding_volume(value, 1);
+}
+
+__kernel void test_mass_properties_cube_halfspace_volume(float4 plane, __global float* volume,
+                                                         __global AssertBuffer* restrict assertBuffer)
+{
+    *volume = cube_halfspace_volume(plane.xyz, plane.w, assertBuffer);
 }
 #endif
 

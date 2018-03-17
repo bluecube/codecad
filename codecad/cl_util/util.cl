@@ -1,3 +1,13 @@
+float sq(float x)
+{
+    return x * x;
+}
+
+float cb(float x)
+{
+    return x * x * x;
+}
+
 float2 sincos2(float angle) {
     float c;
     float s = sincos(angle, &c);

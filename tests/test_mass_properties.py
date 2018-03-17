@@ -1,4 +1,6 @@
 import math
+import random
+
 import numpy
 import scipy.integrate
 
@@ -90,6 +92,55 @@ def test_mass_properties_unbounding_volume(radius):
 
     assert abs(b[0]) <= abs(expected) * (1 + 1e-3)
     assert b[0] == pytest.approx(expected, abs=0.1)
+
+
+@pytest.mark.parametrize("normal, distance", [(codecad.util.Vector(1, 0, 0), 1000),
+                                              (codecad.util.Vector(0, 1, 0), 0),
+                                              (codecad.util.Vector(1, 1, 0).normalized(), 0.),
+                                              (codecad.util.Vector(1, 1, 0.5).normalized(), 0.5),
+                                              (codecad.util.Vector(x=-1.153837656568184, y=-1.3216836238417664, z=1.305185225279636), 0.31495111628181927),
+                                              (codecad.util.Vector(x=-1.153837656568184, y=-1.3216836238417664, z=1.305185225279636), -0.4703503355410388),
+                                              (codecad.util.Vector(x=0.9089451193988527, y=-0.8063650564386726, z=0.2620028649364854), -0.03307431073329914),
+                                              #] + [
+                                              #(codecad.util.Vector(random.uniform(-1.5, 1.5),
+                                              #                     random.uniform(-1.5, 1.5),
+                                              #                     random.uniform(-1.5, 1.5)),
+                                              # random.uniform(-1.5, 1.5)) for i in range(100)
+                                              ])
+def test_mass_properties_cube_halfspace_volume(normal, distance):
+    """ Test of a cube_halfspace_volume() helper function inside mass properties CL code """
+
+    n = 50
+
+    b = codecad.cl_util.Buffer(pyopencl.cltypes.float, 1, pyopencl.mem_flags.WRITE_ONLY)
+    assert_buffer = codecad.cl_util.AssertBuffer()
+
+    # The sampling algorithm is randomized, so we just retry with higher sample
+    # count up to 3 times after a failed check to be sure that we're not failing
+    # the test due to a random fluke
+    for i in range(3):
+        indices = numpy.linspace(-0.5, 0.5, n, endpoint=False)
+        x, y, z = numpy.meshgrid(indices, indices, indices)
+        x += numpy.random.random(x.shape) / n
+        y += numpy.random.random(y.shape) / n
+        z += numpy.random.random(z.shape) / n
+
+        count = numpy.count_nonzero(x * normal.x + y * normal.y + z * normal.z < distance)
+        expected = pytest.approx(count / n**3, abs=0.1 / n**(3 / 2))
+
+        ev = codecad.cl_util.opencl_manager.k.test_mass_properties_cube_halfspace_volume([1], None,
+                                                                                         normal.as_float4(distance), b,
+                                                                                         assert_buffer)
+        b.read(wait_for=[ev])
+        assert_buffer.check()
+        actual = b[0]
+
+        if actual != expected:
+            n *= 2
+        else:
+            break
+
+    assert b[0] == expected
 
 
 def test_mass_properties_stage2_and_stage4():
