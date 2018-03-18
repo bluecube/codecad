@@ -3,12 +3,6 @@
 /*** Actual child count of the tree node */
 #define TREE_CHILD_COUNT (TREE_SIZE * TREE_SIZE * TREE_SIZE)
 
-/*** How many standard deviaitons are counted as error for plane splits */
-#define PLANE_SPLIT_STDEV_MULTIPLE 2
-
-#define PLANE_SPLIT_MIN_SAMPLES 10
-#define PLANE_SPLIT_MAX_SAMPLES 50
-
 /** Return fraction of volume of a cube with side `stepSize` that is covered by
  * a sphere with radius `value`. Both centered at origin. */
 static float get_unbounding_volume(float value, float stepSize)
@@ -158,9 +152,8 @@ __kernel void test_mass_properties_cube_halfspace_volume(float4 plane, __global 
  *              Should be a multiple of 8 (or 16?) to keep memory access aligned.
  * locationQueueSize: Size of the location queue to wrap the indices
  * allowedErrorPerVolume: Error allowed per unit of block volume.
- * monteCarloLeafThrreshold - Maximom value of cell size to allow using monte carlo integrals
+ * monteCarloLeafThreshold - Maximom value of cell size to allow using monte carlo integrals
  *                            instead of further splitting cells.
- * seed - 32bit random number for seeding the random generator.
  * locations: xyz coordinates of a corner of tree nodes to process,
  *            w is size of the child node (w * TREE_SIZE is size of this node).
  *            get_global_size(0) items large.
@@ -188,8 +181,7 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
                                        uint locationQueueSize,
                                        float bonusAllowedError,
                                        uint keepRemainingError,
-                                       float monteCarloLeafThrreshold,
-                                       uint seed,
+                                       float monteCarloLeafThreshold,
 
                                        __global float4* restrict locations,
                                        __global float* restrict allowedErrors,
@@ -239,7 +231,6 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
     float4 avgPlaneSum = 0;
     float maxPlaneNormalError = 0;
     float maxPlaneDistanceError = 0;
-    float volumeEstimateSum = 0;
 
     #pragma unroll
     for (uint i = 0; i < TREE_SIZE; ++i)
@@ -265,7 +256,6 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
                 float4 currentPlane = value;
                 currentPlane.w -= s * dot(ijk - ((float3)(TREE_SIZE, TREE_SIZE, TREE_SIZE) - 1) / 2, value.xyz);
                 avgPlaneSum += currentPlane;
-                volumeEstimateSum += (1 - unboundingVolume) / 2.0;
                 if (n == 0)
                     firstPlane = currentPlane;
                 else
@@ -292,75 +282,26 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
     uint splitCount = 0;
     uint splitMask = 0;
 
-    float volumeEstimate = volumeEstimateSum / TREE_CHILD_COUNT; // range: 0 - 1
-    uint sampleCountEstimate = PLANE_SPLIT_STDEV_MULTIPLE * PLANE_SPLIT_STDEV_MULTIPLE *
-                               volumeEstimate * (1 - volumeEstimate) / (allowedError * allowedError);
-
-    bool usePlane = s < monteCarloLeafThrreshold &&
+    bool usePlane = s < monteCarloLeafThreshold &&
                     allowedError2 < 0.5 && // If no splitting is necessary, it's better to not use monte carlo
-                    maxPlaneNormalError < 1e-4 && // TODO: Magic number here!
-                    maxPlaneDistanceError < 1e-4 && // TODO: Magic number here!
-                    sampleCountEstimate < PLANE_SPLIT_MAX_SAMPLES;
+                    maxPlaneNormalError < 1e-3 && // TODO: Magic number here!
+                    maxPlaneDistanceError < 1e-3; // TODO: Magic number here!
 
 
     if (usePlane)
     {
-        /// Calculate the integrals using monte carlo and don't split any nodes.
+        /// The cell only has a single plane going through just by a single plane
 
+        float3 center = cellOrigin + (float3)(0.5 * s * TREE_SIZE);
         float3 normal = normalize(avgPlaneSum.xyz);
         float distance = avgPlaneSum.w / TREE_CHILD_COUNT;
-        float3 cellCenter = cellOrigin + (float3)(0.5 * s * TREE_SIZE);
-
-        //printf("normal = (%f, %f, %f), distance=%f, cellCenter=(%f, %f, %f), volumeEstimate=%f, totalAllowedError=%f\n",
-        //       normal.x, normal.y, normal.z, distance, cellCenter.x, cellCenter.y, cellCenter.z, volumeEstimate, totalAllowedError);
-
-        uint rngState = combineState(seed, get_global_id(0));
-        uint sumOne = 0;
-        float3 sumX = 0;
-        float3 sumXX = 0;
-        float3 sumXY = 0;
-
-        uint sampleCount = 0;
-
-        float errorThreshold = (allowedError / PLANE_SPLIT_STDEV_MULTIPLE);
-        errorThreshold *= errorThreshold;
-        while (1)
-        {
-            float3 coords = (randFloat3(&rngState) - 0.5) * s * TREE_SIZE;
-            bool isInside = dot(coords, normal) < -distance;
-            //printf("	%f. %f, %f -> %i\n", coords.x, coords.y, coords.z, isInside);
-
-            if (isInside)
-            {
-                coords += cellCenter;
-
-                sumOne += 1;
-                sumX += coords;
-                sumXX += coords * coords;
-                sumXY += coords.zxy * coords.yzx;
-            }
-            sampleCount += 1;
-
-            float errorTrigger = sumOne * (sampleCount - sumOne);
-            errorTrigger /= sampleCount;
-            errorTrigger /= sampleCount;
-            errorTrigger /= sampleCount;
-
-            if (sampleCount >= PLANE_SPLIT_MIN_SAMPLES && errorTrigger <= errorThreshold)
-                break;
-        }
+        float volume = cube_halfspace_volume(normal, -distance, assertBuffer);
 
         integralAll = TREE_CHILD_COUNT * s3;
-        float scale = integralAll / sampleCount;
-
-        integralOne = sumOne * scale;
-        integralX = sumX * scale;
-        integralXX = sumXX * scale;
-        integralXY = sumXY * scale;
-        totalError += PLANE_SPLIT_STDEV_MULTIPLE * sqrt(sumOne * (sampleCount - sumOne) / (float)sampleCount) * scale;
-
-        if (totalError > integralAll * bonusAllowedError)
-            printf("%e > %e * %e = %e\n", totalError, integralAll, bonusAllowedError, integralAll * bonusAllowedError);
+        integralOne = integralAll * volume;
+        integralX = integralOne * center;
+        integralXX = integralOne * (center * center + s * s * TREE_SIZE * TREE_SIZE / 12);
+        integralXY = integralOne * center.zxy * center.yzx;
     }
     else
     {

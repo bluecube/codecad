@@ -4,7 +4,6 @@ import operator
 import math
 import time
 import logging
-import random
 
 import numpy
 import flags
@@ -201,7 +200,6 @@ def mass_properties(shape,
                                                                     cltypes.float(allowed_error_per_volume),
                                                                     cltypes.uint(0 if bfs_mode else 1), # keepRemainingError
                                                                     monte_carlo_leaf_threshold,
-                                                                    cltypes.uint(random.getrandbits(32)), # Seed for Monte Carlo integration
                                                                     locations, allowed_errors, temp_locations, temp_allowed_errors,
                                                                     integral1, integral2, integral3,
                                                                     split_counts, split_masks,
