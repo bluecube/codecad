@@ -216,6 +216,10 @@ def mass_properties(shape,
                                                                 split_counts,
                                                                 output_buffer,
                                                                 wait_for=[sum_ev])
+
+            location_count -= work_size
+            first_location = (first_location + first_location_move) % LOCATION_QUEUE_SIZE
+
             prepare_next_ev = opencl_manager.k.mass_properties_prepare_next([work_size], None,
                                                                             cltypes.uint((first_location + location_count) % LOCATION_QUEUE_SIZE),
                                                                             cltypes.uint(LOCATION_QUEUE_SIZE),
@@ -240,8 +244,7 @@ def mass_properties(shape,
             # assert_buffer.check()
 
             assert splits <= work_size * TREE_CHILD_COUNT
-            first_location = (first_location + first_location_move) % LOCATION_QUEUE_SIZE
-            location_count += splits - work_size
+            location_count += splits
 
             # Computing time spent in OpenCL is a bit tricky here.
             # Because we try to give stage 4 as much time as possible, it might be
