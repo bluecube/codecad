@@ -123,18 +123,18 @@ def mass_properties(shape,
         iteration_count = 0
         locations_processed = 0
 
-        prev_prepare_next_ev = None
-        prev_allowed_error_per_volume = 0
-
-        start_time = time.time()
-
         # If number of locations before an iteration is larger than this, the iteration
         # must be done in DFS mode
         # Set up so that the DFS mode can safely cross the whole dynamic range of float
         # (as there can be no more splitting after that).
         dfs_switch_threshold = LOCATION_QUEUE_SIZE - \
                                math.ceil(math.log(2**23, TREE_SIZE)) * MAX_WORK_SIZE * (TREE_CHILD_COUNT - 1)
+        allowed_error = abs_allowed_error
+        allowed_error_per_volume = allowed_error / volume_to_process
 
+        prev_prepare_next_ev = None
+
+        start_time = time.time()
         while location_count > 0:
             #logger.debug("*********************************")
             work_size = min(MAX_WORK_SIZE, location_count)
@@ -178,20 +178,24 @@ def mass_properties(shape,
             assert work_size <= MAX_WORK_SIZE
             assert work_size <= location_count
 
-            allowed_error = max(abs_allowed_error, integral_one.result * rel_allowed_error)
+            next_allowed_error = max(abs_allowed_error, integral_one.result * rel_allowed_error)
+            assert next_allowed_error >= allowed_error
+            allowed_error = next_allowed_error
 
-            if (allowed_error - total_error.result) > (volume_to_process - integral_all.result):
+            remaining_allowed_error = allowed_error - total_error.result
+            remaining_volume = volume_to_process - integral_all.result
+
+            assert remaining_allowed_error > 0
+            assert remaining_volume > 0
+
+            if remaining_allowed_error > remaining_volume:
                 # If we have more allowed error left than unprocessed volume,
                 # we can ignore the locations remaining in the queue.
-                # We don't count unprocessed volume with weight 0.5 (which would
-                # decrease the error requirement), because while compensating the
-                # total volume for this would be easy enough, I don't know how to
-                # compensate centroid and inertia matrix. (TODO)
                 break
-            if volume_to_process > integral_all.result:
-                allowed_error_per_volume = (allowed_error - total_error.result) / (volume_to_process - integral_all.result)
-                assert allowed_error_per_volume >= prev_allowed_error_per_volume
-                prev_allowed_error_per_volume = allowed_error_per_volume
+
+            next_allowed_error_per_volume = remaining_allowed_error / remaining_volume
+            assert next_allowed_error_per_volume * (1 + 1e-12) >= allowed_error_per_volume
+            allowed_error_per_volume = next_allowed_error_per_volume
 
             evaluate_ev = opencl_manager.k.mass_properties_evaluate([work_size], None,
                                                                     program_buffer,
@@ -273,7 +277,14 @@ def mass_properties(shape,
             #              locations_processed, locations_processed / iteration_count, locations_processed / time_spent,
             #              "BFS" if bfs_mode else "DFS", allowed_error_per_volume)
 
-        total_error += max(0, volume_to_process - integral_all.result) # All remaining volume is error
+        remaining_volume = volume_to_process - integral_all.result
+        assert remaining_volume > 0
+        # TODO: We don't count unprocessed volume with weight 0.5 (which would decrease the error requirement),
+        # because while compensating the total volume for this would be easy enough, I don't know how to
+        # compensate centroid and inertia matrix.
+        # integral_one += remaining_volume / 2
+        # total_error += remaining_volume / 2
+        total_error += remaining_volume
 
         assert_buffer.check()
 
