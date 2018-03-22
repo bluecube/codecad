@@ -1,7 +1,11 @@
 // #define TREE_SIZE from python
 
-/*** Actual child count of the tree node */
+/** Actual child count of the tree node */
 #define TREE_CHILD_COUNT (TREE_SIZE * TREE_SIZE * TREE_SIZE)
+
+/** Minimal dot product between directions within a cell to consider using
+ * plane split on it (instead of breaking it down into sub-cells) */
+#define PLANE_SPLIT_MIN_DOT cos(1 * M_PI / 180)
 
 /** Return fraction of volume of a cube with side `stepSize` that is covered by
  * a sphere with radius `value`. Both centered at origin. */
@@ -152,7 +156,7 @@ __kernel void test_mass_properties_cube_halfspace_volume(float4 plane, __global 
  *              Should be a multiple of 8 (or 16?) to keep memory access aligned.
  * locationQueueSize: Size of the location queue to wrap the indices
  * allowedErrorPerVolume: Error allowed per unit of block volume.
- * monteCarloLeafThreshold - Maximom value of cell size to allow using monte carlo integrals
+ * planeSplitLeafThreshold - Maximom value of cell size to consider using plane splits
  *                            instead of further splitting cells.
  * locations: xyz coordinates of a corner of tree nodes to process,
  *            w is size of the child node (w * TREE_SIZE is size of this node).
@@ -181,7 +185,7 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
                                        uint locationQueueSize,
                                        float bonusAllowedError,
                                        uint keepRemainingError,
-                                       float monteCarloLeafThreshold,
+                                       float planeSplitLeafThreshold,
 
                                        __global float4* restrict locations,
                                        __global float* restrict allowedErrors,
@@ -207,8 +211,6 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
     float s = location.w;
     float s3 = s * s * s; // This is volume of a child sub node
 
-    //printf("allowedError = %f, bonusAllowedError = %f, s3 = %f\n", allowedError, bonusAllowedError, s3);
-
     assert(assertBuffer, s > 0);
     assert(assertBuffer, all(cellOrigin + s != cellOrigin));
     assert(assertBuffer, all(cellOrigin + s / TREE_SIZE != cellOrigin)); // debug only, this can happen IRL
@@ -227,10 +229,9 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
     uint potentialSplitCount = 0;
     float remainingAllowedError = allowedError * TREE_CHILD_COUNT;
 
-    float4 firstPlane;
-    float4 avgPlaneSum = 0;
-    float maxPlaneNormalError = 0;
-    float maxPlaneDistanceError = 0;
+    float3 firstDirection;
+    float minDirectionDot = 1;
+    float minPlaneSplitVolume, maxPlaneSplitVolume;
 
     #pragma unroll
     for (uint i = 0; i < TREE_SIZE; ++i)
@@ -252,16 +253,25 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
                 else
                     potentialSplitCount++;
 
-                // Preparations for using Monte Carlo integration with single plane
-                float4 currentPlane = value;
-                currentPlane.w -= s * dot(ijk - ((float3)(TREE_SIZE, TREE_SIZE, TREE_SIZE) - 1) / 2, value.xyz);
-                avgPlaneSum += currentPlane;
+                // value.w is distance of the plane from the sub-cell, we need
+                // the compensation added is to move the origin of the distance to the cell center
+                assert(assertBuffer, length(value.xyz) < 1.0001);
+                assert(assertBuffer, length(value.xyz) > 0.9999);
+                float3 direction = value.xyz;
+                float planeSplitVolume = cube_halfspace_volume(direction,
+                                                               -value.w + s * dot(ijk - ((float3)(TREE_SIZE, TREE_SIZE, TREE_SIZE) - 1) / 2, direction),
+                                                               assertBuffer);
                 if (n == 0)
-                    firstPlane = currentPlane;
+                {
+                    firstDirection = direction;
+                    minPlaneSplitVolume = planeSplitVolume;
+                    maxPlaneSplitVolume = planeSplitVolume;
+                }
                 else
                 {
-                    maxPlaneNormalError = max(maxPlaneNormalError, 1 - dot(firstPlane.xyz, currentPlane.xyz));
-                    maxPlaneDistanceError = max(maxPlaneDistanceError, fabs(firstPlane.w - currentPlane.w) / s);
+                    minDirectionDot = min(minDirectionDot, dot(direction, firstDirection));
+                    minPlaneSplitVolume = min(minPlaneSplitVolume, planeSplitVolume);
+                    maxPlaneSplitVolume = max(maxPlaneSplitVolume, planeSplitVolume);
                 }
 
                 //printf("%i, %i, %i, normal: (%f, %f, %f), distance: %f, correctedDistance: %f, s=%f, unboundingVolume = %f\n",
@@ -282,26 +292,21 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
     uint splitCount = 0;
     uint splitMask = 0;
 
-    bool usePlane = s < monteCarloLeafThreshold &&
-                    allowedError2 < 0.5 && // If no splitting is necessary, it's better to not use monte carlo
-                    maxPlaneNormalError < 1e-3 && // TODO: Magic number here!
-                    maxPlaneDistanceError < 1e-3; // TODO: Magic number here!
+    float planeSplitError = (maxPlaneSplitVolume - minPlaneSplitVolume) / 2;
 
-
-    if (usePlane)
+    if (s < planeSplitLeafThreshold && minDirectionDot > PLANE_SPLIT_MIN_DOT && planeSplitError < allowedError)
     {
-        /// The cell only has a single plane going through just by a single plane
+        // Error by approximating the cell as being divided by a single plane is acceptable
 
         float3 center = cellOrigin + (float3)(0.5 * s * TREE_SIZE);
-        float3 normal = normalize(avgPlaneSum.xyz);
-        float distance = avgPlaneSum.w / TREE_CHILD_COUNT;
-        float volume = cube_halfspace_volume(normal, -distance, assertBuffer);
+        float volume = (maxPlaneSplitVolume + minPlaneSplitVolume) / 2;
 
         integralAll = TREE_CHILD_COUNT * s3;
         integralOne = integralAll * volume;
         integralX = integralOne * center;
         integralXX = integralOne * (center * center + s * s * TREE_SIZE * TREE_SIZE / 12);
         integralXY = integralOne * center.zxy * center.yzx;
+        totalError += planeSplitError * integralAll;
     }
     else
     {
@@ -356,7 +361,7 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
                 float totalAllowedError = integralAll * bonusAllowedError; // This way bonusAllowedError will not decrease over time
                 float allowedError3 = (totalAllowedError - totalError) / (splitCount * s3);
 
-                //assert(assertBuffer, allowedError3 >= allowedError2);
+                assert(assertBuffer, allowedError3 >= allowedErrorFromLocation);
                 tempAllowedErrors[get_global_id(0)] = allowedError3;
                 totalError = totalAllowedError; // The remaining allowed error gets passed to children
             }
@@ -483,10 +488,6 @@ __kernel void mass_properties_prepare_next(uint startOffset,
         index += splitCounts[get_global_id(0) - 1]; // TODO: This makes the mem access misaligned
 
     uint splitMask = splitMasks[get_global_id(0)];
-
-    //printf("prepare: %f, %f, %f / %f, nextAllowedError = %f, index = %i (-%i), splitMask = %i\n",
-    //       location.x, location.y, location.z, location.w,
-    //       nextAllowedError, index, startOffset, splitMask);
 
     float s = location.w;
     float nextS = s / TREE_SIZE;
