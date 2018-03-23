@@ -279,7 +279,8 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
             }
 
     float allowedError2 = remainingAllowedError / potentialSplitCount;
-    assert(assertBuffer, allowedError2 >= allowedError);
+    assert(assertBuffer, allowedError2 * (1 + 1e-6) >= allowedError);
+    allowedError2 = max(allowedError2, allowedError);
 
     float integralOne = 0;
     float3 integralX = 0;
@@ -355,8 +356,9 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
             {
                 float totalAllowedError = integralAll * bonusAllowedError; // This way bonusAllowedError will not decrease over time
                 float allowedError3 = (totalAllowedError - totalError) / (splitCount * s3);
+                assert(assertBuffer, allowedError3 * (1 + 1e6) >= allowedErrorFromLocation);
+                allowedError3 = max(allowedError3, allowedErrorFromLocation);
 
-                assert(assertBuffer, allowedError3 >= allowedErrorFromLocation);
                 tempAllowedErrors[get_global_id(0)] = allowedError3;
                 totalError = totalAllowedError; // The remaining allowed error gets passed to children
             }
