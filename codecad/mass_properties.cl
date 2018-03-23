@@ -274,9 +274,6 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
                     maxPlaneSplitVolume = max(maxPlaneSplitVolume, planeSplitVolume);
                 }
 
-                //printf("%i, %i, %i, normal: (%f, %f, %f), distance: %f, correctedDistance: %f, s=%f, unboundingVolume = %f\n",
-                //       i, j, k, value.x, value.y, value.z, value.w, currentPlane.w, s, unboundingVolume);
-
                 n++;
             }
 
@@ -325,9 +322,6 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
                     float volume = volumes[n];
 
                     float error = (1 - fabs(volume)) / 2.0;
-                    //printf("%i, %i, %i (%i): center = %f, %f, %f, value = %f, volume = %f, error = %f (%s %f)\n",
-                    //       i, j, k, n, center.x, center.y, center.z, value, volume, error,
-                    //       maxErrorPerChild1, (error < maxErrorPerChild1 ? "<" : ">="));
 
                     if (error < allowedError2)
                     {
