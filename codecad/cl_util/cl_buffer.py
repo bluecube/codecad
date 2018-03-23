@@ -88,9 +88,12 @@ class Buffer(pyopencl.Buffer):
         return pyopencl.enqueue_copy(self.queue, self, array,
                                      wait_for=wait_for, is_blocking=False)
 
-    def enqueue_zero_fill_compatible(self, wait_for=None):
-        return self.enqueue_write(numpy.zeros(self.shape, dtype=self.dtype),
+    def enqueue_fill_compatible(self, value, wait_for=None):
+        return self.enqueue_write(numpy.full(self.shape, value, dtype=self.dtype),
                                   wait_for=wait_for)
+
+    def enqueue_zero_fill_compatible(self, wait_for=None):
+        return self.enqueue_fill_compatible(0, wait_for)
 
     @contextlib.contextmanager
     def map(self, map_flags, offset=None, shape=None, wait_for=None):

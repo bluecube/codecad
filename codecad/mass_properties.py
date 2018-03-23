@@ -95,7 +95,11 @@ def mass_properties(shape,
         buffer_list.add(assert_buffer)
 
         # Initialize the first location
-        ev = allowed_errors.enqueue_zero_fill_compatible()
+        if assert_buffer.ASSERT_ENABLED:
+            assert_evs = [allowed_errors.enqueue_fill_compatible(float("nan"))]
+        else:
+            assert_evs = None
+        ev = allowed_errors.enqueue_write(cltypes.float(0), wait_for=assert_evs)
         prepare_next_ev = locations.enqueue_write(box.a.as_float4(initial_step_size), wait_for=[ev])
         first_location = 0
         location_count = 1

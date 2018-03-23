@@ -207,6 +207,10 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
     float allowedErrorFromLocation = allowedErrors[index];
     float allowedError = allowedErrorFromLocation + bonusAllowedError; // == absAllowedErrorPerChild / s3 [units**3 error / units**3 volume]
 
+    // Verify that the input location is valid and invalidate the used input
+    assert(assertBuffer, !isnan(allowedErrorFromLocation));
+    WHEN_ASSERT(allowedErrors[index] = NAN);
+
     float3 cellOrigin = location.xyz;
     float s = location.w;
     float s3 = s * s * s; // This is volume of a child sub node
@@ -500,6 +504,10 @@ __kernel void mass_properties_prepare_next(uint startOffset,
                     continue;
 
                 float3 corner = location.xyz + (float3)(i, j, k) * s;
+
+                // Check that we're not overwriting any existing valid data
+                assert(assertBuffer, isnan(allowedErrors[index]));
+
                 locations[index % locationQueueSize] = (float4)(corner, nextS);
                 allowedErrors[index % locationQueueSize] = allowedError;
                 ++index;
