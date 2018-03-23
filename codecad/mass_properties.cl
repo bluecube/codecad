@@ -288,7 +288,7 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
     float3 integralXX = 0;
     float3 integralXY = 0;
     float integralAll = 0;
-    float totalError = -allowedErrorFromLocation * TREE_CHILD_COUNT * s3;
+    float totalError = 0;
     uint splitCount = 0;
     uint splitMask = 0;
 
@@ -306,14 +306,14 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
         integralX = integralOne * center;
         integralXX = integralOne * (center * center + s * s * TREE_SIZE * TREE_SIZE / 12);
         integralXY = integralOne * center.zxy * center.yzx;
-        totalError += planeSplitError * integralAll;
+        totalError += (planeSplitError - allowedErrorFromLocation) * integralAll;
     }
     else
     {
         // Potentially split nodes.
 
         n = 0;
-        float errorSum = 0;
+        totalError = -allowedErrorFromLocation * TREE_CHILD_COUNT;
         #pragma unroll
         for (uint i = 0; i < TREE_SIZE; ++i)
             #pragma unroll
@@ -337,7 +337,7 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
                         integralX += weight * center;
                         integralXX += weight * (center * center + s * s / 12);
                         integralXY += weight * center.zxy * center.yzx;
-                        errorSum += error;
+                        totalError += error;
                     }
                     else
                     {
@@ -352,7 +352,7 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
         integralX *= s3;
         integralXX *= s3;
         integralXY *= s3;
-        totalError += s3 * errorSum;
+        totalError *= s3;
 
         if (splitCount > 0)
         {
