@@ -253,14 +253,15 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
                 else
                     potentialSplitCount++;
 
-                // value.w is distance of the plane from the sub-cell, we need
-                // the compensation added is to move the origin of the distance to the cell center
                 assert(assertBuffer, length(value.xyz) < 1.0001);
                 assert(assertBuffer, length(value.xyz) > 0.9999);
                 float3 direction = value.xyz;
-                float planeSplitVolume = cube_halfspace_volume(direction,
-                                                               -value.w + s * dot(ijk - ((float3)(TREE_SIZE, TREE_SIZE, TREE_SIZE) - 1) / 2, direction),
-                                                               assertBuffer);
+
+                // value.w is distance of the plane from the sub-cell, we need
+                // the compensation added is to move the origin of the distance to the cell center
+                float distance = value.w - s * dot(ijk - (TREE_SIZE - 1) / 2, direction);
+                // .. and to rescale it into a unit cube
+                float planeSplitVolume = cube_halfspace_volume(direction, -distance / (s * TREE_SIZE), assertBuffer);
                 if (n == 0)
                 {
                     firstDirection = direction;
