@@ -58,8 +58,8 @@ def mass_properties(shape,
         raise ValueError("2D objects are not supported yet")
     if abs_allowed_error <= 0:
         raise ValueError("Absolute allowed error must be positive")
-    if rel_allowed_error <= 0:
-        raise ValueError("Absolute allowed error must be positive")
+    if rel_allowed_error < 0:
+        raise ValueError("Relative allowed error must be positive or zero")
 
     opencl_manager.get_program() # Force build here so that it doesn't skew timings later
 
