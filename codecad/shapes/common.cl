@@ -18,18 +18,11 @@ float4 perpendicular_intersection(float4 input1, float4 input2)
     {
         float dist = hypot(input1.w, input2.w);
 
-        float3 gradient1 = as_float3(input1);
-        float3 gradient2 = as_float3(input2);
-
         float m1 = input1.w / dist;
         float m2 = input2.w / dist;
 
-        float3 outGradient = gradient1 * m1 + gradient2 * m2;
-
-        float4 out = as_float4(outGradient);
-        out.w = dist;
-
-        return out;
+        return (float4)(input1.xyz * m1 + input2.xyz * m2,
+                        dist);
     }
     else if (input1.w > input2.w)
         return input1;
