@@ -4,3 +4,5 @@ float4 repetition_op(float ox, float oy, float oz, float4 coords) {
                     remainder(coords.z, oz),
                     0);
 }
+
+// vim: filetype=c

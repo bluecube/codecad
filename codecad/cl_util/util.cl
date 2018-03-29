@@ -13,3 +13,5 @@ float2 rotated2d(float2 point, float angle) {
     return (float2)(sc.x * point.x - sc.y * point.y,
                     sc.y * point.x + sc.x * point.y);
 }
+
+// vim: filetype=c
