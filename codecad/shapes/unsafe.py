@@ -48,3 +48,33 @@ class Repetition2D(_RepetitionMixin, base.Shape2D):
 
 class Repetition(_RepetitionMixin, base.Shape3D):
     pass
+
+
+class _CircularRepetitionMixin:
+    """ Repeats object by rotating it around the Z axis n times in regular intervals """
+    def __init__(self, s, n):
+        self.check_dimension(s)
+        self.s = s
+        self.n = n
+
+    def bounding_box(self):
+        v = util.Vector.splat(self.s.bounding_box().b.x)
+        return util.BoundingBox(-v, v)
+
+    def get_node(self, point, cache):
+        pi_over_n = math.pi / self.n
+        new_point = cache.make_node("circular_repetition_to",
+                                    [pi_over_n],
+                                    [point])
+        sub_node = self.s.get_node(new_point, cache)
+        return cache.make_node("circular_repetition_from",
+                               [pi_over_n],
+                               [sub_node, point])
+
+
+class CircularRepetition2D(_CircularRepetitionMixin, base.Shape2D):
+    pass
+
+
+class CircularRepetition(_CircularRepetitionMixin, base.Shape3D):
+    pass
