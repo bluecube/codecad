@@ -78,3 +78,16 @@ class CircularRepetition2D(_CircularRepetitionMixin, base.Shape2D):
 
 class CircularRepetition(_CircularRepetitionMixin, base.Shape3D):
     pass
+
+class Flatten(base.Shape2D):
+    """ Converts 3D shape to 2D shape by taking a slice at Z = 0.
+    Doesn't correct directions or distances. """
+    def __init__(self, s):
+        self.check_dimension(s, required=3)
+        self.s = s
+
+    def bounding_box(self):
+        return self.s.bounding_box()
+
+    def get_node(self, point, cache):
+        return self.s.get_node(point, cache)
