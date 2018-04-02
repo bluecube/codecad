@@ -246,7 +246,9 @@ class Shape2D(SolidBodyTransformable2D, ShapeBase):
 
     def make_part(self, name, attributes=[]):
         from .. import assembly
-        return assembly.PartTransform2D(assembly.Part(name, self, attributes), util.Transformation.zero())
+        return assembly.PartTransform2D(assembly.Part(name, self, attributes),
+                                        util.Transformation.zero(),
+                                        True)
 
 
 class Shape3D(SolidBodyTransformable3D, ShapeBase):
@@ -338,4 +340,6 @@ class Shape3D(SolidBodyTransformable3D, ShapeBase):
 
     def make_part(self, name, attributes=[]):
         from .. import assembly
-        return assembly.PartTransform3D(assembly.Part(name, self, attributes), util.Transformation.zero())
+        return assembly.PartTransform3D(assembly.Part(name, self, attributes),
+                                        util.Transformation.zero(),
+                                        True)

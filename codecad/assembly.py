@@ -17,7 +17,7 @@ class Part(collections.namedtuple("Part", "name data attributes")):
         return Assembly([self])
 
 
-class PartTransform(collections.namedtuple("PartPlacer", "part transform")):
+class PartTransform(collections.namedtuple("PartPlacer", "part transform visible")):
     __slots__ = ()
 
     def shape(self):
@@ -30,7 +30,13 @@ class PartTransform(collections.namedtuple("PartPlacer", "part transform")):
 
     def _transformed(self, transform):
         return self.__class__(self.part,
-                              transform * self.transform)
+                              transform * self.transform,
+                              self.visible)
+
+    def hidden(self, hidden=True):
+        return self.__class__(self.part,
+                              self.transform,
+                              not hidden)
 
     @property
     def name(self):
@@ -100,9 +106,13 @@ class _FrozenAssembly:
         if dimension is None:
             raise Exception("Making a part of empty assembly is not supported")
         elif dimension == 2:
-            return PartTransform2D(Part(name, self, attributes), util.Transformation.zero())
+            return PartTransform2D(Part(name, self, attributes),
+                                   util.Transformation.zero(),
+                                   True)
         else:
-            return PartTransform3D(Part(name, self, attributes), util.Transformation.zero())
+            return PartTransform3D(Part(name, self, attributes),
+                                   util.Transformation.zero(),
+                                   True)
 
     def all_instances(self):
         """ Returns iterable of all individual parts comprising this assembly,
@@ -142,9 +152,11 @@ class _FrozenAssembly:
             yield from same_names
 
     def shape(self):
-        """ Return single shape for the whole assembly put together """
+        """ Return single shape for the whole assembly put together.
+        Parts that are not visible are not included. """
         return shapes.union(instance.part.data.transformed(instance.transform)
-                            for instance in self.all_instances())
+                            for instance in self.all_instances()
+                            if instance.visible)
 
     def assembly(self):
         """ Return self for compatibility with shapes and parts """
