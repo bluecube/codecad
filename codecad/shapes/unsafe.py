@@ -79,6 +79,7 @@ class CircularRepetition2D(_CircularRepetitionMixin, base.Shape2D):
 class CircularRepetition(_CircularRepetitionMixin, base.Shape3D):
     pass
 
+
 class Flatten(base.Shape2D):
     """ Converts 3D shape to 2D shape by taking a slice at Z = 0.
     Doesn't correct directions or distances. """
