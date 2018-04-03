@@ -69,11 +69,6 @@ class ShapeBase(metaclass=abc.ABCMeta):
         """ Return self, for compatibility with assemblies. """
         return self
 
-    def assembly(self):
-        """ Return an assembly containing just this shape """
-        from .. import assembly
-        return assembly.Assembly([self.make_part(None)])
-
     def _repr_png_(self):
         """ Return representation of this shape as a png image for Jupyter notebooks. """
         from ..rendering import image
@@ -245,10 +240,10 @@ class Shape2D(SolidBodyTransformable2D, ShapeBase):
                                          transformation.offset)
 
     def make_part(self, name, attributes=[]):
-        from .. import assembly
-        return assembly.PartTransform2D(assembly.Part(name, self, attributes),
-                                        util.Transformation.zero(),
-                                        True)
+        from .. import assemblies
+        return assemblies.PartTransform2D(assemblies.Part(name, self, attributes),
+                                          util.Transformation.zero(),
+                                          True)
 
 
 class Shape3D(SolidBodyTransformable3D, ShapeBase):
@@ -339,7 +334,7 @@ class Shape3D(SolidBodyTransformable3D, ShapeBase):
                                        transformation.offset)
 
     def make_part(self, name, attributes=[]):
-        from .. import assembly
-        return assembly.PartTransform3D(assembly.Part(name, self, attributes),
-                                        util.Transformation.zero(),
-                                        True)
+        from .. import assemblies
+        return assemblies.PartTransform3D(assemblies.Part(name, self, attributes),
+                                          util.Transformation.zero(),
+                                          True)

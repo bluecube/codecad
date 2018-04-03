@@ -6,6 +6,6 @@ from . import cl_util
 
 from . import grid_eval
 
-from .assembly import Assembly
+from .assemblies import assembly
 
 from .mass_properties import mass_properties

@@ -7,7 +7,7 @@ import re
 import flags
 import PIL.Image
 
-from .. import assembly
+from .. import assemblies
 
 
 class AssemblyMode(flags.Flags):
@@ -60,20 +60,21 @@ def commandline_render(obj, resolution, default_renderer=None, **kwargs):
     else:
         assembly_mode = _renderers[renderer][2]
 
-    if isinstance(obj, assembly.Assembly) and assembly_mode == AssemblyMode.parts:
-        pattern = _parse_name_format(output)
-        for item in obj.bom():
-            _render_one(renderer, item.shape(), item.name.join(pattern), resolution, **kwargs)
-    else:
-        if isinstance(obj, assembly.Assembly):
-            if assembly_mode == AssemblyMode.disabled:
-                raise ValueError("Renderer {} does not allow assemblies".format(renderer))
-            elif assembly_mode == AssemblyMode.whole:
+    if hasattr(obj, "bom"):
+        if assembly_mode == AssemblyMode.parts:
+            pattern = _parse_name_format(output)
+            for item in obj.bom():
+                _render_one(renderer, item.shape(), item.name.join(pattern), resolution, **kwargs)
+        elif assembly_mode == AssemblyMode.disabled:
+            raise ValueError("Renderer {} does not allow assemblies".format(renderer))
+        else:
+            if assembly_mode == AssemblyMode.whole:
                 obj = obj.shape()
-        elif isinstance(obj, assembly.Part) or isinstance(obj, assembly.PartTransform):
-            obj = obj.shape()
-
-        _render_one(renderer, obj, output, resolution, **kwargs)
+            elif assembly_mode == AssemblyMode.raw:
+                pass
+            _render_one(renderer, obj, output, resolution, **kwargs)
+    else:
+        _render_one(renderer, obj.shape(), output, resolution, **kwargs)
 
 
 def _render_one(renderer, shape, output, resolution, **kwargs):
