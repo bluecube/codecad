@@ -5,32 +5,28 @@ from . import shapes
 from . import util
 
 
-class Part(collections.namedtuple("Part", "name data attributes")):
+Part = collections.namedtuple("Part", "name data attributes")
+Assembly = collections.namedtuple("Assembly", "name instances attributes")
+
+class PartTransformBase(collections.namedtuple("PartTransform", "part transform visible")):
     __slots__ = ()
+
+    def dimension(self):
+        return self.part.data.dimension()
 
     def shape(self):
         """ Return shape corresponding to this part. """
-        return self.data.shape()
-
-    def assembly(self):
-        """ Return an assembly containing just theis part. """
-        return Assembly([self])
-
-
-class PartTransform(collections.namedtuple("PartPlacer", "part transform")):
-    __slots__ = ()
-
-    def shape(self):
-        """ Return shape corresponding to this part. """
-        return self.part.shape().transformed(self.transform)
-
-    def assembly(self):
-        """ Return an assembly containing just theis part. """
-        return Assembly([self])
+        return self.part.data.transformed(self.transform)
 
     def _transformed(self, transform):
         return self.__class__(self.part,
-                              transform * self.transform)
+                              transform * self.transform,
+                              self.visible)
+
+    def hidden(self, hidden=True):
+        return self.__class__(self.part,
+                              self.transform,
+                              not hidden)
 
     @property
     def name(self):
@@ -41,7 +37,7 @@ class PartTransform(collections.namedtuple("PartPlacer", "part transform")):
         return self.part.attributes
 
 
-class PartTransform2D(PartTransform, base.SolidBodyTransformable2D):
+class PartTransform2D(PartTransformBase, base.SolidBodyTransformable2D):
     __slots__ = ()
 
     def translated(self, x, y):
@@ -57,7 +53,7 @@ class PartTransform2D(PartTransform, base.SolidBodyTransformable2D):
                                                                   (0, 0, 0)))
 
 
-class PartTransform3D(PartTransform, base.SolidBodyTransformable3D):
+class PartTransform3D(PartTransformBase, base.SolidBodyTransformable3D):
     __slots__ = ()
 
     def translated(self, x, y, z):
@@ -84,25 +80,15 @@ class BomItem:
         bom items compatible for rendering """
         return self.part.data
 
+    def __str__(self):
+        return "{}x {}".format(self.count, self.name)
 
-class _FrozenAssembly:
-    def __init__(self, instances, dimension):
-        self._instances = instances
-        self._dimension = dimension
+
+class AssemblyInterface:
+    __slots__ = ()
 
     def dimension(self):
-        return self._dimension
-
-    def make_part(self, name, attributes=[]):
-        """ Convert this assembly to a part that is insertable into other assemblies. """
-        dimension = self.dimension()
-
-        if dimension is None:
-            raise Exception("Making a part of empty assembly is not supported")
-        elif dimension == 2:
-            return PartTransform2D(Part(name, self, attributes), util.Transformation.zero())
-        else:
-            return PartTransform3D(Part(name, self, attributes), util.Transformation.zero())
+        return self.part.instances[0].dimension()
 
     def all_instances(self):
         """ Returns iterable of all individual parts comprising this assembly,
@@ -111,19 +97,20 @@ class _FrozenAssembly:
         Transforms for nested parts are merged so that the part can be added to
         the same place with a single step. """
 
-        for instance in self._instances:
-            if hasattr(instance.part.data, "all_instances"):
-                for inner_instance in instance.part.data.all_instances():
+        for instance in self:
+            if hasattr(instance, "all_instances"):
+                for inner_instance in instance.all_instances():
                     yield inner_instance._transformed(instance.transform)
             else:
                 yield instance
 
-    def bom(self):
-        """ Returns a bill of materials for this assembly Bill of materials is
-        an iterable of BomItem records. """
+    def bom(self, recursive=True):
+        """ Iterates over a bill of materials for this assembly, as BomItem instances.
+        If recursive is True, goes through all parts in sub assemblies,
+        otherwise only lists parts and assemblies directly added to this asm. """
         bom = collections.OrderedDict()
 
-        for instance in self.all_instances():
+        for instance in (self.all_instances() if recursive else self):
             name = instance.part.name
 
             same_names = bom.setdefault(name, [])
@@ -142,39 +129,50 @@ class _FrozenAssembly:
             yield from same_names
 
     def shape(self):
-        """ Return single shape for the whole assembly put together """
+        """ Return single shape for the whole assembly put together.
+        Parts that are not visible are not included. """
         return shapes.union(instance.part.data.transformed(instance.transform)
-                            for instance in self.all_instances())
+                            for instance in self.all_instances()
+                            if instance.visible)
 
-    def assembly(self):
-        """ Return self for compatibility with shapes and parts """
-        return self
+
+class AssemblyTransform2D(AssemblyInterface, PartTransform2D):
+    __slots__ = ()
 
     def __iter__(self):
         """ Iterate over part instances of this assembly, not entering subassemblies
         recursively. """
-        return iter(self._instances)
+        yield from self.part.instances
 
 
-class Assembly(_FrozenAssembly):
-    def __init__(self, instances=[]):
-        super().__init__([], None)
-        for instance in instances:
-            self.add(instance)
+class AssemblyTransform3D(AssemblyInterface, PartTransform3D):
+    __slots__ = ()
 
-    def add(self, instance):
-        """ Add a part instance into this assembly.
-        Parts are created using `make_part()` method of shapes and assemblies. """
+    def __iter__(self):
+        """ Iterate over part instances of this assembly, not entering subassemblies
+        recursively. """
+        yield from self.part.instances
 
-        dimension = instance.part.data.dimension()
-        assert dimension is not None
-        if self._dimension is None:
-            self._dimension = dimension
-        elif self._dimension != dimension:
+
+def assembly(name, instances, attributes=[]):
+    instances = list(instances)
+    if not len(instances):
+        raise ValueError("Empty assemblies are not supported")
+
+    dimension = None
+    for instance in instances:
+        if dimension is None:
+            dimension = instance.dimension()
+        elif dimension != instance.dimension():
             raise ValueError("Part has different dimension (2D vs 3D) than the rest of parts in this assembly")
 
-        self._instances.append(instance)
+    asm = Assembly(name, instances, attributes)
 
-    def make_part(self, name, attributes=[]):
-        """ Convert this assembly to a part that is insertable into other assemblies. """
-        return _FrozenAssembly(self._instances, self._dimension).make_part(name, attributes)
+    if dimension == 2:
+        return AssemblyTransform2D(asm,
+                                   util.Transformation.zero(),
+                                   True)
+    else:
+        return AssemblyTransform3D(asm,
+                                   util.Transformation.zero(),
+                                   True)

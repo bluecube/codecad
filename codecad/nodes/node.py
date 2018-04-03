@@ -30,7 +30,9 @@ class Node:
         ("mirror", 0, 1),
         ("offset", 1, 1), ("shell", 1, 1),
         # Misc:
-        ("repetition", 3, 1), ("involute_gear", 2, 1),
+        ("repetition", 3, 1),
+        ("circular_repetition_to", 1, 1), ("circular_repetition_from", 1, 2),
+        ("involute_gear", 2, 1),
 
         # Binary nodes:
         # 3D shapes:
