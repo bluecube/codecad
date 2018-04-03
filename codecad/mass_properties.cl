@@ -156,8 +156,10 @@ __kernel void test_mass_properties_cube_halfspace_volume(float4 plane, __global 
  *              Should be a multiple of 8 (or 16?) to keep memory access aligned.
  * locationQueueSize: Size of the location queue to wrap the indices
  * allowedErrorPerVolume: Error allowed per unit of block volume.
- * planeSplitLeafThreshold - Maximom value of cell size to consider using plane splits
- *                            instead of further splitting cells.
+ * planeSplitFudgeFactor - cell size times this value gets added to calculated error
+ *                         of the plane split approximation. This serves either
+ *                         to compensate for over-eagerness of the plane split
+ *                         approximation or to completely disable it.
  * locations: xyz coordinates of a corner of tree nodes to process,
  *            w is size of the child node (w * TREE_SIZE is size of this node).
  *            get_global_size(0) items large.
@@ -185,7 +187,7 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
                                        uint locationQueueSize,
                                        float bonusAllowedError,
                                        uint keepRemainingError,
-                                       float planeSplitLeafThreshold,
+                                       float planeSplitFudgeFactor,
 
                                        __global float4* restrict locations,
                                        __global float* restrict allowedErrors,
@@ -295,9 +297,10 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
     uint splitCount = 0;
     uint splitMask = 0;
 
-    float planeSplitError = (maxPlaneSplitVolume - minPlaneSplitVolume) / 2;
+    float planeSplitError = (maxPlaneSplitVolume - minPlaneSplitVolume) / 2 +
+                            planeSplitFudgeFactor * s;
 
-    if (s < planeSplitLeafThreshold && minDirectionDot > PLANE_SPLIT_MIN_DOT && planeSplitError < allowedError)
+    if (minDirectionDot > PLANE_SPLIT_MIN_DOT && planeSplitError < allowedError)
     {
         // Error by approximating the cell as being divided by a single plane is acceptable
 

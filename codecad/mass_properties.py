@@ -68,6 +68,14 @@ def mass_properties(shape,
     initial_step_size = box_size.max() / TREE_SIZE
     volume_to_process = box_size.max()**3
 
+    if MassPropertiesOptions.no_plane_split_leafs in options:
+        plane_split_fudge_factor = cltypes.float("inf")
+    else:
+        # TODO: The value is completely arbitrary now now.
+        # Eventually it should be chosen based on something like a feature size of
+        # of the model, once that is implemented
+        plane_split_fudge_factor = cltypes.float(1e-3)
+
     with cl_util.BufferList() as buffer_list:
         program_buffer = nodes.make_program_buffer(shape)
         buffer_list.add(program_buffer)
@@ -103,11 +111,6 @@ def mass_properties(shape,
         prepare_next_ev = locations.enqueue_write(box.a.as_float4(initial_step_size), wait_for=[ev])
         first_location = 0
         location_count = 1
-
-        if MassPropertiesOptions.no_plane_split_leafs in options:
-            plane_split_leaf_threshold = cltypes.float(0)
-        else:
-            plane_split_leaf_threshold = cltypes.float("inf")
 
         integral_one = util.KahanSummation()
         integral_x = util.KahanSummation()
@@ -207,7 +210,7 @@ def mass_properties(shape,
                                                                     cltypes.uint(LOCATION_QUEUE_SIZE),
                                                                     cltypes.float(allowed_error_per_volume),
                                                                     cltypes.uint(0 if bfs_mode else 1), # keepRemainingError
-                                                                    plane_split_leaf_threshold,
+                                                                    plane_split_fudge_factor,
                                                                     locations, allowed_errors, temp_locations, temp_allowed_errors,
                                                                     integral1, integral2, integral3,
                                                                     split_counts, split_masks,
