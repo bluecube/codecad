@@ -163,7 +163,7 @@ __kernel void test_mass_properties_cube_halfspace_volume(float4 plane, __global 
  * locations: xyz coordinates of a corner of tree nodes to process,
  *            w is size of the child node (w * TREE_SIZE is size of this node).
  *            get_global_size(0) items large.
- * tempLocations: locations get copied in here for use in stage3
+ * tempLocations: locations get copied in here for use in prepare_next stage
  *                get_global_size(0) items large.
  * integral1 - integral3: Partial integral values that need to get summed.
  *                        //get_num_groups(0) items large.

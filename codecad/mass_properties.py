@@ -71,7 +71,7 @@ def mass_properties(shape,
     if MassPropertiesOptions.no_plane_split_leafs in options:
         plane_split_fudge_factor = cltypes.float("inf")
     else:
-        # TODO: The value is completely arbitrary now now.
+        # TODO: The value is completely arbitrary now.
         # Eventually it should be chosen based on something like a feature size of
         # of the model, once that is implemented
         plane_split_fudge_factor = cltypes.float(1e-3)
