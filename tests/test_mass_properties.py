@@ -55,12 +55,16 @@ drunk_box_matrix = codecad.util.Quaternion.from_degrees((7, 11, 13), 17).as_matr
                  id="drunk_box"),
 ])
 def test_mass_properties(shape, volume, centroid, inertia_tensor):
-    allowed_error = shape.bounding_box().volume() * 1e-3
-    result = codecad.mass_properties(shape, allowed_error)
+    rel_allowed_error = 1e-3
+    abs_allowed_error = 1e-3
+    result = codecad.mass_properties(shape,
+                                     rel_allowed_error=rel_allowed_error,
+                                     abs_allowed_error=abs_allowed_error)
+    final_allowed_error = max(abs_allowed_error, volume * rel_allowed_error)
 
     print(result)
 
-    assert result.volume_error <= allowed_error
+    assert result.volume_error <= final_allowed_error
     assert result.volume == approx(volume, abs=result.volume_error)
 
     # Error bounds of controid and tensor aren't that well defined, so these
