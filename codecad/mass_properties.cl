@@ -5,7 +5,7 @@
 
 /** Minimal dot product between directions within a cell to consider using
  * plane split on it (instead of breaking it down into sub-cells) */
-#define PLANE_SPLIT_MIN_DOT cos(1 * M_PI / 180)
+#define PLANE_SPLIT_MIN_DOT cos(radians(1.0f))
 
 /** Return fraction of volume of a cube with side `stepSize` that is covered by
  * a sphere with radius `value`. Both centered at origin. */
