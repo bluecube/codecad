@@ -273,16 +273,16 @@ def mass_properties(shape,
             progress = integral_all.result / volume_to_process
 
             time_spent = time.time() - start_time
-            # logger.debug("Iteration finished: %.4f%%, total error used: %.2f, split count: %i, location count: %i, "
-            #              "time elapsed: %.2f s, OpenCL time: %.2f s, OpenCL utilization: %.3f, "
-            #              "iteration count: %i (%.1f iterations/s), "
-            #              "locations processed: %.2e (%.0f locations/iteration, %.0f locations/s) "
-            #              "%s mode, bonus allowed error: %f",
-            #              100 * progress, total_error.result, splits, location_count,
-            #              time_spent, time_computing.result, time_computing.result / time_spent,
-            #              iteration_count, iteration_count / time_spent,
-            #              locations_processed, locations_processed / iteration_count, locations_processed / time_spent,
-            #              "BFS" if bfs_mode else "DFS", allowed_error_per_volume)
+            logger.debug("Iteration finished: %.4f%%, total error used: %e, split count: %i (%.1f / location), location count: %i, "
+                         "time elapsed: %.2f s, OpenCL time: %.2f s, OpenCL utilization: %.3f, "
+                         "iteration count: %i (%.1f iterations/s), "
+                         "locations processed: %.2e (%.0f locations/iteration, %.0f locations/s) "
+                         "%s mode, bonus allowed error: %e",
+                         100 * progress, total_error.result, splits, splits/work_size, location_count,
+                         time_spent, time_computing.result, time_computing.result / time_spent,
+                         iteration_count, iteration_count / time_spent,
+                         locations_processed, locations_processed / iteration_count, locations_processed / time_spent,
+                         "BFS" if bfs_mode else "DFS", allowed_error_per_volume)
 
         remaining_volume = volume_to_process - integral_all.result
         assert remaining_volume > 0
