@@ -145,6 +145,17 @@ __kernel void test_mass_properties_cube_halfspace_volume(float4 plane, __global 
 }
 #endif
 
+/** Returns a float between 0 and 1 indicating how close we are to running out
+ * of floating point precision with step size, relative to current coords. */
+static float desperation_factor(float3 coords, float s)
+{
+    coords = fabs(coords);
+    float scale = max(max(coords.x, coords.y), coords.z);
+    float logarithm = native_log2(s / scale); // Precision is not too important here
+    float p = 0.9;
+    return max(0.0f, -logarithm / ((1 - p) * (FLT_MANT_DIG - 1)) - p / (1 - p));
+}
+
 /** Calculate volume and centroid of a given scene by evaluating the distance 
  * function on grid points.
  *
@@ -207,7 +218,6 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
 
     float4 location = locations[index];
     float allowedErrorFromLocation = allowedErrors[index];
-    float allowedError = allowedErrorFromLocation + bonusAllowedError; // == absAllowedErrorPerChild / s3 [units**3 error / units**3 volume]
 
     // Verify that the input location is valid and invalidate the used input
     assert(assertBuffer, !isnan(allowedErrorFromLocation));
@@ -217,18 +227,12 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
     float s = location.w;
     float s3 = s * s * s; // This is volume of a child sub node
 
+    bonusAllowedError += desperation_factor(cellOrigin, s);
+    //printf("%e -> %e\n", s, desperation_factor(cellOrigin, s));
+    float allowedError = allowedErrorFromLocation + bonusAllowedError; // == absAllowedErrorPerChild / s3 [units**3 error / units**3 volume]
+
     assert(assertBuffer, s > 0);
     assert(assertBuffer, all(cellOrigin + s != cellOrigin));
-    assert(assertBuffer, all(cellOrigin + s / TREE_SIZE != cellOrigin)); // debug only, this can happen IRL
-
-    if (any(cellOrigin + s / TREE_SIZE == cellOrigin))
-        // If step is too small, expanding the cell will not help, because
-        // coordinates of the expanded items will end up at identical positions.
-        // Just accept any error and don't expand anything.
-
-        // TODO: Since this allows unlimited error, it destroys the assumption that
-        // the bonus allowed error may never decrease.
-        allowedError = 1; // Avoid issues with too small values of s
 
     float volumes[TREE_CHILD_COUNT];
     uint n = 0;
