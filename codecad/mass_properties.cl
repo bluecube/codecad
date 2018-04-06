@@ -235,6 +235,8 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
     uint potentialSplitCount = 0;
     float remainingAllowedError = allowedError * TREE_CHILD_COUNT;
 
+    float3 sampledGradient = 0;
+
     float3 firstDirection;
     float minDirectionDot = 1;
     float minPlaneSplitVolume, maxPlaneSplitVolume;
@@ -247,10 +249,13 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
             for (uint k = 0; k < TREE_SIZE; ++k)
             {
                 float3 ijk = (float3)(i, j, k);
+                float3 delta = s * (ijk - (TREE_SIZE - 1) / 2);
                 float3 center = cellOrigin + ijk * s + s / 2;
                 float4 value = evaluate(shape, center);
-                float unboundingVolume = get_unbounding_volume(value.w, s);
 
+                sampledGradient += select(0, value.w / delta, delta != 0);
+
+                float unboundingVolume = get_unbounding_volume(value.w, s);
                 // Preparations for splitting sub nodes
                 volumes[n] = unboundingVolume;
                 float error = (1 - fabs(unboundingVolume)) / 2.0;
@@ -262,10 +267,9 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
                 assert(assertBuffer, length(value.xyz) < 1.0001);
                 assert(assertBuffer, length(value.xyz) > 0.9999);
                 float3 direction = value.xyz;
-
                 // value.w is distance of the plane from the sub-cell, we need
                 // the compensation added is to move the origin of the distance to the cell center
-                float distance = value.w - s * dot(ijk - (TREE_SIZE - 1) / 2, direction);
+                float distance = value.w - dot(delta, direction);
                 // .. and to rescale it into a unit cube
                 float planeSplitVolume = cube_halfspace_volume(direction, -distance / (s * TREE_SIZE), assertBuffer);
                 if (n == 0)
@@ -283,6 +287,8 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
 
                 n++;
             }
+    sampledGradient /= TREE_SIZE * TREE_SIZE * (TREE_SIZE / 2);
+    //printf("sampledGradient: %e, %e, %e (%e)\n", sampledGradient.x, sampledGradient.y, sampledGradient.z, length(sampledGradient));
 
     float allowedError2 = remainingAllowedError / potentialSplitCount;
     assert(assertBuffer, allowedError2 * (1 + 1e-6) >= allowedError);
