@@ -63,7 +63,7 @@ def commandline_render(obj, resolution, default_renderer=None, **kwargs):
     if hasattr(obj, "bom"):
         if assembly_mode == AssemblyMode.parts:
             pattern = _parse_name_format(output)
-            for item in obj.bom():
+            for item in obj.bom(visible_only=True):
                 _render_one(renderer, item.shape(), item.name.join(pattern), resolution, **kwargs)
         elif assembly_mode == AssemblyMode.disabled:
             raise ValueError("Renderer {} does not allow assemblies".format(renderer))

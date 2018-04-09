@@ -29,8 +29,8 @@ def half_plane():
     return _s2.HalfPlane()
 
 
-def regular_polygon2d(n, d=1, r=None, side_length=None):
-    return _s2.RegularPolygon2D(n, d, r, side_length)
+def regular_polygon2d(n, d=1, r=None, side_length=None, across_flats=None):
+    return _s2.RegularPolygon2D(n, d, r, side_length, across_flats)
 
 
 def polygon2d(points):

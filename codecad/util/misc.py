@@ -22,3 +22,9 @@ class Concatenate:
     def __iter__(self):
         for iterable in self._iterables:
             yield from iterable
+
+
+def at_most_one(iterable):
+    it = iter(iterable)
+    any(it)
+    return not any(it)

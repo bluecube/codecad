@@ -8,6 +8,7 @@ from . import util
 Part = collections.namedtuple("Part", "name data attributes")
 Assembly = collections.namedtuple("Assembly", "name instances attributes")
 
+
 class PartTransformBase(collections.namedtuple("PartTransform", "part transform visible")):
     __slots__ = ()
 
@@ -104,13 +105,16 @@ class AssemblyInterface:
             else:
                 yield instance
 
-    def bom(self, recursive=True):
+    def bom(self, recursive=True, visible_only=False):
         """ Iterates over a bill of materials for this assembly, as BomItem instances.
         If recursive is True, goes through all parts in sub assemblies,
         otherwise only lists parts and assemblies directly added to this asm. """
         bom = collections.OrderedDict()
 
         for instance in (self.all_instances() if recursive else self):
+            if visible_only and not instance.visible:
+                continue
+
             name = instance.part.name
 
             same_names = bom.setdefault(name, [])
@@ -133,7 +137,7 @@ class AssemblyInterface:
         Parts that are not visible are not included. """
         return shapes.union(instance.part.data.transformed(instance.transform)
                             for instance in self.all_instances()
-                            if instance.visible)
+                            if instance.visible).transformed(self.transform)
 
 
 class AssemblyTransform2D(AssemblyInterface, PartTransform2D):

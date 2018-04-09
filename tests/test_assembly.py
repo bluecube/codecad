@@ -42,9 +42,12 @@ def asm_data():
         row_shapes.append(row_shapes[-1] + s.translated_x(0.5 + 2 * i))
 
     assembly = codecad.assembly("test_assembly", [row.translated_y(i * y_spacing)
-                                 for i, row in enumerate(row_parts)])
+                                for i, row in enumerate(row_parts)])
     shape = codecad.shapes.union([row.translated_y(i * y_spacing)
                                   for i, row in enumerate(row_shapes)])
+
+    assembly = assembly.rotated_x(90)
+    shape = shape.rotated_x(90)
 
     return n, assembly, shape
 
@@ -109,3 +112,12 @@ def test_subassembly_items(asm_data):
     del seen["shape_0"]
 
     assert len(seen) == 0
+
+
+def test_visible_bom():
+    o = codecad.shapes.sphere()
+    asm = codecad.assembly("test",
+                           [o.make_part("1"), o.make_part("2").hidden()])
+
+    assert len(list(asm.bom())) == 2
+    assert len(list(asm.bom(visible_only=True))) == 1
