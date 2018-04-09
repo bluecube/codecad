@@ -46,6 +46,9 @@ def asm_data():
     shape = codecad.shapes.union([row.translated_y(i * y_spacing)
                                   for i, row in enumerate(row_shapes)])
 
+    assembly = assembly.rotated_x(90)
+    shape = shape.rotated_x(90)
+
     return n, assembly, shape
 
 

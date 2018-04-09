@@ -133,7 +133,7 @@ class AssemblyInterface:
         Parts that are not visible are not included. """
         return shapes.union(instance.part.data.transformed(instance.transform)
                             for instance in self.all_instances()
-                            if instance.visible)
+                            if instance.visible).transformed(self.transform)
 
 
 class AssemblyTransform2D(AssemblyInterface, PartTransform2D):
