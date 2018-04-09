@@ -1,3 +1,5 @@
+import math
+
 import pytest
 
 import codecad.shapes.simple2d
@@ -28,8 +30,44 @@ def test_z_bounding_box_size(shape):
 def test_regular_polygon2d_hexagon():
     hexagon = codecad.shapes.regular_polygon2d(6, r=1)
     assert hexagon.d == 2
+    assert hexagon.across_flats == pytest.approx(math.sqrt(3))
     assert hexagon.side_length == pytest.approx(1)
     assert codecad.shapes.simple2d.RegularPolygon2D.calculate_n(1, 1) == pytest.approx(6)
+
+    hexagon2 = codecad.shapes.regular_polygon2d(6, d=hexagon.d)
+    assert hexagon2.r == pytest.approx(hexagon.r)
+    assert hexagon2.d == pytest.approx(hexagon.d)
+    assert hexagon2.across_flats == pytest.approx(hexagon.across_flats)
+    assert hexagon2.side_length == pytest.approx(hexagon.side_length)
+
+    hexagon3 = codecad.shapes.regular_polygon2d(6, across_flats=hexagon.across_flats)
+    assert hexagon3.r == pytest.approx(hexagon.r)
+    assert hexagon3.d == pytest.approx(hexagon.d)
+    assert hexagon3.across_flats == pytest.approx(hexagon.across_flats)
+    assert hexagon3.side_length == pytest.approx(hexagon.side_length)
+
+    hexagon4 = codecad.shapes.regular_polygon2d(6, side_length=hexagon.side_length)
+    assert hexagon4.r == pytest.approx(hexagon.r)
+    assert hexagon4.d == pytest.approx(hexagon.d)
+    assert hexagon4.across_flats == pytest.approx(hexagon.across_flats)
+    assert hexagon4.side_length == pytest.approx(hexagon.side_length)
+
+
+def test_regular_polygon2d_triangle_across_flats():
+    t = codecad.shapes.regular_polygon2d(3, side_length=1)
+    assert t.r == pytest.approx(1 / math.sqrt(3))
+    assert t.across_flats == pytest.approx(math.sqrt(3) / 2)
+
+
+def test_regular_polygon2d_invalid_constructor():
+    with pytest.raises(ValueError):
+        codecad.shapes.regular_polygon2d(4, r=1, d=3)
+
+    with pytest.raises(ValueError):
+        codecad.shapes.regular_polygon2d(5, d=2, across_flats=5)
+
+    with pytest.raises(ValueError):
+        codecad.shapes.regular_polygon2d(6, side_length=8, across_flats=5)
 
 
 def test_mirrored_bounding_box():

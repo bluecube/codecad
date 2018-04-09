@@ -1,5 +1,3 @@
-import decimal
-
 import codecad
 import pytest
 
@@ -20,3 +18,13 @@ def test_kahan_summation():
     s += eps
     s -= eps
     assert s.result == 1.0
+
+
+@pytest.mark.parametrize("l, v", [([], True),
+                                  ([1], True),
+                                  ([0], True),
+                                  ([1, 0], True),
+                                  ([1, 1], False),
+                                  ([0, 0], True)])
+def test_at_most_one(l, v):
+    assert codecad.util.at_most_one(l) == v

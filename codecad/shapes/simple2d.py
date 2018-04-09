@@ -52,19 +52,45 @@ class HalfPlane(base.Shape2D):
 
 
 class RegularPolygon2D(base.Shape2D):
-    def __init__(self, n, d=1, r=None, side_length=None):
+    def __init__(self, n, d=1, r=None, side_length=None, across_flats=None):
         self.n = n
-        if side_length is not None:
+
+        if not util.at_most_one([d != 1, r is not None, side_length is not None, across_flats is not None]):
+            raise ValueError("At most one of d, r, side_length and across_flats can be used at the same time")
+
+        self.d = None
+        self.r = None
+        self.side_length = None
+        self.across_flats = None
+
+        if across_flats is not None:
+            self.across_flats = across_flats
+            if n % 2:  # Odd number of sides
+                self.r = across_flats / (math.cos(math.pi / n) + 1)
+            else:  # Odd number of sides
+                self.r = across_flats / (2 * math.cos(math.pi / n))
+            self.d = 2 * self.r
+
+        elif side_length is not None:
             self.side_length = side_length
             self.d = side_length / math.sin(math.pi / n)
             self.r = self.d / 2
+
+        elif r is not None:
+            self.r = r
+            self.d = 2 * r
+
         else:
-            if r is not None:
-                self.r = r
-                self.d = 2 * r
-            else:
-                self.d = d
-                self.r = d / 2
+            self.d = d
+            self.r = d / 2
+
+        if self.across_flats is None:
+            if n % 2:  # Odd number of sides
+                self.across_flats = self.r * (math.cos(math.pi / n) + 1)
+            else:  # Odd number of sides
+                self.across_flats = self.r * (2 * math.cos(math.pi / n))
+
+        if self.side_length is None:
             self.side_length = self.d * math.sin(math.pi / n)
 
     @staticmethod
