@@ -112,3 +112,12 @@ def test_subassembly_items(asm_data):
     del seen["shape_0"]
 
     assert len(seen) == 0
+
+
+def test_visible_bom():
+    o = codecad.shapes.sphere()
+    asm = codecad.assembly("test",
+                           [o.make_part("1"), o.make_part("2").hidden()])
+
+    assert len(list(asm.bom())) == 2
+    assert len(list(asm.bom(visible_only=True))) == 1

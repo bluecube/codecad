@@ -105,13 +105,16 @@ class AssemblyInterface:
             else:
                 yield instance
 
-    def bom(self, recursive=True):
+    def bom(self, recursive=True, visible_only=False):
         """ Iterates over a bill of materials for this assembly, as BomItem instances.
         If recursive is True, goes through all parts in sub assemblies,
         otherwise only lists parts and assemblies directly added to this asm. """
         bom = collections.OrderedDict()
 
         for instance in (self.all_instances() if recursive else self):
+            if visible_only and not instance.visible:
+                continue
+
             name = instance.part.name
 
             same_names = bom.setdefault(name, [])
