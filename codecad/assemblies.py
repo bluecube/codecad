@@ -8,6 +8,7 @@ from . import util
 Part = collections.namedtuple("Part", "name data attributes")
 Assembly = collections.namedtuple("Assembly", "name instances attributes")
 
+
 class PartTransformBase(collections.namedtuple("PartTransform", "part transform visible")):
     __slots__ = ()
 
