@@ -200,9 +200,7 @@ def mass_properties(shape,
                 # we can ignore the locations remaining in the queue.
                 break
 
-            next_allowed_error_per_volume = remaining_allowed_error / remaining_volume
-            assert next_allowed_error_per_volume * (1 + 1e-12) >= allowed_error_per_volume
-            allowed_error_per_volume = next_allowed_error_per_volume
+            allowed_error_per_volume = remaining_allowed_error / remaining_volume
 
             evaluate_ev = opencl_manager.k.mass_properties_evaluate([work_size], None,
                                                                     program_buffer,
@@ -285,7 +283,7 @@ def mass_properties(shape,
                          "BFS" if bfs_mode else "DFS", allowed_error_per_volume)
 
         remaining_volume = volume_to_process - integral_all.result
-        assert remaining_volume > 0
+        assert remaining_volume >= 0
         # TODO: We don't count unprocessed volume with weight 0.5 (which would decrease the error requirement),
         # because while compensating the total volume for this would be easy enough, I don't know how to
         # compensate centroid and inertia matrix.

@@ -227,8 +227,8 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
     float s = location.w;
     float s3 = s * s * s; // This is volume of a child sub node
 
-    bonusAllowedError += desperation_factor(cellOrigin, s);
-    //printf("%e -> %e\n", s, desperation_factor(cellOrigin, s));
+    float desperationFactor = desperation_factor(cellOrigin, s);
+    bonusAllowedError += desperationFactor;
     float allowedError = allowedErrorFromLocation + bonusAllowedError; // == absAllowedErrorPerChild / s3 [units**3 error / units**3 volume]
 
     assert(assertBuffer, s > 0);
@@ -329,7 +329,7 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
         // Potentially split nodes.
 
         n = 0;
-        totalError = -allowedErrorFromLocation * TREE_CHILD_COUNT;
+        float errorSum = 0;
         #pragma unroll
         for (uint i = 0; i < TREE_SIZE; ++i)
             #pragma unroll
@@ -350,7 +350,7 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
                         integralX += weight * center;
                         integralXX += weight * (center * center + s * s / 12);
                         integralXY += weight * center.zxy * center.yzx;
-                        totalError += error;
+                        errorSum += error;
                     }
                     else
                     {
@@ -365,27 +365,34 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
         integralX *= s3;
         integralXX *= s3;
         integralXY *= s3;
-        totalError *= s3;
 
-        if (splitCount > 0)
+        if (splitCount > 0 && keepRemainingError)
         {
-            if (keepRemainingError)
-            {
-                float totalAllowedError = integralAll * bonusAllowedError; // This way bonusAllowedError will not decrease over time
-                float allowedError3 = (totalAllowedError - totalError) / (splitCount * s3);
-                assert(assertBuffer, allowedError3 * (1 + 1e6) >= allowedErrorFromLocation);
-                allowedError3 = max(allowedError3, allowedErrorFromLocation);
+            // We use everything we've been given, remaining allowed error gets passed to children
 
-                tempAllowedErrors[get_global_id(0)] = allowedError3;
-                totalError = totalAllowedError; // The remaining allowed error gets passed to children
-            }
-            else
+            float availableError = TREE_CHILD_COUNT * allowedError;
+            if (allowedErrorFromLocation > 0)
+                availableError -= splitCount * bonusAllowedError; // Don't get any bonus for sub-cells that still need splitting
+
+            float allowedError3 = (availableError - errorSum) / splitCount;
+
+            tempAllowedErrors[get_global_id(0)] = allowedError3;
+            totalError = (availableError - TREE_CHILD_COUNT * allowedErrorFromLocation) * s3;
+        }
+        else
+        {
+            // We use only the errror actually used by splits, nothing else gets passed to children
+            totalError = (errorSum - TREE_CHILD_COUNT * allowedErrorFromLocation) * s3;
+            if (splitCount > 0)
                 tempAllowedErrors[get_global_id(0)] = 0;
         }
         tempLocations[get_global_id(0)] = location;
     }
 
-    assert(assertBuffer, totalError <= integralAll * bonusAllowedError);
+    if (keepRemainingError && allowedErrorFromLocation == 0)
+        assert(assertBuffer, totalError <= allowedError * TREE_CHILD_COUNT * s3);
+    else
+        assert(assertBuffer, totalError <= integralAll * bonusAllowedError * (1 + 1e-3));
 
     integral1[get_global_id(0)] = (float4)(integralX, integralOne);
     integral2[get_global_id(0)] = (float4)(integralXX, integralAll);
