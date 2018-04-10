@@ -518,11 +518,13 @@ __kernel void mass_properties_prepare_next(uint startOffset,
 
                 float3 corner = location.xyz + (float3)(i, j, k) * s;
 
+                index %= locationQueueSize;
+
                 // Check that we're not overwriting any existing valid data
                 assert(assertBuffer, isnan(allowedErrors[index]));
 
-                locations[index % locationQueueSize] = (float4)(corner, nextS);
-                allowedErrors[index % locationQueueSize] = allowedError;
+                locations[index] = (float4)(corner, nextS);
+                allowedErrors[index] = allowedError;
                 ++index;
             }
 }
