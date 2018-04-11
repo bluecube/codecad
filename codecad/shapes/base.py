@@ -30,6 +30,10 @@ class ShapeBase(metaclass=abc.ABCMeta):
         """ Return union of the two shapes """
         return self.__add__(second)
 
+    def __xor__(self, second):
+        """ Return symmetric difference of the two shapes """
+        return (self - second) | (second - self)
+
     @staticmethod
     @abc.abstractmethod
     def dimension():

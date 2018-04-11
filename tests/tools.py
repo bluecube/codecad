@@ -93,8 +93,7 @@ def assert_shapes_equal(shape, expected, resolution=0.1):
     if expected_box.volume() == 0:
         return
 
-    difference = (shape - expected) | (expected - shape)
-    mp = codecad.mass_properties(difference, box.volume() * 1e-3)
+    mp = codecad.mass_properties(shape ^ expected, box.volume() * 1e-3)
     assert mp.volume <= mp.volume_error
 
     shape_render = io.BytesIO()
