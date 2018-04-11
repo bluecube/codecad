@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+""" A cube with axis directions engraved in the surface """
+
 import codecad
 import math
 

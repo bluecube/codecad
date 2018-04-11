@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+""" Generates a menger spong up to given number of itreations. """
 
 import codecad
 from codecad.shapes import *

@@ -2,23 +2,23 @@
 
 import codecad
 import os
-import secret_project
+import mesh
 
-chord = 100
-span = 50
-wall = 0.5
-spacing = 10
+chord = 200
+span = 80
+wall = 1
+spacing = 20
 rod_size = 2
 path = os.path.join(os.path.dirname(__file__), "s1210-il.dat")
 
-airfoil = codecad.shapes.airfoils.load_selig(path)
-base = airfoil.scaled(chord).extruded(2 * span)
-mask = codecad.shapes.box(2 * chord, 2 * chord, 2 * span).translated(0, 0, span)
+airfoil = codecad.shapes.airfoils.load_selig(path).scaled(chord)
+base = airfoil.extruded(span, symmetrical=False)
 
-unmasked_inside = secret_project.mesh(spacing, rod_size, -1) & base
-unmasked_skin = base.offset(-wall / 2).shell(wall)
+inside = mesh.mesh(spacing, rod_size, -1) & base
+skin = airfoil.shell(wall).extruded(span, symmetrical=False)
+endcap = airfoil.extruded(wall, symmetrical=False)
 
-o = (unmasked_inside + unmasked_skin) & mask
+o = (inside + skin + endcap).rotated_x(90)
 
 if __name__ == "__main__":
     codecad.commandline_render(o, 0.1)
