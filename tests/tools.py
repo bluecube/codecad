@@ -90,8 +90,7 @@ def assert_shapes_equal(shape, expected, resolution=0.1):
     assert box.volume() == pytest.approx(intersection_box.volume())
     assert expected_box.volume() == pytest.approx(intersection_box.volume())
 
-    difference = (shape - expected) | (expected - shape)
-    volume = codecad.mass_properties(difference, resolution).volume
+    volume = codecad.mass_properties(shape ^ expected, resolution).volume
     print(volume, box.volume())
     assert volume <= box.volume() * 0.001
 
