@@ -308,7 +308,7 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
     uint splitMask = 0;
 
     float planeSplitError = (maxPlaneSplitVolume - minPlaneSplitVolume) / 2 +
-                            planeSplitFudgeFactor * s;
+                            planeSplitFudgeFactor * TREE_SIZE * s;
 
     if (minDirectionDot > PLANE_SPLIT_MIN_DOT && planeSplitError < allowedError)
     {
