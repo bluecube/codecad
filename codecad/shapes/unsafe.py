@@ -35,6 +35,9 @@ class _RepetitionMixin:
         return util.BoundingBox(util.Vector(*(x if s is None else -float("inf") for x, s in zip(b.a, self.spacing))),
                                 util.Vector(*(x if s is None else float("inf") for x, s in zip(b.b, self.spacing))))
 
+    def feature_size(self):
+        return min(self.s.feature_size(), self.spacing.min())
+
     def get_node(self, point, cache):
         return self.s.get_node(cache.make_node("repetition",
                                                self.spacing,
@@ -60,6 +63,12 @@ class _CircularRepetitionMixin:
     def bounding_box(self):
         v = util.Vector.splat(self.s.bounding_box().b.x)
         return util.BoundingBox(-v, v)
+
+    def feature_size(self):
+        # dividing feature size by 2 is technically incorrect, as circular repetition
+        # can generate infintely small features near origin, but hey... it's just an
+        # approximation
+        return self.s.feature_size() / 2
 
     def get_node(self, point, cache):
         pi_over_n = math.pi / self.n
@@ -89,6 +98,9 @@ class Flatten(base.Shape2D):
 
     def bounding_box(self):
         return self.s.bounding_box()
+
+    def feature_size(self):
+        return self.s.feature_size()
 
     def get_node(self, point, cache):
         return self.s.get_node(point, cache)

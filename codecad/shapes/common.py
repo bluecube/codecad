@@ -18,6 +18,9 @@ class UnionMixin:
         return functools.reduce(lambda a, b: a.union(b),
                                 (s.bounding_box() for s in self.shapes))
 
+    def feature_size(self):
+        return min(s.feature_size() for s in self.shapes)
+
     def get_node(self, point, cache):
         return cache.make_node("union",
                                [self.r],
@@ -34,6 +37,9 @@ class IntersectionMixin:
         return functools.reduce(lambda a, b: a.intersection(b),
                                 (s.bounding_box() for s in self.shapes))
 
+    def feature_size(self):
+        return min(s.feature_size() for s in self.shapes)
+
     def get_node(self, point, cache):
         return cache.make_node("intersection",
                                [self.r],
@@ -49,6 +55,9 @@ class SubtractionMixin:
     def bounding_box(self):
         return self.s1.bounding_box()
 
+    def feature_size(self):
+        return min(self.s1.feature_size(), self.s2.feature_size())
+
     def get_node(self, point, cache):
         return cache.make_node("subtraction",
                                [-1],
@@ -60,6 +69,9 @@ class TransformationMixin:
         self.check_dimension(s)
         self.s = s
         self.transformation = util.Transformation(quaternion, translation)
+
+    def feature_size(self):
+        return self.s.feature_size() * self.transformation.quaternion.abs_squared()
 
     def get_node(self, point, cache):
         inverse_transformation = self.transformation.inverse()
@@ -103,6 +115,9 @@ class MirrorMixin:
         return util.BoundingBox(util.Vector(-box.b.x, box.a.y, box.a.z),
                                 util.Vector(-box.a.x, box.b.y, box.b.z))
 
+    def feature_size(self):
+        return self.s.feature_size()
+
     def get_node(self, point, cache):
         mirrored_point = cache.make_node("mirror", [], [point])
         mirrored_result = self.s.get_node(mirrored_point, cache)
@@ -122,6 +137,9 @@ class OffsetMixin:
         else:
             return box
 
+    def feature_size(self):
+        return max(0, self.s.feature_size() + self.distance)
+
     def get_node(self, point, cache):
         return cache.make_node("offset",
                                [self.distance],
@@ -140,6 +158,11 @@ class ShellMixin:
             return box.flattened()
         else:
             return box
+
+    def feature_size(self):
+        # If there were any smaller features in the original shape,
+        # they will be swallowed by the wall
+        return self.wall_thickness
 
     def get_node(self, point, cache):
         return cache.make_node("shell",

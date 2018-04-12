@@ -2,7 +2,7 @@ import collections
 import csv
 
 
-def render_bom(obj, filename, resolution):
+def render_bom(obj, filename):
     # Resolution is unused
 
     with open(filename, "w") as fp:

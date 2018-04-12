@@ -12,11 +12,10 @@ opencl_manager.add_compile_unit().append_file("matplotlib_slice.cl")
 
 
 def render_slice(obj,
-                 resolution,
                  filename=None  # For interface compatibility with other renderers
                  ):
 
-    assert resolution > 0
+    resolution = obj.feature_size()
 
     box = obj.bounding_box().expanded(0.1).flattened()
     box_size = box.size()

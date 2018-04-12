@@ -11,6 +11,8 @@ _c_file.append_file("gears.cl")
 
 
 class InvoluteGearBase(base.Shape2D):
+    """ A 2D shape of a external involute gear that has no top land (sharp tooth tips)
+    and no bottom land """
     def __init__(self, tooth_count, pressure_angle):
         self.tooth_count = tooth_count
         self.pressure_angle = math.radians(pressure_angle)
@@ -19,6 +21,9 @@ class InvoluteGearBase(base.Shape2D):
         # TODO: Calculate corect bounding box
         return util.BoundingBox(util.Vector(-1.5, -1.5),
                                 util.Vector(1.5, 1.5))
+
+    def feature_size(self):
+        return 0.25 * math.pi / self.tooth_count  # 1/4 tooth thickness
 
     def get_node(self, point, cache):
         return cache.make_node("involute_gear",
