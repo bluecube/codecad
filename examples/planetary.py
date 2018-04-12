@@ -323,24 +323,24 @@ class Planetary:
             .make_part("planet") \
             .translated(self.planet_radius, 0, self.inner_carrier_half_length - self.sun_thickness)
         return codecad.assembly("gearbox",
-                                [self.make_carrier_inner() \
-                                   .make_part("inner_carrier") \
-                                   .rotated_x(180) \
-                                   .translated_z(self.inner_carrier_half_length),
-                                 self.make_carrier_outer() \
-                                   .make_part("outer_carrier") \
-                                   .rotated_x(180) \
-                                   .translated_z(self.outer_carrier_length + self.inner_carrier_half_length),
-                                 self.make_sun() \
-                                   .make_part("sun_gear") \
-                                   .translated_z(self.inner_carrier_half_length - self.bearing_wall_thickness - \
-                                                 2 * self.clearance - self.sun_thickness - self.motor_gear_thickness),
-                                 self.make_ring() \
-                                   .make_part("ring") \
-                                   .rotated_x(180) \
-                                   .translated_z(self.outer_carrier_length + self.inner_carrier_half_length + \
-                                                 self.bearing_wall_thickness + self.clearance),
-                                ] + \
+                                [self.make_carrier_inner()
+                                 .make_part("inner_carrier")
+                                 .rotated_x(180)
+                                 .translated_z(self.inner_carrier_half_length),
+                                 self.make_carrier_outer()
+                                 .make_part("outer_carrier")
+                                 .rotated_x(180)
+                                 .translated_z(self.outer_carrier_length + self.inner_carrier_half_length),
+                                 self.make_sun()
+                                 .make_part("sun_gear")
+                                 .translated_z(self.inner_carrier_half_length - self.bearing_wall_thickness -
+                                               2 * self.clearance - self.sun_thickness - self.motor_gear_thickness),
+                                 self.make_ring()
+                                 .make_part("ring")
+                                 .rotated_x(180)
+                                 .translated_z(self.outer_carrier_length + self.inner_carrier_half_length +
+                                               self.bearing_wall_thickness + self.clearance),
+                                 ] +
                                 [planet.rotated_z(i * 360 / self.planet_count) for i in range(self.planet_count)])
 
     def make_overview(self):
