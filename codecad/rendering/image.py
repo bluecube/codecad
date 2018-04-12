@@ -14,8 +14,7 @@ def render_PIL_image(obj, size=(1024, 768), view_angle=None):
     return PIL.Image.fromarray(pixels)
 
 
-def render_image(obj, filename, resolution=None, size=(1024, 768), view_angle=None):
-    # resolution is unused
+def render_image(obj, filename, size=(1024, 768), view_angle=None):
     render_PIL_image(obj, size, view_angle).save(filename)
 
 

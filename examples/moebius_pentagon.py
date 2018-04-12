@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+""" 3D printable pentagon revolved around an axis with a twist.
+Only has one face and one edge. """
 
 import codecad
 from codecad.shapes import *
@@ -6,7 +8,7 @@ import math
 
 minor_r = 15
 major_r = 25
-pin_d = 5
+pin_d = 1.75
 pin_h = 10
 second_pin_angle = 170  # Not 180 degrees to have only one way to assemble
 
@@ -22,7 +24,8 @@ half2 = (mp - half_space()).rotated_x(-90).make_part("half2")
 pin = cylinder(d=pin_d, h=pin_h, symmetrical=False).make_part("pin")
 pin = pin.translated_z(-pin_h/2).translated_x(major_r)
 
-asm = codecad.Assembly([half1,
+asm = codecad.assembly("moebius_pentagon",
+                       [half1,
                         half2.rotated_x(180),
                         pin,
                         pin.rotated_z(second_pin_angle)])

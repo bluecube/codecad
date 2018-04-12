@@ -21,6 +21,9 @@ class Sphere(base.Shape3D):
         v = util.Vector(self.r, self.r, self.r)
         return util.BoundingBox(-v, v)
 
+    def feature_size(self):
+        return self.r
+
     def get_node(self, point, cache):
         return cache.make_node("sphere", [self.r], [point])
 
@@ -30,6 +33,9 @@ class HalfSpace(base.Shape3D):
     def bounding_box(self):
         return util.BoundingBox(util.Vector(-float("inf"), 0, -float("inf")),
                                 util.Vector.splat(float("inf")))
+
+    def feature_size(self):
+        return float("inf")
 
     def get_node(self, point, cache):
         return cache.make_node("half_space", [], [point])
@@ -82,6 +88,9 @@ class Extrusion(base.Shape3D):
         return util.BoundingBox(util.Vector(box.a.x, box.a.y, -self.h / 2),
                                 util.Vector(box.b.x, box.b.y, self.h / 2))
 
+    def feature_size(self):
+        return min(self.s.feature_size(), self.h / 2)
+
     def get_node(self, point, cache):
         sub_node = self.s.get_node(point, cache)
         if math.isinf(self.h):
@@ -111,6 +120,16 @@ class Revolution(base.Shape3D):
         else:
             v = util.Vector(self.r + self.minor_r, self.minor_r, self.r + self.minor_r)
             return util.BoundingBox(-v, v)
+
+    def feature_size(self):
+        # The twisted case is a distance between where two identical
+        # points meeting at innermost radius
+
+        if self.twist > 2 * math.pi:
+            return min(self.s.feature_size(),
+                       math.sin(2 * math.pi * math.pi / self.twist) * (self.r - self.minor_r))  # ?
+        else:
+            return self.s.feature_size()
 
     def get_node(self, point, cache):
         if self.twist == 0:

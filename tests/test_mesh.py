@@ -14,7 +14,6 @@ shapes = [codecad.shapes.box(10),
 @pytest.mark.parametrize("grid_size", [2, 12, 16])
 def test_watertight(shape, grid_size):
     blocks = codecad.rendering.mesh.triangular_mesh(shape,
-                                                    resolution=1,
                                                     subdivision_grid_size=grid_size)
 
     mesh = functools.reduce(trimesh.util.concatenate,

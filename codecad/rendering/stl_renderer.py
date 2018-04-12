@@ -5,9 +5,9 @@ from . import mesh
 from .. import util
 
 
-def render_stl(obj, filename, resolution):
+def render_stl(obj, filename):
     with util.status_block("generating mesh"):
-        pieces = list(mesh.triangular_mesh(obj, resolution))
+        pieces = list(mesh.triangular_mesh(obj))
     triangle_count = sum(len(piece[1]) for piece in pieces)
 
     with util.status_block("exporting {} triangles".format(triangle_count)):

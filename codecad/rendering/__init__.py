@@ -18,7 +18,7 @@ class AssemblyMode(flags.Flags):
     raw = ()  # Pass the assembly as is
 
 
-def commandline_render(obj, resolution, default_renderer=None, **kwargs):
+def commandline_render(obj, default_renderer=None, **kwargs):
     """ Reads commandline arguments, chooses a renderer and passes the parameters to it. """
 
     parser = argparse.ArgumentParser(description='Render an object')
@@ -64,7 +64,7 @@ def commandline_render(obj, resolution, default_renderer=None, **kwargs):
         if assembly_mode == AssemblyMode.parts:
             pattern = _parse_name_format(output)
             for item in obj.bom(visible_only=True):
-                _render_one(renderer, item.shape(), item.name.join(pattern), resolution, **kwargs)
+                _render_one(renderer, item.shape(), item.name.join(pattern), **kwargs)
         elif assembly_mode == AssemblyMode.disabled:
             raise ValueError("Renderer {} does not allow assemblies".format(renderer))
         else:
@@ -72,18 +72,18 @@ def commandline_render(obj, resolution, default_renderer=None, **kwargs):
                 obj = obj.shape()
             elif assembly_mode == AssemblyMode.raw:
                 pass
-            _render_one(renderer, obj, output, resolution, **kwargs)
+            _render_one(renderer, obj, output, **kwargs)
     else:
-        _render_one(renderer, obj.shape(), output, resolution, **kwargs)
+        _render_one(renderer, obj.shape(), output, **kwargs)
 
 
-def _render_one(renderer, shape, output, resolution, **kwargs):
+def _render_one(renderer, shape, output, **kwargs):
     if output is not None:
         print("Rendering with renderer {} to file {}".format(renderer, output))
     else:
         print("Rendering with renderer {}".format(renderer))
 
-    _renderers[renderer][0](shape, filename=output, resolution=resolution, **kwargs)
+    _renderers[renderer][0](shape, filename=output, **kwargs)
 
 
 def _parse_name_format(string):

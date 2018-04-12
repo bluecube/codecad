@@ -20,6 +20,9 @@ class Rectangle(base.Shape2D):
     def bounding_box(self):
         return util.BoundingBox(-self.half_size, self.half_size)
 
+    def feature_size(self):
+        return min(self.half_size.x, self.half_size.y)
+
     def get_node(self, point, cache):
         return cache.make_node("rectangle", [self.half_size.x, self.half_size.y], [point])
 
@@ -37,6 +40,9 @@ class Circle(base.Shape2D):
         v = util.Vector(self.r, self.r)
         return util.BoundingBox(-v, v)
 
+    def feature_size(self):
+        return self.r
+
     def get_node(self, point, cache):
         return cache.make_node("circle", [self.r], [point])
 
@@ -46,6 +52,9 @@ class HalfPlane(base.Shape2D):
     def bounding_box(self):
         return util.BoundingBox(util.Vector(-float("inf"), 0),
                                 util.Vector(float("inf"), float("inf")))
+
+    def feature_size(self):
+        return float("inf")
 
     def get_node(self, point, cache):
         return cache.make_node("half_space", [], [point])
@@ -105,6 +114,9 @@ class RegularPolygon2D(base.Shape2D):
         v = util.Vector(self.r, self.r)
         return util.BoundingBox(-v, v)
 
+    def feature_size(self):
+        return self.side_length / 2
+
     def get_node(self, point, cache):
         return cache.make_node("regular_polygon2d", [math.pi / self.n, self.r], [point])
 
@@ -121,9 +133,10 @@ class Polygon2D(base.Shape2D):
         if s[0] < 3:
             raise ValueError("Polygon must have at least three vertices")
 
-        area = 0
+        area = util.KahanSummation()
         minimum = util.Vector.splat(float("inf"))
         maximum = -minimum
+        feature_size = float("inf")
         previous = util.Vector(*self.points[-1])
         for i, current in enumerate(self.points):
             current = util.Vector(*current)
@@ -131,7 +144,6 @@ class Polygon2D(base.Shape2D):
             direction_abs_squared = direction.abs_squared()
             perpendicular_direction = direction.perpendicular2d()
 
-            # TODO: Use better precision sum once we have it coded
             area += direction.x * (previous.y + current.y) / 2
 
             minimum = minimum.min(current)
@@ -150,6 +162,8 @@ class Polygon2D(base.Shape2D):
 
                 direction_cross_product = inner_direction.dot(perpendicular_direction)
                 between_starts = (previous - inner_previous)
+
+                feature_size = min(feature_size, abs(between_starts) / 2)
 
                 consecutive = j == 0 or j == len(points) - 2  # i precedes or follows j
                 parallel = abs(direction_cross_product) < 1e-12
@@ -188,13 +202,17 @@ class Polygon2D(base.Shape2D):
 
             previous = current
 
-        if area < 0:
+        if area.result < 0:
             self.points = numpy.flipud(self.points)
 
         self.box = util.BoundingBox(minimum, maximum)
+        self._feature_size = feature_size
 
     def bounding_box(self):
         return self.box
+
+    def feature_size(self):
+        return self._feature_size
 
     def get_node(self, point, cache):
         return cache.make_node("polygon2d",

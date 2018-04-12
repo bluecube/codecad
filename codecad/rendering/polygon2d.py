@@ -33,12 +33,12 @@ def _step_from_overflow_spec(spec):
         return util.Vector(step_direction, 0)
 
 
-def polygon(obj, resolution, subdivision_grid_size=None):
+def polygon(obj, subdivision_grid_size=None):
     """ Generate polygons representing the boundaries of a 2D shape. """
     obj.check_dimension(required=2)
 
     program_buffer, grid_size, boxes = subdivision.subdivision(obj,
-                                                               resolution,
+                                                               obj.feature_size(),
                                                                grid_size=subdivision_grid_size)
 
     assert grid_size[0] < 512, "Larger grid size would overflow the index encoding"

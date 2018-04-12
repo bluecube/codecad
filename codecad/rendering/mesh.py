@@ -7,13 +7,13 @@ from .. import subdivision
 from ..cl_util import opencl_manager
 
 
-def triangular_mesh(obj, resolution, subdivision_grid_size=None, debug_subdivision_boxes=False):
+def triangular_mesh(obj, subdivision_grid_size=None, debug_subdivision_boxes=False):
     """ Generate a triangular mesh representing a surface of 3D shape.
     Yields tuples (vertices, indices). """
     obj.check_dimension(required=3)
 
     program_buffer, max_box_size, boxes = subdivision.subdivision(obj,
-                                                                  resolution,
+                                                                  obj.feature_size(),
                                                                   grid_size=subdivision_grid_size)
 
     block = numpy.empty(max_box_size, dtype=numpy.float32)

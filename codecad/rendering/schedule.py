@@ -3,7 +3,7 @@ from .. import nodes
 from ..nodes import program, scheduler, codegen, node
 
 
-def render_nodes_graph(shape, resolution, filename):
+def render_nodes_graph(shape, filename):
     shape_node = program.get_shape_nodes(shape)
     scheduler.calculate_node_refcounts(shape_node)
     _, ordered = scheduler.randomized_scheduler(shape_node)
@@ -30,7 +30,7 @@ def render_nodes_graph(shape, resolution, filename):
         fp.write("}")
 
 
-def render_c_evaluator(shape, resolution, filename):
+def render_c_evaluator(shape, filename):
     shape_node = program.get_shape_nodes(shape)
     scheduler.calculate_node_refcounts(shape_node)
     _, ordered = scheduler.randomized_scheduler(shape_node)

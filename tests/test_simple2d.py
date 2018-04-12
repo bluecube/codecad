@@ -80,3 +80,18 @@ def test_mirrored_bounding_box():
     my = shape.mirrored_y()
     assert my.bounding_box() == pytest.approx(codecad.util.BoundingBox(codecad.util.Vector(0, -2),
                                                                        codecad.util.Vector(1, 0)))
+
+
+def test_square_feature_size():
+    assert codecad.shapes.rectangle(1, 1).feature_size() == \
+        pytest.approx(codecad.shapes.regular_polygon2d(4, side_length=1).feature_size()) == \
+        0.5
+
+
+@pytest.mark.parametrize("n", range(3, 8))
+def test_regular_polygon_feature_size(n):
+    points = [(math.cos(math.pi * 2 * (i + 0.5) / n), math.sin(math.pi * 2 * (i + 0.5) / n))
+              for i in range(n)]
+
+    assert codecad.shapes.regular_polygon2d(n, r=1).feature_size() == \
+        pytest.approx(codecad.shapes.polygon2d(points).feature_size())

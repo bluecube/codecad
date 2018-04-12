@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 
+""" Showing off gear generator and (very basic) assemblies.
+
+This is a part of an older scrapped project, so the modelling is a bit outdated
+(but the resulting piece is still nice). """
+
 import codecad
 import codecad.shapes as s
 import fractions
@@ -8,10 +13,7 @@ import itertools
 import datetime
 
 
-class Joint:  # TODO: Use an assembly once they are ready
-    """ Representation of the robot arm joint.
-    This is a class to allow reusing the code for optimization of gear ratios """
-
+class Planetary:
     # Setting parameters which are independent of tooth counts as class variables
 
     # First some desired joint parameters
@@ -316,30 +318,38 @@ class Joint:  # TODO: Use an assembly once they are ready
 
         return cap + outer + gear + shroud
 
-    def make_shapes(self):
-        """ Return list of shapes in print orientation """
-        return {"inner_carrier": self.make_carrier_inner(),
-                "outer_carrier": self.make_carrier_outer(),
-                "sun": self.make_sun(),
-                "ring": self.make_ring(),
-                "planet1": self.make_planet(),
-                "planet2": self.make_planet(),
-                "planet3": self.make_planet()}
+    def make_assembly(self):
+        planet = self.make_planet() \
+            .make_part("planet") \
+            .translated(self.planet_radius, 0, self.inner_carrier_half_length - self.sun_thickness)
+        return codecad.assembly("gearbox",
+                                [self.make_carrier_inner()
+                                 .make_part("inner_carrier")
+                                 .rotated_x(180)
+                                 .translated_z(self.inner_carrier_half_length),
+                                 self.make_carrier_outer()
+                                 .make_part("outer_carrier")
+                                 .rotated_x(180)
+                                 .translated_z(self.outer_carrier_length + self.inner_carrier_half_length),
+                                 self.make_sun()
+                                 .make_part("sun_gear")
+                                 .translated_z(self.inner_carrier_half_length - self.bearing_wall_thickness -
+                                               2 * self.clearance - self.sun_thickness - self.motor_gear_thickness),
+                                 self.make_ring()
+                                 .make_part("ring")
+                                 .rotated_x(180)
+                                 .translated_z(self.outer_carrier_length + self.inner_carrier_half_length +
+                                               self.bearing_wall_thickness + self.clearance),
+                                 ] +
+                                [planet.rotated_z(i * 360 / self.planet_count) for i in range(self.planet_count)])
 
     def make_overview(self):
-        o = s.union([self.make_carrier_inner().rotated((1, 0, 0), 180).translated(0, 0, self.inner_carrier_half_length),
-                     self.make_carrier_outer().rotated((1, 0, 0), 180).translated(0, 0, self.outer_carrier_length + self.inner_carrier_half_length),
-                     self.make_sun().translated(0, 0, self.inner_carrier_half_length - self.bearing_wall_thickness - 2 * self.clearance - self.sun_thickness - self.motor_gear_thickness),
-                     self.make_ring().rotated((1, 0, 0), 180).translated(0, 0, self.outer_carrier_length + self.inner_carrier_half_length + self.bearing_wall_thickness + self.clearance),
-                     self.make_planet().translated(self.planet_radius, 0, self.inner_carrier_half_length - self.sun_thickness).rotated((0, 0, 1), 360, self.planet_count)
-                     ]
-                    )
-
-        return (o & s.half_space()).rotated((1, 0, 0), 30)
+        """ Take the assembly and turn it into a piece good for showing off """
+        return (self.make_assembly().shape() & s.half_space()).rotated_x(30)
 
 
 if __name__ == "__main__":
-    # Joint.optimize()
-    j = Joint(11, 60, 13, 41, 18, 53)
+    # Planetary.optimize()
+    j = Planetary(11, 60, 13, 41, 18, 53)
     j.print_details()
-    codecad.commandline_render(j.make_overview(), 0.1)
+    codecad.commandline_render(j.make_assembly(), 0.1)

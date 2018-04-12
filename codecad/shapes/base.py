@@ -15,6 +15,30 @@ class ShapeBase(metaclass=abc.ABCMeta):
         Must be overridden by subclasses. """
 
     @abc.abstractmethod
+    def feature_size(self):
+        """ Returns an estimate of the smallest feature of this model.
+
+        It is not well defined what a feature is, and this method should be used
+        as little as possible (prefer scale invariant algorithms), but occasionally
+        comes in handy (eg. for mass properties termination heuristic).
+        Intuitively this should be the grid size at which the object doesn't lose
+        any features when sampled.
+        For polytopes we're using half of the distance between any two nearest vertices,
+        for spheres and circles the radius.
+
+        There are at least two cases when this concept doesn't really work too well:
+        1) Rotation shapes (eg. CircularRepetition): Near the origin these can create
+        infinitely small features. We just ignore this, or set a fixed minimal radius
+        for the sake of the approximation, or just pull some fun number out of thin air.
+        2) Small features created by combination of large objects.
+        (`box(100) + box(100).rotated_x(0.1)`)
+        This is not handled at all.
+
+        This method is just a hack might (and should) disappear.
+
+        Must be overridden by subclasses. """
+
+    @abc.abstractmethod
     def __and__(self, second):
         """ Returns intersection of the two shapes """
 

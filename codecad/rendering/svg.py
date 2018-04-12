@@ -6,8 +6,8 @@ import numpy
 from . import polygon2d
 
 
-def render_svg(obj, resolution, filename):
-    polygons = polygon2d.polygon(obj, resolution)
+def render_svg(obj, filename):
+    polygons = polygon2d.polygon(obj)
 
     with open(filename, "w") as fp:
         box = obj.bounding_box()

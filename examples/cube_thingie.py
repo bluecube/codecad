@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+""" Generator of cubical statuettes and a wireframe cube """
 
 import codecad
 from codecad.shapes import *
