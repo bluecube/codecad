@@ -82,7 +82,6 @@ def assert_shapes_equal(shape, expected, resolution=0.1):
     For now this does a bounding box chec, very rough check using volume of
     symmetric difference of the two shapes and then a comparison of low resolution renders.
     This is certainly not optimal (too slow and too imprecise), but that's what we've got. """
-    # TODO: Rely only on the volume of symmetric difference once mass properties are more reliable
 
     box = shape.bounding_box()
     expected_box = expected.bounding_box()
@@ -93,13 +92,8 @@ def assert_shapes_equal(shape, expected, resolution=0.1):
     if expected_box.volume() == 0:
         return
 
-    mp = codecad.mass_properties(shape ^ expected, box.volume() * 1e-3)
+    difference = (shape ^ expected).offset(-1e-6)
+    mp = codecad.mass_properties(difference,
+                                 abs_allowed_error=box.volume() * 1e-3,
+                                 rel_allowed_error=0)
     assert mp.volume <= mp.volume_error
-
-    shape_render = io.BytesIO()
-    codecad.rendering.image.render_PIL_image(shape, size=(800, 400)).save(shape_render, format="png")
-    shape_render.seek(0)
-    expected_render = io.BytesIO()
-    codecad.rendering.image.render_PIL_image(expected, size=(800, 400)).save(expected_render, format="png")
-    expected_render.seek(0)
-    assert_images_equal(shape_render, expected_render)
