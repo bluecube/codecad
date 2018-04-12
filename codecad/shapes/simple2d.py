@@ -133,7 +133,7 @@ class Polygon2D(base.Shape2D):
         if s[0] < 3:
             raise ValueError("Polygon must have at least three vertices")
 
-        area = 0
+        area = util.KahanSummation()
         minimum = util.Vector.splat(float("inf"))
         maximum = -minimum
         feature_size = float("inf")
@@ -144,7 +144,6 @@ class Polygon2D(base.Shape2D):
             direction_abs_squared = direction.abs_squared()
             perpendicular_direction = direction.perpendicular2d()
 
-            # TODO: Use better precision sum once we have it coded
             area += direction.x * (previous.y + current.y) / 2
 
             minimum = minimum.min(current)
@@ -203,7 +202,7 @@ class Polygon2D(base.Shape2D):
 
             previous = current
 
-        if area < 0:
+        if area.result < 0:
             self.points = numpy.flipud(self.points)
 
         self.box = util.BoundingBox(minimum, maximum)
