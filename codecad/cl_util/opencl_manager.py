@@ -2,6 +2,7 @@ import inspect
 import itertools
 import functools
 import warnings
+import re
 
 import pyopencl
 
@@ -44,6 +45,17 @@ class CompileUnit:
     def append_define(self, name, value, stacklevel=1):
         self.append("#define {} {}".format(name, value),
                     stacklevel=stacklevel + 1)
+
+    def append_flags(self, flags, prefix=None):
+        """ Given a subclass of flags.Flags, generate defines for its values.
+        If prefix is not specified, it is inferred from flags class name. """
+        if prefix is None:
+            prefix = re.sub('(?!^)([A-Z]+)', r'_\1', flags.__name__).upper() + "_"
+        elif prefix[-1] != "_":
+            prefix = prefix + "_"
+
+        for flag in flags:
+            self.append_define(prefix + flag.to_simple_str().upper(), int(flag))
 
     def append(self, code, stacklevel=1):
         """ Append a string to the compile unit. Ignores leading newlines. """
