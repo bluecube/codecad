@@ -7,10 +7,8 @@ computing power.
 ## Roadmap
 
 ### Version 1.0.0
-- ETA October 2017
 - Feature set comparable to OpenSCAD
 - Modeling in IPython or with standalone scripts
-- Minimal performance optimizations
 - Features required:
   - [ ] Extrusion with scaling
   - [ ] Twisted extrusion
@@ -30,8 +28,7 @@ computing power.
 - [ ] Modules (pieces of geometry with both positive and negative space)
 - Fancy raycaster effects
     - [ ] Axes
-    - [ ] Shadows, ambient occlusion
-    - [ ] Experiment with three point lighting
+    - [X] Shadows, ambient occlusion
     - [ ] Transparent PNGs
 - [X] Successive approximation of the geometry (needed for volume and centroid)
 - [ ] Better geometry representation in Jupyter notebook (using three.js?)
@@ -41,7 +38,6 @@ computing power.
 - [ ] Models with high dynamic range (1m vs 1nm in the same model)
   - [ ] Multiprecision? `float` for initial approximation, `double` for final details
 - [ ] Colors / materials
-- [ ] Asynchronous API
 - [ ] Get rid of PyMCubes use GPU for triangulation (dual contouring?)
 - [ ] Clean up progress reporting and script/application/notebook interfaces
 - [X] Mass properties separated from subdivision
