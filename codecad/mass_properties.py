@@ -208,6 +208,10 @@ def mass_properties(shape,
                 break
 
             allowed_error_per_volume = remaining_allowed_error / remaining_volume
+            if not bfs_mode:
+                allowed_error_per_volume *= 4
+                # Another empirical trick. On medium depth calculations this speeds
+                # the whole process up by forcing us to run out of DFS mode faster
 
             evaluate_ev = opencl_manager.k.mass_properties_evaluate([work_size], None,
                                                                     program_buffer,
