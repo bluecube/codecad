@@ -19,4 +19,4 @@ holes = cylinder + \
 o = sphere & cube - holes
 
 if __name__ == "__main__":
-    codecad.commandline_render(o, 1)
+    codecad.commandline_render(o)
