@@ -25,6 +25,7 @@ TREE_SIZE = 3  # Cube root of tree children count (2 => octree)
 MAX_WORK_SIZE = 2**16
 TREE_CHILD_COUNT = TREE_SIZE**3
 LOCATION_QUEUE_SIZE = 2**26 # More is faster, but we want even low end gpus to not have any problems
+    #TODO: Change this value based on gpu
 
 assert TREE_CHILD_COUNT < 32, "Set of node children must be representable by uint bitmask"
 assert TREE_CHILD_COUNT * MAX_WORK_SIZE <= 2**23, "Maximum number of split nodes per run must be exactly representable as float"
@@ -248,7 +249,8 @@ def mass_properties(shape,
                 integral_all += mapped[10]
                 total_error += mapped[11]
                 splits = int(mapped[12])
-            # assert_buffer.check()
+
+            # assert_buffer.check(wait_for=[prepare_next_ev])
 
             assert splits <= work_size * TREE_CHILD_COUNT
             location_count += splits

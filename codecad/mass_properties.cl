@@ -166,11 +166,11 @@ static float desperation_factor(float3 coords, float s)
  * startOffset: Index of the first work item in the input arrays.
  *              Should be a multiple of 8 (or 16?) to keep memory access aligned.
  * locationQueueSize: Size of the location queue to wrap the indices
- * allowedErrorPerVolume: Error allowed per unit of block volume.
- * planeSplitFudgeFactor - cell size times this value gets added to calculated error
- *                         of the plane split approximation. This serves either
- *                         to compensate for over-eagerness of the plane split
- *                         approximation or to completely disable it.
+ * bonusAllowedError: Error allowed per unit of block volume.
+ * planeSplitFudgeFactor: cell size times this value gets added to calculated error
+ *                        of the plane split approximation. This serves either
+ *                        to compensate for over-eagerness of the plane split
+ *                        approximation or to completely disable it.
  * locations: xyz coordinates of a corner of tree nodes to process,
  *            w is size of the child node (w * TREE_SIZE is size of this node).
  *            get_global_size(0) items large.
