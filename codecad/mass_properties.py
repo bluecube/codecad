@@ -80,7 +80,7 @@ def mass_properties(shape,
         plane_split_fudge_factor = cltypes.float("inf")
     else:
         # Chose empirically, no real basis for this expression :-)
-        plane_split_fudge_factor = cltypes.float(2.5 / (feature_size * TREE_SIZE**3))
+        plane_split_fudge_factor = cltypes.float(10 / (feature_size * TREE_SIZE**3))
 
     with cl_util.BufferList() as buffer_list:
         program_buffer = nodes.make_program_buffer(shape)
