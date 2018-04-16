@@ -23,7 +23,7 @@ class InvoluteGearBase(base.Shape2D):
                                 util.Vector(1.5, 1.5))
 
     def feature_size(self):
-        return 0.25 * math.pi / self.tooth_count  # 1/4 tooth thickness
+        return 0.5 * math.pi / self.tooth_count  # 1/2 tooth thickness
 
     def get_node(self, point, cache):
         return cache.make_node("involute_gear",

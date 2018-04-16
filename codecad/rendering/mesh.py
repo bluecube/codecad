@@ -13,7 +13,7 @@ def triangular_mesh(obj, subdivision_grid_size=None, debug_subdivision_boxes=Fal
     obj.check_dimension(required=3)
 
     program_buffer, max_box_size, boxes = subdivision.subdivision(obj,
-                                                                  obj.feature_size(),
+                                                                  obj.feature_size() / 2,
                                                                   grid_size=subdivision_grid_size)
 
     block = numpy.empty(max_box_size, dtype=numpy.float32)

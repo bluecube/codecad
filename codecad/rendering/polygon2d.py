@@ -38,7 +38,7 @@ def polygon(obj, subdivision_grid_size=None):
     obj.check_dimension(required=2)
 
     program_buffer, grid_size, boxes = subdivision.subdivision(obj,
-                                                               obj.feature_size(),
+                                                               obj.feature_size() / 2,
                                                                grid_size=subdivision_grid_size)
 
     assert grid_size[0] < 512, "Larger grid size would overflow the index encoding"

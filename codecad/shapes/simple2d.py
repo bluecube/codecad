@@ -21,7 +21,7 @@ class Rectangle(base.Shape2D):
         return util.BoundingBox(-self.half_size, self.half_size)
 
     def feature_size(self):
-        return min(self.half_size.x, self.half_size.y)
+        return 2 * min(self.half_size.x, self.half_size.y)
 
     def get_node(self, point, cache):
         return cache.make_node("rectangle", [self.half_size.x, self.half_size.y], [point])
@@ -41,7 +41,7 @@ class Circle(base.Shape2D):
         return util.BoundingBox(-v, v)
 
     def feature_size(self):
-        return self.r
+        return self.d
 
     def get_node(self, point, cache):
         return cache.make_node("circle", [self.r], [point])
@@ -115,7 +115,7 @@ class RegularPolygon2D(base.Shape2D):
         return util.BoundingBox(-v, v)
 
     def feature_size(self):
-        return self.side_length / 2
+        return self.side_length
 
     def get_node(self, point, cache):
         return cache.make_node("regular_polygon2d", [math.pi / self.n, self.r], [point])
@@ -163,7 +163,7 @@ class Polygon2D(base.Shape2D):
                 direction_cross_product = inner_direction.dot(perpendicular_direction)
                 between_starts = (previous - inner_previous)
 
-                feature_size = min(feature_size, abs(between_starts) / 2)
+                feature_size = min(feature_size, abs(between_starts))
 
                 consecutive = j == 0 or j == len(points) - 2  # i precedes or follows j
                 parallel = abs(direction_cross_product) < 1e-12

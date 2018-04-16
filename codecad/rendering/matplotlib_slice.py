@@ -15,7 +15,7 @@ def render_slice(obj,
                  filename=None  # For interface compatibility with other renderers
                  ):
 
-    resolution = obj.feature_size()
+    resolution = obj.feature_size() / 2
 
     box = obj.bounding_box().expanded(0.1).flattened()
     box_size = box.size()
