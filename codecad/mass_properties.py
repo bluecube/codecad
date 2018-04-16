@@ -44,27 +44,34 @@ class MassProperties(collections.namedtuple("MassProperties", "volume centroid i
 
 
 def mass_properties(shape,
-                    abs_allowed_error=1e-1, rel_allowed_error=1e-4,
+                    abs_allowed_error=None, rel_allowed_error=1e-4,
                     options=MassPropertiesOptions.no_flags):
     """ Calculate volume, centroid and inertia tensor of the shape.
     Iteratively subdivides the shape until
-    abs(actual_volume - computed_volume) < allowed_error """
+    abs(actual_volume - computed_volume) < max(abs_allowed_error, rel_allowed_error * computed_volume).
+
+    If absolute allowed error is not specified, it is chosen automatically based
+    on model feature size and bounding box size. """
     # Inertia tensor info:
     # http://farside.ph.utexas.edu/teaching/336k/Newtonhtml/node64.html
 
     #TODO: Default absolute error assumes that the model dimensions are in milimeters.
     # We should have a global default scale defined somewhere and start from that.
 
+    box = shape.bounding_box()
+    feature_size = shape.feature_size()
+
     if shape.dimension() != 3:
         raise ValueError("2D objects are not supported yet")
-    if abs_allowed_error <= 0:
+    if abs_allowed_error is None:
+        abs_allowed_error = min(feature_size**3, 1e-9 * box.volume())
+    elif abs_allowed_error <= 0:
         raise ValueError("Absolute allowed error must be positive")
     if rel_allowed_error < 0:
         raise ValueError("Relative allowed error must be positive or zero")
 
     opencl_manager.get_program() # Force build here so that it doesn't skew timings later
 
-    box = shape.bounding_box()
     box_size = box.size()
     initial_step_size = box_size.max() / TREE_SIZE
     volume_to_process = box_size.max()**3
@@ -73,7 +80,7 @@ def mass_properties(shape,
         plane_split_fudge_factor = cltypes.float("inf")
     else:
         # Chose empirically, no real basis for this expression :-)
-        plane_split_fudge_factor = cltypes.float(2.5 / (shape.feature_size() * TREE_SIZE**3))
+        plane_split_fudge_factor = cltypes.float(2.5 / (feature_size * TREE_SIZE**3))
 
     with cl_util.BufferList() as buffer_list:
         program_buffer = nodes.make_program_buffer(shape)
