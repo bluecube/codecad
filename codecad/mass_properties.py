@@ -199,7 +199,8 @@ def mass_properties(shape,
             remaining_volume = volume_to_process - integral_all.result
 
             assert remaining_allowed_error > 0
-            assert remaining_volume > 0
+            assert remaining_volume > -1e-6
+            remaining_volume = max(remaining_volume, 0)
 
             if remaining_allowed_error > remaining_volume:
                 # If we have more allowed error left than unprocessed volume,
@@ -291,7 +292,9 @@ def mass_properties(shape,
                          splits, splits/work_size)
 
         remaining_volume = volume_to_process - integral_all.result
-        assert remaining_volume >= 0
+        logger.debug("remaining_volume = %e", remaining_volume)
+        assert remaining_volume > -1e-6
+        remaining_volume = max(remaining_volume, 0)
         # TODO: We don't count unprocessed volume with weight 0.5 (which would decrease the error requirement),
         # because while compensating the total volume for this would be easy enough, I don't know how to
         # compensate centroid and inertia matrix.
