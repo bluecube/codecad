@@ -237,7 +237,8 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
     float volumes[TREE_CHILD_COUNT];
     uint n = 0;
     uint potentialSplitCount = 0;
-    float remainingAllowedError = allowedError * TREE_CHILD_COUNT;
+    float remainingAllowedError = allowedError * TREE_CHILD_COUNT; // Allowed error remaining for all potentially split nodes
+    float noSplitError = 0; // How much error would we get if no sub-node was split
 
     float3 sampledGradient = 0;
 
@@ -267,6 +268,7 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
                     remainingAllowedError -= error;
                 else
                     potentialSplitCount++;
+                noSplitError += error;
 
                 assert(assertBuffer, length(value.xyz) < 1.0001);
                 assert(assertBuffer, length(value.xyz) > 0.9999);
@@ -294,10 +296,6 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
     sampledGradient /= TREE_SIZE * TREE_SIZE * (TREE_SIZE / 2);
     //printf("sampledGradient: %e, %e, %e (%e)\n", sampledGradient.x, sampledGradient.y, sampledGradient.z, length(sampledGradient));
 
-    float allowedError2 = remainingAllowedError / potentialSplitCount;
-    assert(assertBuffer, allowedError2 * (1 + 1e-6) >= allowedError);
-    allowedError2 = max(allowedError2, allowedError);
-
     float integralOne = 0;
     float3 integralX = 0;
     float3 integralXX = 0;
@@ -309,8 +307,11 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
 
     float planeSplitError = (maxPlaneSplitVolume - minPlaneSplitVolume) / 2 +
                             planeSplitFudgeFactor * TREE_SIZE * s;
+    noSplitError /= TREE_SIZE;
 
-    if (minDirectionDot > PLANE_SPLIT_MIN_DOT && planeSplitError < allowedError)
+    if (minDirectionDot > PLANE_SPLIT_MIN_DOT && // Check that the normals point in a simillar enough direction
+        planeSplitError < allowedError && // Error by the plane split heuristic must be less than allowed error
+        planeSplitError < noSplitError) // Check that we can't do better by using the unbounding spheres
     {
         // Error by approximating the cell as being divided by a single plane is acceptable
 
@@ -327,6 +328,19 @@ __kernel void mass_properties_evaluate(__constant float* restrict shape,
     else
     {
         // Potentially split nodes.
+
+        float allowedError2;
+        if (noSplitError <= allowedError)
+            // If not splitting anything will only create small error in total,
+            // then any error is allowed for individual sub cells
+            allowedError2 = 1;
+        else
+        {
+            // Otherwise distribute the allowed error to sub cells
+            allowedError2 = remainingAllowedError / potentialSplitCount;
+            assert(assertBuffer, allowedError2 * (1 + 1e-6) >= allowedError);
+            allowedError2 = max(allowedError2, allowedError);
+        }
 
         n = 0;
         float errorSum = 0;
