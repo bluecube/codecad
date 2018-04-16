@@ -85,7 +85,7 @@ def test_mirrored_bounding_box():
 def test_square_feature_size():
     assert codecad.shapes.rectangle(1, 1).feature_size() == \
         pytest.approx(codecad.shapes.regular_polygon2d(4, side_length=1).feature_size()) == \
-        0.5
+        1
 
 
 @pytest.mark.parametrize("n", range(3, 8))

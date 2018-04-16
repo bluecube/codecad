@@ -14,15 +14,17 @@ class Sphere(base.Shape3D):
     def __init__(self, d=1, r=None):
         if r is None:
             self.r = d / 2
+            self.d = d
         else:
             self.r = r
+            self.d = 2 * r
 
     def bounding_box(self):
         v = util.Vector(self.r, self.r, self.r)
         return util.BoundingBox(-v, v)
 
     def feature_size(self):
-        return self.r
+        return self.d
 
     def get_node(self, point, cache):
         return cache.make_node("sphere", [self.r], [point])
@@ -89,7 +91,7 @@ class Extrusion(base.Shape3D):
                                 util.Vector(box.b.x, box.b.y, self.h / 2))
 
     def feature_size(self):
-        return min(self.s.feature_size(), self.h / 2)
+        return min(self.s.feature_size(), self.h)
 
     def get_node(self, point, cache):
         sub_node = self.s.get_node(point, cache)
@@ -127,7 +129,7 @@ class Revolution(base.Shape3D):
 
         if self.twist > 2 * math.pi:
             return min(self.s.feature_size(),
-                       math.sin(2 * math.pi * math.pi / self.twist) * (self.r - self.minor_r))  # ?
+                       2 * math.sin(2 * math.pi * math.pi / self.twist) * (self.r - self.minor_r))  # ?
         else:
             return self.s.feature_size()
 

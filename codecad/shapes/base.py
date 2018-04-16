@@ -21,10 +21,10 @@ class ShapeBase(metaclass=abc.ABCMeta):
         It is not well defined what a feature is, and this method should be used
         as little as possible (prefer scale invariant algorithms), but occasionally
         comes in handy (eg. for mass properties termination heuristic).
-        Intuitively this should be the grid size at which the object doesn't lose
-        any features when sampled.
-        For polytopes we're using half of the distance between any two nearest vertices,
-        for spheres and circles the radius.
+        If the object is sampled at points `feature_size / 2` apart, the result
+        shouldn't loose any features.
+        For polytopes we're using the distance between any two nearest vertices,
+        for spheres and circles the diameter.
 
         There are at least two cases when this concept doesn't really work too well:
         1) Rotation shapes (eg. CircularRepetition): Near the origin these can create

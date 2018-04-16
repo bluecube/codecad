@@ -138,7 +138,7 @@ class OffsetMixin:
             return box
 
     def feature_size(self):
-        return max(0, self.s.feature_size() + self.distance)
+        return max(0, self.s.feature_size() + self.distance * 2)
 
     def get_node(self, point, cache):
         return cache.make_node("offset",
