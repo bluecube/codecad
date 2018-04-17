@@ -291,7 +291,7 @@ def mass_properties(shape,
                          100 * progress, total_error.result, location_count,
                          time_spent, time_computing.result, time_computing.result / time_spent,
                          iteration_count, iteration_count / time_spent,
-                         locations_processed, locations_processed / iteration_count, locations_processed / time_spent,
+                         locations_processed, util.safe_div(locations_processed, iteration_count), locations_processed / time_spent,
                          "BFS" if bfs_mode else "DFS", allowed_error_per_volume,
                          splits, splits/work_size)
 
@@ -308,17 +308,18 @@ def mass_properties(shape,
 
         assert_buffer.check()
 
-        prev_prepare_next_ev.wait() # Wait for the last event to finalize timing stats
-        time_computing += cl_util.event_time_spent(prev_prepare_next_ev)
+        if prev_prepare_next_ev is not None:
+            prev_prepare_next_ev.wait() # Wait for the last event to finalize timing stats
+            time_computing += cl_util.event_time_spent(prev_prepare_next_ev)
 
         time_spent = time.time() - start_time
     logger.info("Mass properties finished: "
                 "time elapsed: %.2f s, OpenCL time: %.2f s, OpenCL utilization: %.3f, OpenCL relative sum time: %.3f, "
                 "iteration count: %i (%.1f iterations/s), "
                 "locations processed: %.2e (%.0f locations/iteration, %.0f locations/s)",
-                time_spent, time_computing.result, time_computing.result / time_spent, time_summing.result / time_computing.result,
+                time_spent, time_computing.result, time_computing.result / time_spent, util.safe_div(time_summing.result, time_computing.result),
                 iteration_count, iteration_count / time_spent,
-                locations_processed, locations_processed / iteration_count, locations_processed / time_spent)
+                locations_processed, util.safe_div(locations_processed, iteration_count), locations_processed / time_spent)
 
     # Unwrap the integral values from the KahanSummation objects
     integral_one = integral_one.result
@@ -334,7 +335,7 @@ def mass_properties(shape,
 
     volume = integral_one
     if volume == 0:
-        return MassProperties(0, util.Vector.splat(0), numpy.zeros((3, 3)))
+        return MassProperties(0, util.Vector.splat(0), numpy.zeros((3, 3)), total_error.result)
     centroid = util.Vector(integral_x, integral_y, integral_z) / integral_one
 
     # Prepare the inertia tensor based on the integrals, but make it referenced

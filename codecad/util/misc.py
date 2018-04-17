@@ -1,6 +1,7 @@
 import contextlib
 import time
 import sys
+import math
 
 
 @contextlib.contextmanager
@@ -28,3 +29,13 @@ def at_most_one(iterable):
     it = iter(iterable)
     any(it)
     return not any(it)
+
+
+def safe_div(a, b, zero_over_zero=0):
+    if b == 0:
+        if a == 0:
+            return zero_over_zero
+        else:
+            return math.copysign(float("inf"), a)
+    else:
+        return a / b
