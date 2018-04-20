@@ -31,4 +31,4 @@ asm = codecad.assembly("moebius_pentagon",
                         pin.rotated_z(second_pin_angle)])
 
 if __name__ == "__main__":
-    codecad.commandline_render(asm, 0.5)
+    codecad.commandline_render(asm)

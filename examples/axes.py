@@ -51,4 +51,4 @@ axes_cube = cube - (cut(plus, z) +
 
 
 if __name__ == "__main__":
-    codecad.commandline_render(axes_cube, 0.25)
+    codecad.commandline_render(axes_cube)

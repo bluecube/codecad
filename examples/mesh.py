@@ -57,4 +57,4 @@ unmasked_skin = base.shell(wall)
 o = (unmasked_inside + unmasked_skin) & mask
 
 if __name__ == "__main__":
-    codecad.commandline_render(o, 0.2)
+    codecad.commandline_render(o)

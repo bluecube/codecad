@@ -66,4 +66,4 @@ def cube_with_base(unit_cube):
 o = cube_with_base(tetrahedron_cube())
 
 if __name__ == "__main__":
-    codecad.commandline_render(o, 0.5)
+    codecad.commandline_render(o)

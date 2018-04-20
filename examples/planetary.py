@@ -352,4 +352,4 @@ if __name__ == "__main__":
     # Planetary.optimize()
     j = Planetary(11, 60, 13, 41, 18, 53)
     j.print_details()
-    codecad.commandline_render(j.make_assembly(), 0.1)
+    codecad.commandline_render(j.make_assembly())

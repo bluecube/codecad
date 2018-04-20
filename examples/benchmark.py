@@ -12,4 +12,4 @@ o = codecad.assembly("benchmark_assembly",
                       airfoil.o.make_part("meshed_airfoil").translated(-120, 0, 100)])
 
 if __name__ == "__main__":
-    codecad.commandline_render(o, 0.2)
+    codecad.commandline_render(o)

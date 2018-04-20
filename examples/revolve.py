@@ -17,4 +17,4 @@ o = shape.revolved() - cutout
 o_display = o.rotated((0, 1, 0), 30).rotated((1, 0, 0), 45)
 
 if __name__ == "__main__":
-    codecad.commandline_render(o_display, 0.5)
+    codecad.commandline_render(o_display)
