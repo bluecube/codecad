@@ -285,3 +285,19 @@ __kernel void copy_string(__global char* output, uint n)
 
     assert all(encoded == output[:len(encoded)])
     assert output[len(encoded)] == 0, "The string must be null terminated"
+
+
+def test_sum():
+    step_size = 128
+    buffer1 = codecad.cl_util.Buffer(pyopencl.cltypes.float, step_size**2, pyopencl.mem_flags.READ_WRITE)
+    buffer2 = codecad.cl_util.Buffer(pyopencl.cltypes.float, step_size, pyopencl.mem_flags.READ_WRITE)
+
+    ev_b1 = buffer1.enqueue_write(numpy.arange(buffer1.nitems, dtype=buffer1.dtype))
+    ev_b2 = codecad.cl_util.opencl_manager.k.sum_tester((step_size**2,), (step_size,), buffer1, buffer2, wait_for=[ev_b1])
+    ev_b1 = codecad.cl_util.opencl_manager.k.sum_tester((step_size,), (step_size,), buffer2, buffer1, wait_for=[ev_b2])
+    ev_b2 = buffer2.enqueue_read(wait_for=[ev_b2])
+    ev_b1 = buffer1.enqueue_read(wait_for=[ev_b1])
+    ev_b2.wait()
+    assert (buffer2.array == [((2 * i + 1) * step_size - 1) * step_size / 2 for i in range(step_size)]).all()
+    ev_b1.wait()
+    assert buffer1[0] == (step_size**2 - 1) * step_size**2 / 2

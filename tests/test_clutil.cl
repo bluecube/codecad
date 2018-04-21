@@ -15,4 +15,14 @@ __kernel void assert_tester(uint failingCoord,
            get_global_id(0) != failingCoord || get_global_id(1) != failingCoord);
 }
 
+__kernel void sum_tester(__global float* inBuffer,
+                         __global float* outBuffer)
+{
+    __local float buffer[64];
+
+    float sum = sum_helper_float(inBuffer[get_global_id(0)], buffer);
+    if (get_local_id(0) == 0)
+        outBuffer[get_group_id(0)] = sum;
+}
+
 // vim: filetype=c
