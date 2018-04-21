@@ -74,5 +74,3 @@ opencl_manager.add_compile_unit().append_file("util.cl")
 parallel_sum_c = opencl_manager.add_compile_unit()
 parallel_sum.generate_sum_helper(opencl_manager.common_header, parallel_sum_c,
                                  type_name="float")
-
-print(parallel_sum_c.code())
