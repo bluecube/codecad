@@ -1,5 +1,5 @@
 def generate_sum_helper(h_file, c_file, type_name,
-                        op="a + b", default_return = "NAN", name=None):
+                        op="a + b", name=None):
     """ Generates header and implementation of a sum helper function.
 
     h_file is where the declaration goes, c_file where the definition goes.
@@ -7,8 +7,6 @@ def generate_sum_helper(h_file, c_file, type_name,
     type_name. If name is None, it gets set from type_name.
     op must be a valid C expression that reduces two items `a` and `b` of type
     type_name into a value of type type_name.
-    default_return specifies what gets returned from the helper for threads that
-    don't have the final sum.
 
     See inside of this method (or the generated code) for sum_helper docs. """
 
@@ -19,7 +17,7 @@ def generate_sum_helper(h_file, c_file, type_name,
 /** Sum get_local_size(0) values of type {type_name} in parallel with operation `{op}`.
 Input values are passed into the function as the first parameter.
 Sum of the group is returned if get_local_id(0) == 0, otherwise this function
-returns {default_return}.
+returns garbage.
 
 Local buffer will be used for temporary values and must have at least
 get_local_size(0) / 2 items available.
@@ -35,32 +33,27 @@ with floating point precision. */""".format(**locals()))
 {type_name} sum_helper_{name}({type_name} value, __local {type_name}* buffer){end}""".format(**locals()))
 
     c_file.append("""
-    if (get_local_id(0) >= get_local_size(0) / 2)
-        buffer[get_local_id(0) - get_local_size(0) / 2] = value;
 
-    for (size_t i = get_local_size(0) / 2; i > 1; i /= 2)
+    size_t n = get_local_size(0);
+
+    while (n > 1)
     {{
+        size_t nextN = (n + 1) / 2;
+
+        if (get_local_id(0) < n && get_local_id(0) >= nextN)
+            buffer[get_local_id(0) - nextN] = value;
+
         barrier(CLK_LOCAL_MEM_FENCE);
 
-        if (get_local_id(0) >= i)
-            continue;
+        if (get_local_id(0) < n / 2)
+        {{
+            {type_name} a = value;
+            {type_name} b = buffer[get_local_id(0)];
+            value = ({op});
+        }}
 
-        {type_name} a = value;
-        {type_name} b = buffer[get_local_id(0)];
-        value = ({op});
-
-        if (get_local_id(0) >= i / 2)
-            buffer[get_local_id(0) - i / 2] = value;
+        n = nextN;
     }}
 
-    barrier(CLK_LOCAL_MEM_FENCE);
-
-    if (get_local_id(0) == 0)
-    {{
-        {type_name} a = value;
-        {type_name} b = buffer[0];
-        return ({op});
-    }}
-    else
-        return {default_return};
+    return value;
 }}""".format(**locals()))

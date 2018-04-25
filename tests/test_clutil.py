@@ -287,8 +287,8 @@ __kernel void copy_string(__global char* output, uint n)
     assert output[len(encoded)] == 0, "The string must be null terminated"
 
 
-def test_sum():
-    step_size = 128
+@pytest.mark.parametrize("step_size", [1, 10, 13, 16])
+def test_sum(step_size):
     buffer1 = codecad.cl_util.Buffer(pyopencl.cltypes.float, step_size**2, pyopencl.mem_flags.READ_WRITE)
     buffer2 = codecad.cl_util.Buffer(pyopencl.cltypes.float, step_size, pyopencl.mem_flags.READ_WRITE)
 
