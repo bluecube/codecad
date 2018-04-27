@@ -1,3 +1,6 @@
+from . opencl_manager import instance as opencl_manager
+
+
 def generate_sum_helper(h_file, c_file, type_name,
                         op="a + b", name=None):
     """ Generates header and implementation of a sum helper function.
@@ -57,3 +60,11 @@ with floating point precision. */""".format(**locals()))
 
     return value;
 }}""".format(**locals()))
+
+
+parallel_sum_c = opencl_manager.add_compile_unit()
+parallel_sum_c.append_file("parallel_sum.cl")
+opencl_manager.common_header.append_file("parallel_sum.h")
+
+generate_sum_helper(opencl_manager.common_header, parallel_sum_c,
+                    type_name="float")

@@ -70,7 +70,3 @@ def interleave2(job_func, initial_jobs):
 opencl_manager.common_header.append_file("util.h")
 opencl_manager.common_header.append_file("indexing.h")
 opencl_manager.add_compile_unit().append_file("util.cl")
-
-parallel_sum_c = opencl_manager.add_compile_unit()
-parallel_sum.generate_sum_helper(opencl_manager.common_header, parallel_sum_c,
-                                 type_name="float")
