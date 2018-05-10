@@ -19,6 +19,15 @@ class Vector(collections.namedtuple("Vector", "x y z")):
     def zero(cls):
         return cls(0, 0, 0)
 
+    @classmethod
+    def polar(cls, r, phi, rho = 0):
+        """ Initialize the vector from polar coordinates in degrees.
+        phi is longitude, rho is latitude. (rho = 0 -> z = 0) """
+        phi = math.radians(phi)
+        rho = math.radians(rho)
+        k = math.cos(rho)
+        return cls(k * math.cos(phi), k * math.sin(phi), math.sin(rho)) * r
+
     def __add__(self, other):
         return Vector(self.x + other.x, self.y + other.y, self.z + other.z)
 
