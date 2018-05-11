@@ -1,13 +1,15 @@
-/*void indexing_prefix_sum_helper(float uint, __local uint* buffer)
+/*void indexing_prefix_sum_helper(uint value, __local uint* buffer)
 {
-    size_t n = get_local_size(0);
+    buffer[get_local_id(0)] = value;
+
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    size_t n = get_local_size(0) / 2;
 
     while (n > 1)
     {
-        size_t nextN = (n + 1) / 2;
-
-        if (get_local_id(0) < n && get_local_id(0) >= nextN)
-            buffer[get_local_id(0) - nextN] = value;
+        if (get_local_id(0) < n)
+            buffer[get_local_id(0)] += buffer[get_local_id(0) + n];
 
         barrier(CLK_LOCAL_MEM_FENCE);
 
