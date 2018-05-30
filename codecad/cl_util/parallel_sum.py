@@ -19,8 +19,9 @@ def generate_sum_helper(h_file, c_file, type_name,
     h_file.append("""
 /** Sum get_local_size(0) values of type {type_name} in parallel with operation `{op}`.
 Input values are passed into the function as the first parameter.
-Sum of the group is returned if get_local_id(0) == 0, otherwise this function
-returns garbage.
+Sum of the group is returned for work item 0, otherwise this function
+returns incomplete (as in not evertything summed) permuted partial sum sequence,
+which is later reused for full partial sums.
 
 Local buffer will be used for temporary values and must have at least
 get_local_size(0) / 2 items available.
@@ -37,25 +38,25 @@ with floating point precision. */""".format(**locals()))
 
     c_file.append("""
 
-    size_t n = get_local_size(0);
+    size_t i = get_local_size(0);
 
-    while (n > 1)
+    while (i > 1)
     {{
-        size_t nextN = (n + 1) / 2;
+        size_t nextI = (i + 1) / 2;
 
-        if (get_local_id(0) < n && get_local_id(0) >= nextN)
-            buffer[get_local_id(0) - nextN] = value;
+        if (get_local_id(0) < i && get_local_id(0) >= nextI)
+            buffer[get_local_id(0) - nextI] = value;
 
         barrier(CLK_LOCAL_MEM_FENCE);
 
-        if (get_local_id(0) < n / 2)
+        if (get_local_id(0) < i / 2)
         {{
             {type_name} a = value;
             {type_name} b = buffer[get_local_id(0)];
             value = ({op});
         }}
 
-        n = nextN;
+        i = nextI;
     }}
 
     return value;
@@ -68,3 +69,5 @@ opencl_manager.common_header.append_file("parallel_sum.h")
 
 generate_sum_helper(opencl_manager.common_header, parallel_sum_c,
                     type_name="float")
+generate_sum_helper(opencl_manager.common_header, parallel_sum_c,
+                    type_name="uint")

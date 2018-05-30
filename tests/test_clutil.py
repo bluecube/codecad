@@ -301,3 +301,30 @@ def test_sum(step_size):
     assert (buffer2.array == [((2 * i + 1) * step_size - 1) * step_size / 2 for i in range(step_size)]).all()
     ev_b1.wait()
     assert buffer1[0] == (step_size**2 - 1) * step_size**2 / 2
+
+
+def test_indexing_prefix_sum():
+    step_size = 16
+
+    buffer1 = codecad.cl_util.Buffer(pyopencl.cltypes.uint, step_size**2, pyopencl.mem_flags.READ_WRITE)
+    buffer2 = codecad.cl_util.Buffer(pyopencl.cltypes.uint, step_size, pyopencl.mem_flags.READ_WRITE)
+
+    counts = numpy.arange(buffer1.nitems, dtype=buffer1.dtype) % 5
+
+    ev = buffer1.enqueue_write(counts)
+    ev = codecad.cl_util.opencl_manager.k.indexing_sum_tester1((step_size**2,), (step_size,), buffer1, buffer2, wait_for=[ev])
+    ev = codecad.cl_util.opencl_manager.k.indexing_sum_tester2((step_size,), (step_size,), buffer1, buffer2, wait_for=[ev])
+    ev = codecad.cl_util.opencl_manager.k.indexing_sum_tester3((step_size**2,), (step_size,), buffer1, buffer2, wait_for=[ev])
+    buffer1.read(wait_for=[ev])
+
+    flags = numpy.zeros(numpy.sum(counts), dtype=bool)
+    for n, offset in zip(counts, buffer1):
+        print(n, offset)
+        if n == 0:
+            continue
+
+        assert offset >= 0
+        assert offset + n <= len(flags)
+        assert numpy.all(flags[offset:offset + n] == False)
+        flags[offset:offset + n] = True
+
