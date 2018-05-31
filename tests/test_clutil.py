@@ -325,6 +325,5 @@ def test_indexing_prefix_sum():
 
         assert offset >= 0
         assert offset + n <= len(flags)
-        assert numpy.all(flags[offset:offset + n] == False)
+        assert not numpy.any(flags[offset:offset + n])
         flags[offset:offset + n] = True
-
