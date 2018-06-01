@@ -6,9 +6,12 @@
 /.eggs/
 /*.egg-info/
 /htmlcov/
+/.pytest_cache/
+
 /output.*
 /*.stl
 /*error.png
+
 __pycache__/
 *.swp
 *.swo
