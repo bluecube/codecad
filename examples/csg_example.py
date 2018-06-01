@@ -10,8 +10,8 @@ cube = codecad.shapes.box(100)
 cylinder = codecad.shapes.cylinder(d=40, h=200)
 
 holes = cylinder + \
-        cylinder.rotated((1, 0, 0), 90) + \
-        cylinder.rotated((0, 1, 0), 90)
+        cylinder.rotated_x(90) + \
+        cylinder.rotated_y(90)
 
 o = sphere & cube - holes
 
