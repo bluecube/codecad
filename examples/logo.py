@@ -4,26 +4,29 @@
 import codecad
 from codecad.shapes import *
 
-def c_generator(width, stroke):
-    r = rectangle(width, 1 - width + stroke / 2)
-    c = (r
-         + circle(d=width).translated_y((1 - width) / 2)
-         + circle(d=width).translated_y(-(1 - width) / 2))
-    c = c.shell(stroke)
-    c -= rectangle(width, 1 - width).translated_x(width / 2)
-    return c
+width = 0.6
+stroke = 0.2
 
-c = c_generator(0.6, 0.2) \
-    .scaled(0.6) \
-    .extruded(0.12) \
-    .rotated_x(90) \
-    .translated_y(-0.5)
+# Build the C shape  1 unit high
+c = (rectangle(width, 1 - width + stroke / 2)
+     + circle(d=width).translated_y((1 - width) / 2)
+     + circle(d=width).translated_y(-(1 - width) / 2))
+c = c.shell(stroke)
+c -= rectangle(width, 1 - width).translated_x(width / 2)
 
+# Scale it to 1 unit sized cube and prepare for adding
+c = (c
+     .scaled(0.6)
+     .extruded(0.12)
+     .rotated_x(90)
+     .translated_y(-0.5))
+
+# Put the logo together
 logo = box() + c + c.rotated_z(90)
-logo = logo \
-    .scaled(100) \
-    .rotated_z(-45) \
-    .rotated_x(15)
+logo = (logo
+        .scaled(100)
+        .rotated_z(-45)
+        .rotated_x(15))
 
 if __name__ == "__main__":
     codecad.commandline_render(logo)
