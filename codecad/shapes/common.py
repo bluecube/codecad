@@ -124,6 +124,25 @@ class MirrorMixin:
         return cache.make_node("mirror", [], [mirrored_result])
 
 
+class SymmetricalMixin:
+    def __init__(self, s):
+        self.check_dimension(s)
+        self.s = s
+
+    def bounding_box(self):
+        box = self.s.bounding_box()
+        return util.BoundingBox(util.Vector(-box.b.x, box.a.y, box.a.z),
+                                util.Vector(box.b.x, box.b.y, box.b.z))
+
+    def feature_size(self):
+        return self.s.feature_size()
+
+    def get_node(self, point, cache):
+        symmetrical_point = cache.make_node("symmetrical_to", [], [point])
+        symmetrical_result = self.s.get_node(symmetrical_point, cache)
+        return cache.make_node("symmetrical_from", [], [symmetrical_result, point])
+
+
 class OffsetMixin:
     def __init__(self, s, distance):
         self.check_dimension(s)

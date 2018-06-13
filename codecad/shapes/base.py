@@ -230,6 +230,15 @@ class Shape2D(SolidBodyTransformable2D, ShapeBase):
     def mirrored_y(self):
         return self.rotated(180).mirrored_x()
 
+    def symmetrical_x(self):
+        """ Return a shape with half-plane X < 0 replaced with mirrored half-plane X > 0 """
+        from . import simple2d
+        return simple2d.Symmetrical2D(self)
+
+    def symmetrical_y(self):
+        """ Return a shape with half-plane Y < 0 replaced with mirrored half-plane Y > 0 """
+        return self.rotated(-90).symmetrical_x().rotated(90)
+
     def offset(self, d):
         """ Returns current shape offset by given distance (positive is outside) """
         from . import simple2d
@@ -339,8 +348,20 @@ class Shape3D(SolidBodyTransformable3D, ShapeBase):
     def mirrored_z(self):
         return self.rotated_y(180).mirrored_x()
 
+    def symmetrical_x(self):
+        """ Return a shape with half-space X < 0 replaced with mirrored half-space X > 0 """
+        from . import simple3d
+        return simple3d.Symmetrical(self)
+
+    def symmetrical_y(self):
+        """ Return a shape with half-space Y < 0 replaced with mirrored half-space Y > 0 """
+        return self.rotated_z(-90).symmetrical_x().rotated_z(90)
+
+    def symmetrical_z(self):
+        """ Return a shape with half-space Z < 0 replaced with mirrored half-space Z > 0 """
+        return self.rotated_y(90).symmetrical_x().rotated_y(-90)
+
     def offset(self, d):
-        """ Returns current shape offset by given distance (positive increases size) """
         from . import simple3d
         return simple3d.Offset(self, d)
 

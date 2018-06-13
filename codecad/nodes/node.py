@@ -28,6 +28,7 @@ class Node:
         ("initial_transformation_to", 7, 0),
         ("transformation_to", 7, 1), ("transformation_from", 4, 1),
         ("mirror", 0, 1),
+        ("symmetrical_to", 0, 1),
         ("offset", 1, 1), ("shell", 1, 1),
         # Misc:
         ("repetition", 3, 1),
@@ -38,6 +39,7 @@ class Node:
         # 3D shapes:
         ("extrusion", 1, 2),
         ("revolution_from", 0, 2), ("twist_revolution_from", 3, 2),
+        ("symmetrical_from", 0, 2),
         # Common:
         ("union", 1, 2), ("intersection", 1, 2), ("subtraction", 1, 2),
         ]))

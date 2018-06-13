@@ -79,6 +79,10 @@ class Mirror(common.MirrorMixin, base.Shape3D):
     pass
 
 
+class Symmetrical(common.SymmetricalMixin, base.Shape3D):
+    pass
+
+
 class Extrusion(base.Shape3D):
     def __init__(self, s, height):
         self.check_dimension(s, required=2)

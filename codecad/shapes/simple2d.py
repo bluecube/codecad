@@ -256,3 +256,7 @@ class Transformation2D(common.TransformationMixin, base.Shape2D):
 
 class Mirror2D(common.MirrorMixin, base.Shape2D):
     pass
+
+
+class Symmetrical2D(common.SymmetricalMixin, base.Shape2D):
+    pass

@@ -70,6 +70,7 @@ shapes_2d = {"rectangle": rectangle(2, 4),
              "mirror_2d": mirror_2d,
              "bin_counter_11": bin_counter(11),
              "regular_polygon3": regular_polygon2d(3),
+             "symmetrical_xy": circle(d=2).translated(2, 1.75).symmetrical_x().symmetrical_y(),
              }
 shapes_2d.update(("polygon2d_" + k, polygon2d(v)) for k, v in valid_polygon2d.items())
 params_2d = [pytest.param(v, id=k) for k, v in sorted(shapes_2d.items())]
@@ -84,6 +85,7 @@ shapes_3d = {"sphere": sphere(4),
              "nested_transformations": (box().translated_z(-2) + sphere().translated_x(2)).rotated_y(45).rotated_x(45),
              "mirror_3d": mirror_3d,
              "revolved_pentagon": regular_polygon2d(5).revolved(2),
-             "extreme_twisted_revolve": rectangle(1, 0.1).revolved(2, 19 * 180)
+             "extreme_twisted_revolve": rectangle(1, 0.1).revolved(2, 19 * 180),
+             "symmetrical_xyz": sphere(d=2).translated(2, 2, 2).symmetrical_x().symmetrical_y().symmetrical_z(),
              }
 params_3d = [pytest.param(v, id=k) for k, v in sorted(shapes_3d.items())]

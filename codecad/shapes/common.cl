@@ -113,6 +113,14 @@ float4 mirror_op(float4 input) {
     return (float4)(-input.x, input.y, input.z, input.w);
 }
 
+float4 symmetrical_to_op(float4 point) {
+    return (float4)(fabs(point.x), point.yzw);
+}
+
+float4 symmetrical_from_op(float4 input, float4 point) {
+    return (float4)(point.x < 0 ? -input.x : input.x, input.yzw);
+}
+
 float4 offset_op(float distance, float4 input) {
     return (float4)(input.x, input.y, input.z, input.w - distance);
 }
