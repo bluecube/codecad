@@ -6,8 +6,8 @@ from . import common
 from ..cl_util import opencl_manager
 
 _c_file = opencl_manager.add_compile_unit()
-_c_file.append_file("common.h")
-_c_file.append_file("simple3d.cl")
+_c_file.append_resource("common.h")
+_c_file.append_resource("simple3d.cl")
 
 
 class Sphere(base.Shape3D):

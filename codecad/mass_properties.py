@@ -13,7 +13,7 @@ from . import subdivision
 from .cl_util import opencl_manager
 from . import nodes
 
-opencl_manager.add_compile_unit().append_file("mass_properties.cl")
+opencl_manager.add_compile_unit().append_resource("mass_properties.cl")
 
 
 class MassProperties(collections.namedtuple("MassProperties", "volume centroid inertia_tensor")):

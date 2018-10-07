@@ -67,6 +67,6 @@ def interleave2(job_func, initial_jobs):
 
 
 # Collecting utility files that don't belong anywhere else:
-opencl_manager.common_header.append_file("util.h")
-opencl_manager.common_header.append_file("indexing.h")
-opencl_manager.add_compile_unit().append_file("util.cl")
+opencl_manager.common_header.append_resource("util.h")
+opencl_manager.common_header.append_resource("indexing.h")
+opencl_manager.add_compile_unit().append_resource("util.cl")

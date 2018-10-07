@@ -1,6 +1,8 @@
 import string
 import inspect
 import os.path
+import sys
+import pkg_resources
 
 printable = string.digits + string.ascii_letters + string.punctuation + " "
 
@@ -28,7 +30,7 @@ def format_c_string_literal(s):
     return "".join(inner(s))
 
 
-def _frameinfo_from_stacklevel(stacklevel):
+def _frame_from_stacklevel(stacklevel):
     """ Returns frameinfo stacklevel + 1 above the current frame one or None, if inspect.currentframe fails. """
     frame = inspect.currentframe()
     if frame is None:
@@ -36,12 +38,14 @@ def _frameinfo_from_stacklevel(stacklevel):
 
     for i in range(stacklevel + 1):
         frame = frame.f_back
+        if frame is None:
+            return None
 
-    return inspect.getframeinfo(frame, context=0)
+    return frame
 
 
 def string_with_origin(string, stacklevel=1, include_origin=True):
-    """ Prepend a C #line directive in front of a string, for generating C files.
+    """ Yield a string, optionally also yield a C #line directive before.
     Ignores newlines at the beginning of the string (useful for keeping alignment).
 
     stacklevel determines how many stack levels above this function we look when
@@ -53,36 +57,35 @@ def string_with_origin(string, stacklevel=1, include_origin=True):
     string = string.lstrip("\n")
 
     if include_origin:
-        frameinfo = _frameinfo_from_stacklevel(stacklevel)
-        if frameinfo is not None:
+        frame = _frame_from_stacklevel(stacklevel)
+        if frame is not None:
+            frameinfo = inspect.getframeinfo(frame, context=0)
             lines = string.count("\n")
             line = frameinfo.lineno - lines
 
-            return '#line {} {}\n'.format(line, format_c_string_literal(frameinfo.filename)) + string
+            yield '#line {} {}'.format(line, format_c_string_literal(frameinfo.filename))
 
-    return string
+    yield string
 
 
-def file_with_origin(path, stacklevel=1, include_origin=True):
-    """ Read content of a file and prepend a #line directive to it.
+def resource_with_origin(resource_name, stacklevel=1, include_origin=True):
+    """ Read content of a resource usning pkg_resources and yield it,
+    optionally also yields a corresponding prepend a #line directive before.
+    Module name is determined from caller, see string_with_origin for description of stacklevel. """
 
-    Unless `path` is absolute, filename is taken as relative to caller filename's directory.
-    See `string_with_origin` for description of stacklevel functionality.
-
-    In the output the path is made relative to cwd. """
-
-    frameinfo = _frameinfo_from_stacklevel(stacklevel)
-    if frameinfo is None:
+    frame = _frame_from_stacklevel(stacklevel)
+    if frame is None:
         raise Exception("We can't handle inspect.currentframe() failing! (TODO?)")
 
-    if os.path.isabs(path):
-        abs_path = path
-    else:
-        abs_path = os.path.join(os.path.dirname(frameinfo.filename), path)
-    rel_path = os.path.relpath(abs_path)
+    module_name = frame.f_globals["__name__"]
 
-    with open(abs_path, "r") as fp:
-        if include_origin:
-            return '#line 1 {}\n'.format(format_c_string_literal(rel_path)) + fp.read()
-        else:
-            return fp.read()
+    # Read the resource before yieldin line number so that there is no output at all
+    # in case the resource fails.
+    string = pkg_resources.resource_string(module_name, resource_name).decode("utf8")
+
+    if include_origin:
+        path = os.path.join(os.path.dirname(sys.modules[module_name].__file__),
+                                            resource_name)
+        yield "#line 1 {}".format(format_c_string_literal(path))
+
+    yield string

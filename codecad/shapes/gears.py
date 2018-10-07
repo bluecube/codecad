@@ -6,8 +6,8 @@ from . import simple2d
 from ..cl_util import opencl_manager
 
 _c_file = opencl_manager.add_compile_unit()
-_c_file.append_file("common.h")
-_c_file.append_file("gears.cl")
+_c_file.append_resource("common.h")
+_c_file.append_resource("gears.cl")
 
 
 class InvoluteGearBase(base.Shape2D):

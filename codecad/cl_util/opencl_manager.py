@@ -34,13 +34,13 @@ class CompileUnit:
     def code(self, extra_headers=[]):
         return "\n".join(itertools.chain(extra_headers, self.pieces)) + "\n"
 
-    def append_file(self, filename, stacklevel=1):
+    def append_resource(self, resource_name, stacklevel=1):
         """ Append content of a file to this compile unit.
         Unless `filename` is absolute, filename is taken as relative to caller filename's directory."""
 
-        self.pieces.append(codegen.file_with_origin(filename,
-                                                    stacklevel=stacklevel + 1,
-                                                    include_origin=self.include_origin))
+        self.pieces.extend(codegen.resource_with_origin(resource_name,
+                                                        stacklevel=stacklevel + 1,
+                                                        include_origin=self.include_origin))
 
     def append_define(self, name, value, stacklevel=1):
         self.append("#define {} {}".format(name, value),
@@ -59,7 +59,7 @@ class CompileUnit:
 
     def append(self, code, stacklevel=1):
         """ Append a string to the compile unit. Ignores leading newlines. """
-        self.pieces.append(codegen.string_with_origin(code,
+        self.pieces.extend(codegen.string_with_origin(code,
                                                       stacklevel=stacklevel + 1,
                                                       include_origin=self.include_origin))
 

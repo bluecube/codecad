@@ -64,8 +64,8 @@ with floating point precision. */""".format(**locals()))
 
 
 parallel_sum_c = opencl_manager.add_compile_unit()
-parallel_sum_c.append_file("parallel_sum.cl")
-opencl_manager.common_header.append_file("parallel_sum.h")
+parallel_sum_c.append_resource("parallel_sum.cl")
+opencl_manager.common_header.append_resource("parallel_sum.h")
 
 generate_sum_helper(opencl_manager.common_header, parallel_sum_c,
                     type_name="float")

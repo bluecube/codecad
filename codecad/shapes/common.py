@@ -4,8 +4,8 @@ from .. import util
 from .. import cl_util
 
 _c_file = cl_util.opencl_manager.add_compile_unit()
-_c_file.append_file("common.h")
-_c_file.append_file("common.cl")
+_c_file.append_resource("common.h")
+_c_file.append_resource("common.cl")
 
 
 class UnionMixin:

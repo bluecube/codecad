@@ -88,6 +88,6 @@ class AssertBuffer(cl_buffer.Buffer):
 opencl_manager.common_header.append_define("ASSERT_BUFFER_SIZE", AssertBuffer.ASSERT_BUFFER_SIZE)
 if AssertBuffer.ASSERT_ENABLED:
     opencl_manager.common_header.append_define("ASSERT_ENABLED", 1)
-opencl_manager.common_header.append_file("assert.h")
+opencl_manager.common_header.append_resource("assert.h")
 
-opencl_manager.add_compile_unit().append_file("assert.cl")
+opencl_manager.add_compile_unit().append_resource("assert.cl")

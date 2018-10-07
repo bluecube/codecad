@@ -6,7 +6,7 @@ from .. import cl_util
 from ..cl_util import opencl_manager
 from .. import nodes
 
-opencl_manager.add_compile_unit().append_file("bitmap.cl")
+opencl_manager.add_compile_unit().append_resource("bitmap.cl")
 
 
 def render(obj, size):

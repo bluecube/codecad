@@ -17,7 +17,7 @@ class RenderOptions(flags.Flags):
 
 _c_file = opencl_manager.add_compile_unit()
 _c_file.append_flags(RenderOptions)
-_c_file.append_file("ray_caster.cl")
+_c_file.append_resource("ray_caster.cl")
 
 
 def _zero_if_inf(x):

@@ -8,7 +8,7 @@ from . import nodes
 from . import cl_util
 from .cl_util import opencl_manager
 
-cl_util.opencl_manager.add_compile_unit().append_file("subdivision.cl")
+cl_util.opencl_manager.add_compile_unit().append_resource("subdivision.cl")
 
 
 class _Helper:

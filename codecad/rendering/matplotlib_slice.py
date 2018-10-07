@@ -8,7 +8,7 @@ from .. import util
 from ..cl_util import opencl_manager
 from .. import nodes
 
-opencl_manager.add_compile_unit().append_file("matplotlib_slice.cl")
+opencl_manager.add_compile_unit().append_resource("matplotlib_slice.cl")
 
 
 def render_slice(obj,

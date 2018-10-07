@@ -6,7 +6,7 @@ from ..cl_util import opencl_manager
 from .. import util
 from .. import subdivision
 
-opencl_manager.add_compile_unit().append_file("polygon2d.cl")
+opencl_manager.add_compile_unit().append_resource("polygon2d.cl")
 
 _link_overflow_mask = 0xfff00000
 

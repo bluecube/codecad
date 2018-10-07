@@ -8,7 +8,7 @@ import os.path
 
 import codecad
 
-codecad.cl_util.opencl_manager.add_compile_unit().append_file("test_clutil.cl")
+codecad.cl_util.opencl_manager.add_compile_unit().append_resource("test_clutil.cl")
 
 
 def _tuple_from_xyz(xyz):
