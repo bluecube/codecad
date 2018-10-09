@@ -7,8 +7,6 @@ import re
 import flags
 import PIL.Image
 
-from .. import assemblies
-
 
 class AssemblyMode(flags.Flags):
     """ Determining how assemblies are treated by the renderer """
@@ -136,7 +134,6 @@ _register("image", "image", PIL.Image.EXTENSION.keys(), AssemblyMode.whole, ".pn
 _register("stl", "stl_renderer", [".stl"], AssemblyMode.parts)
 _register("slice", "matplotlib_slice", [], AssemblyMode.disabled)
 _register("mesh", "matplotlib_mesh", [], AssemblyMode.disabled)
-_register("gif", "image", [".gif"], AssemblyMode.whole)
 _register("svg", "svg", [".svg"], AssemblyMode.disabled)
 _register("nodes_graph", "schedule", [".dot"], AssemblyMode.disabled)
 _register("c_evaluator", "schedule", [".c"], AssemblyMode.disabled)

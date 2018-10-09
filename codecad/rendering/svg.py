@@ -1,8 +1,3 @@
-import gzip
-import collections
-import os.path
-import numpy
-
 from . import polygon2d
 
 

@@ -1,6 +1,4 @@
 import os.path
-import tempfile
-import itertools
 
 import pytest
 

@@ -3,8 +3,6 @@ import pytest
 
 import codecad
 
-import data
-
 
 def test_revolve_bounding_box():
     box = (

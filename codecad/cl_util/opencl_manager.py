@@ -1,4 +1,3 @@
-import inspect
 import itertools
 import functools
 import warnings

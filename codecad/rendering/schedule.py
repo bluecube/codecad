@@ -1,5 +1,3 @@
-from .. import nodes
-
 from ..nodes import program, scheduler, codegen, node
 
 
@@ -12,23 +10,21 @@ def render_nodes_graph(shape, filename):
         fp.write("digraph Nodes {\n")
         fp.write("  graph[concentrate=true];\n")
 
-        for i, node in enumerate(ordered):
-            if node.name in ("_store", "_load"):
+        for i, n in enumerate(ordered):
+            if n.name in ("_store", "_load"):
                 fp.write(
                     '  node{} [label="{}\\n{}\\nrefcount {}\\n->r{}",style="filled"];\n'.format(
-                        id(node), i, node.name, node.refcount, node.register
+                        id(n), i, n.name, n.refcount, n.register
                     )
                 )
             else:
                 fp.write(
                     '  node{} [label="{}\\n{}({})"];\n'.format(
-                        id(node), i, node.name, ", ".join(str(p) for p in node.params)
+                        id(n), i, n.name, ", ".join(str(p) for p in n.params)
                     )
                 )
-            for dep, direction in zip(node.dependencies, ["nw", "ne"]):
-                fp.write(
-                    "  node{}:s -> node{}:{};\n".format(id(dep), id(node), direction)
-                )
+            for dep, direction in zip(n.dependencies, ["nw", "ne"]):
+                fp.write("  node{}:s -> node{}:{};\n".format(id(dep), id(n), direction))
 
         fp.write("}")
 

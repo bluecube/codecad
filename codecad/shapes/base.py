@@ -1,5 +1,4 @@
 import abc
-import math
 import io
 
 from .. import util

@@ -82,7 +82,6 @@ class _Helper:
 
     def process_result(self, event):
         int_box_step = self.block_sizes[self.level][0]
-        box_step = int_box_step * self.resolution
 
         c = self.counter.read(wait_for=[event])
         intersecting_count = c[0]

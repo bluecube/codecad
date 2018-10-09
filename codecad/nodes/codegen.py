@@ -146,8 +146,8 @@ float4 evaluate(__constant float*, float3 point)
 {"""
     )
     registers_declared = set()
-    for node in schedule:
-        registers_declared.add(node.register)
+    for n in schedule:
+        registers_declared.add(n.register)
 
     for register in sorted(registers_declared):
         c.append(
@@ -158,34 +158,34 @@ float4 evaluate(__constant float*, float3 point)
         )
     c.append("")
 
-    for node in schedule:
-        if node.name == "_return":
+    for n in schedule:
+        if n.name == "_return":
             c.append(
                 """
     return r{};""".format(
-                    node.dependencies[0].register
+                    n.dependencies[0].register
                 )
             )
-        elif node.name == "_store" or node.name == "_load":
+        elif n.name == "_store" or n.name == "_load":
             c.append(
                 """
     r{} = r{}; // {}""".format(
-                    node.register, node.dependencies[0].register, node.name
+                    n.register, n.dependencies[0].register, n.name
                 )
             )
         else:
-            args = [str(param) for param in node.params]
-            if len(node.dependencies) == 0:
+            args = [str(param) for param in n.params]
+            if len(n.dependencies) == 0:
                 args.append("point")
             else:
-                assert 1 <= len(node.dependencies) <= 2
-                args.extend("r{}".format(dep.register) for dep in node.dependencies)
+                assert 1 <= len(n.dependencies) <= 2
+                args.extend("r{}".format(dep.register) for dep in n.dependencies)
 
             c.append(
                 _format_function(
                     """
     r{} = {}_op""".format(
-                        node.register, node.name
+                        n.register, n.name
                     ),
                     args,
                 )
@@ -193,7 +193,7 @@ float4 evaluate(__constant float*, float3 point)
         c.append(
             """
         // opcode: {}, secondary register: {}""".format(
-                *program.get_opcode(node)
+                *program.get_opcode(n)
             )
         )
     c.append(

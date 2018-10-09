@@ -163,7 +163,6 @@ class Polygon2D(base.Shape2D):
                 raise ValueError("Zero length segments are not allowed in polygon")
 
             inner_previous = current
-            has_intersection = False
             for j, inner_current in enumerate(self.points[i + 1 :]):
                 inner_current = util.Vector(*inner_current)
                 inner_direction = inner_current - inner_previous

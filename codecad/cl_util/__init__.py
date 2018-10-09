@@ -71,3 +71,5 @@ def interleave2(job_func, initial_jobs):
 opencl_manager.common_header.append_resource("util.h")
 opencl_manager.common_header.append_resource("indexing.h")
 opencl_manager.add_compile_unit().append_resource("util.cl")
+
+# pylama:ignore=W0611

@@ -11,9 +11,9 @@ def line(x0, y0, x1, y1, t):
     dy = y1 - y0
     midx = (x0 + x1) / 2
     midy = (y0 + y1) / 2
-    l = math.hypot(dx, dy)
+    length = math.hypot(dx, dy)
     a = math.degrees(math.atan2(dy, dx))
-    return codecad.shapes.rectangle(l, t).rotated(a).translated(midx, midy)
+    return codecad.shapes.rectangle(length, t).rotated(a).translated(midx, midy)
 
 
 t = 2

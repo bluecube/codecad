@@ -2,7 +2,7 @@ from . import simple2d
 
 
 def _load_selig(fileobj):
-    header = fileobj.readline()
+    header = fileobj.readline()  # noqa
     points = [tuple(float(x) for x in l.split()) for l in fileobj]
     if points[0] == points[-1]:
         points = points[:-1]

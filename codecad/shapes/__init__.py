@@ -102,3 +102,6 @@ def intersection(shapes, r=-1):
     return _group_op_helper(
         shapes, "Intersection", _s2.Intersection2D, _s3.Intersection, r
     )
+
+
+# pylama:ignore=W0611

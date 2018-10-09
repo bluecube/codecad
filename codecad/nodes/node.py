@@ -2,7 +2,6 @@
 Also handles generating the OpenCL code for evaluation """
 
 import collections
-import itertools
 
 _Variable = object()
 

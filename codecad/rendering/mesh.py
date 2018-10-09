@@ -31,7 +31,7 @@ def triangular_mesh(obj, subdivision_grid_size=None, debug_subdivision_boxes=Fal
                 for j in range(2)
                 for i in range(2)
             ]
-            trinagles = [
+            triangles = [
                 [0, 3, 1],
                 [0, 2, 3],
                 [1, 3, 5],

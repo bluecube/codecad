@@ -1,6 +1,5 @@
 import itertools
 import random
-import operator
 import copy
 
 from .node import Node

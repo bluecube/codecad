@@ -40,7 +40,6 @@ def tetrahedron_cube():
 
 def cube_with_base(unit_cube):
     """ Take a unit cube and turn it into a statue thingie, standing on one corner """
-    m = cube_side / 2
 
     prepared_cube = (
         unit_cube.scaled(cube_side)

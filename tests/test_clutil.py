@@ -59,18 +59,6 @@ def test_buffer_read_write():
     assert b[0] == 84
 
 
-def test_buffer_read_write():
-    b = codecad.cl_util.Buffer(pyopencl.cltypes.ulong, 1, pyopencl.mem_flags.READ_WRITE)
-
-    b.create_host_side_array()
-    b[0] = 42
-    ev = b.enqueue_write()
-    ev = codecad.cl_util.opencl_manager.k.one_item_double((1,), None, b, wait_for=[ev])
-    b.read(wait_for=[ev])
-
-    assert b[0] == 84
-
-
 def test_buffer_read_write_map():
     b = codecad.cl_util.Buffer(pyopencl.cltypes.ulong, 1, pyopencl.mem_flags.READ_WRITE)
 

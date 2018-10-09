@@ -4,7 +4,6 @@ Only has one face and one edge. """
 
 import codecad
 from codecad.shapes import *
-import math
 
 minor_r = 15
 major_r = 25
