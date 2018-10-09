@@ -3,6 +3,7 @@ import math
 import io
 
 from .. import util
+
 # simple2d and simple3d are imported in functions to break circular dependencies
 
 
@@ -70,7 +71,11 @@ class ShapeBase(metaclass=abc.ABCMeta):
             shapes = [self]
         for shape in shapes:
             if shape.dimension() != required:
-                raise TypeError("Shape must be of dimension {}, but is {}".format(required, shape.dimension()))
+                raise TypeError(
+                    "Shape must be of dimension {}, but is {}".format(
+                        required, shape.dimension()
+                    )
+                )
 
     @abc.abstractmethod
     def get_node(self, point, cache):
@@ -100,6 +105,7 @@ class ShapeBase(metaclass=abc.ABCMeta):
     def _repr_png_(self):
         """ Return representation of this shape as a png image for Jupyter notebooks. """
         from ..rendering import image
+
         with io.BytesIO() as fp:
             image.render_PIL_image(self, size=(800, 400)).save(fp, format="png")
             return fp.getvalue()
@@ -174,31 +180,39 @@ class Shape2D(SolidBodyTransformable2D, ShapeBase):
 
     def __and__(self, second):
         from . import simple2d
+
         return simple2d.Intersection2D([self, second])
 
     def __add__(self, second):
         from . import simple2d
+
         return simple2d.Union2D([self, second])
 
     def __sub__(self, second):
         from . import simple2d
+
         return simple2d.Subtraction2D(self, second)
 
     def translated(self, x, y=None):
         """ Returns current shape translated by a given offset """
         if isinstance(x, util.Vector):
             if y is not None:
-                raise TypeError("If first parameter is Vector, the others must be left unspecified.")
+                raise TypeError(
+                    "If first parameter is Vector, the others must be left unspecified."
+                )
             o = x
         else:
             if y is None:
-                raise ValueError("Y coordinate can only be missing if first parameter is a Vector.")
+                raise ValueError(
+                    "Y coordinate can only be missing if first parameter is a Vector."
+                )
             o = util.Vector(x, y)
 
         from . import simple2d
-        return simple2d.Transformation2D(self,
-                                         util.Quaternion.from_degrees(util.Vector(0, 0, 1), 0),
-                                         o)
+
+        return simple2d.Transformation2D(
+            self, util.Quaternion.from_degrees(util.Vector(0, 0, 1), 0), o
+        )
 
     def rotated(self, angle, n=1):
         """ Returns current shape rotated by given angle.
@@ -208,23 +222,32 @@ class Shape2D(SolidBodyTransformable2D, ShapeBase):
         For example angle = 180, n = 3 makes copies of self rotated by 60, 120
         and 180 degrees. """
         from . import simple2d
+
         if n == 1:
-            return simple2d.Transformation2D(self,
-                                             util.Quaternion.from_degrees(util.Vector(0, 0, 1), angle),
-                                             util.Vector(0, 0, 0))
+            return simple2d.Transformation2D(
+                self,
+                util.Quaternion.from_degrees(util.Vector(0, 0, 1), angle),
+                util.Vector(0, 0, 0),
+            )
         else:
             angle_step = angle / n
-            return simple2d.Union2D([self.rotated((1 + i) * angle_step) for i in range(n)])
+            return simple2d.Union2D(
+                [self.rotated((1 + i) * angle_step) for i in range(n)]
+            )
 
     def scaled(self, s):
         """ Returns current shape scaled by given ratio """
         from . import simple2d
-        return simple2d.Transformation2D(self,
-                                         util.Quaternion.from_degrees(util.Vector(0, 0, 1), 0, s),
-                                         util.Vector(0, 0, 0))
+
+        return simple2d.Transformation2D(
+            self,
+            util.Quaternion.from_degrees(util.Vector(0, 0, 1), 0, s),
+            util.Vector(0, 0, 0),
+        )
 
     def mirrored_x(self):
         from . import simple2d
+
         return simple2d.Mirror2D(self)
 
     def mirrored_y(self):
@@ -233,6 +256,7 @@ class Shape2D(SolidBodyTransformable2D, ShapeBase):
     def symmetrical_x(self):
         """ Return a shape with half-plane X < 0 replaced with mirrored half-plane X > 0 """
         from . import simple2d
+
         return simple2d.Symmetrical2D(self)
 
     def symmetrical_y(self):
@@ -242,20 +266,23 @@ class Shape2D(SolidBodyTransformable2D, ShapeBase):
     def offset(self, d):
         """ Returns current shape offset by given distance (positive is outside) """
         from . import simple2d
+
         return simple2d.Offset2D(self, d)
 
     def shell(self, wall_thickness):
         """ Returns a shell of the current shape (centered around the original surface) """
         from . import simple2d
+
         return simple2d.Shell2D(self, wall_thickness)
 
     def extruded(self, height, symmetrical=True):
         from . import simple3d
+
         s = simple3d.Extrusion(self, height)
         if symmetrical:
             return s
         else:
-            return s.translated(0, 0, height/2)
+            return s.translated(0, 0, height / 2)
 
     def revolved(self, r=0, twist=0):
         """ Returns current shape taken as 2D in xy plane and revolved around y axis.
@@ -266,21 +293,24 @@ class Shape2D(SolidBodyTransformable2D, ShapeBase):
         If `r` is > 0 then revolve acts like `.translated_x(r)` was applied before
         rotation with `r` = 0. This also moves the center of rotation of `r`"""
         from . import simple3d
+
         return simple3d.Revolution(self, r, twist)
 
     def transformed(self, transformation):
         from . import simple2d
+
         if not transformation.is_2d():
             raise ValueError("Transformation needs to be 2D only")
-        return simple2d.Transformation2D(self,
-                                         transformation.quaternion,
-                                         transformation.offset)
+        return simple2d.Transformation2D(
+            self, transformation.quaternion, transformation.offset
+        )
 
     def make_part(self, name, attributes=[]):
         from .. import assemblies
-        return assemblies.PartTransform2D(assemblies.Part(name, self, attributes),
-                                          util.Transformation.zero(),
-                                          True)
+
+        return assemblies.PartTransform2D(
+            assemblies.Part(name, self, attributes), util.Transformation.zero(), True
+        )
 
 
 class Shape3D(SolidBodyTransformable3D, ShapeBase):
@@ -292,28 +322,34 @@ class Shape3D(SolidBodyTransformable3D, ShapeBase):
 
     def __and__(self, second):
         from . import simple3d
+
         return simple3d.Intersection([self, second])
 
     def __add__(self, second):
         from . import simple3d
+
         return simple3d.Union([self, second])
 
     def __sub__(self, second):
         from . import simple3d
+
         return simple3d.Subtraction(self, second)
 
     def translated(self, x, y=None, z=None):
         """ Returns current shape translated by a given offset """
         if isinstance(x, util.Vector):
             if y is not None or z is not None:
-                raise TypeError("If first parameter is Vector, the others must be left unspecified.")
+                raise TypeError(
+                    "If first parameter is Vector, the others must be left unspecified."
+                )
             o = x
         else:
             o = util.Vector(x, y, z)
         from . import simple3d
-        return simple3d.Transformation(self,
-                                       util.Quaternion.from_degrees(util.Vector(0, 0, 1), 0),
-                                       o)
+
+        return simple3d.Transformation(
+            self, util.Quaternion.from_degrees(util.Vector(0, 0, 1), 0), o
+        )
 
     def rotated(self, vector, angle, n=1):
         """ Returns current shape rotated by an angle around the vector.
@@ -323,23 +359,32 @@ class Shape3D(SolidBodyTransformable3D, ShapeBase):
         For example angle = 180, n = 3 makes copies of self rotated by 60, 120
         and 180 degrees."""
         from . import simple3d
+
         if n == 1:
-            return simple3d.Transformation(self,
-                                           util.Quaternion.from_degrees(util.Vector(*vector), angle),
-                                           util.Vector(0, 0, 0))
+            return simple3d.Transformation(
+                self,
+                util.Quaternion.from_degrees(util.Vector(*vector), angle),
+                util.Vector(0, 0, 0),
+            )
         else:
             angle_step = angle / n
-            return simple3d.Union([self.rotated(vector, (1 + i) * angle_step) for i in range(n)])
+            return simple3d.Union(
+                [self.rotated(vector, (1 + i) * angle_step) for i in range(n)]
+            )
 
     def scaled(self, s):
         """ Returns current shape scaled by given ratio """
         from . import simple3d
-        return simple3d.Transformation(self,
-                                       util.Quaternion.from_degrees(util.Vector(0, 0, 1), 0, s),
-                                       util.Vector(0, 0, 0))
+
+        return simple3d.Transformation(
+            self,
+            util.Quaternion.from_degrees(util.Vector(0, 0, 1), 0, s),
+            util.Vector(0, 0, 0),
+        )
 
     def mirrored_x(self):
         from . import simple3d
+
         return simple3d.Mirror(self)
 
     def mirrored_y(self):
@@ -351,6 +396,7 @@ class Shape3D(SolidBodyTransformable3D, ShapeBase):
     def symmetrical_x(self):
         """ Return a shape with half-space X < 0 replaced with mirrored half-space X > 0 """
         from . import simple3d
+
         return simple3d.Symmetrical(self)
 
     def symmetrical_y(self):
@@ -363,27 +409,32 @@ class Shape3D(SolidBodyTransformable3D, ShapeBase):
 
     def offset(self, d):
         from . import simple3d
+
         return simple3d.Offset(self, d)
 
     def shell(self, wall_thickness):
         """ Returns a shell of the current shape (centered around the original surface) """
         from . import simple3d
+
         return simple3d.Shell(self, wall_thickness)
 
     def _repr_png_(self):
         from ..rendering import image
+
         with io.BytesIO() as fp:
             image.render_PIL_image(self, size=(800, 400)).save(fp, format="png")
             return fp.getvalue()
 
     def transformed(self, transformation):
         from . import simple3d
-        return simple3d.Transformation(self,
-                                       transformation.quaternion,
-                                       transformation.offset)
+
+        return simple3d.Transformation(
+            self, transformation.quaternion, transformation.offset
+        )
 
     def make_part(self, name, attributes=[]):
         from .. import assemblies
-        return assemblies.PartTransform3D(assemblies.Part(name, self, attributes),
-                                          util.Transformation.zero(),
-                                          True)
+
+        return assemblies.PartTransform3D(
+            assemblies.Part(name, self, attributes), util.Transformation.zero(), True
+        )

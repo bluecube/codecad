@@ -16,15 +16,14 @@ def sponge(iteration):
     if iteration == 0:
         return outline
 
-    bar = box(1/3, 1/3, float("inf"))
-    cross = bar + \
-        bar.rotated_x(90) + \
-        bar.rotated_y(90)
+    bar = box(1 / 3, 1 / 3, float("inf"))
+    cross = bar + bar.rotated_x(90) + bar.rotated_y(90)
 
-    scales = ((1/3)**i for i in range(iteration))
+    scales = ((1 / 3) ** i for i in range(iteration))
 
-    negative = union(codecad.shapes.unsafe.Repetition(cross.scaled(s), (s, s, s))
-                     for s in scales)
+    negative = union(
+        codecad.shapes.unsafe.Repetition(cross.scaled(s), (s, s, s)) for s in scales
+    )
 
     return outline - negative
 

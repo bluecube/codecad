@@ -12,6 +12,7 @@ from .. import assemblies
 
 class AssemblyMode(flags.Flags):
     """ Determining how assemblies are treated by the renderer """
+
     disabled = ()  # Only allow rendering individual shapes, assemblies raise an exception
     whole = ()  # Render the whole assembly at once using `.shape()`
     parts = ()  # Render all assembly parts separaterly using its BoM.
@@ -21,19 +22,31 @@ class AssemblyMode(flags.Flags):
 def commandline_render(obj, default_renderer=None, **kwargs):
     """ Reads commandline arguments, chooses a renderer and passes the parameters to it. """
 
-    parser = argparse.ArgumentParser(description='Render an object')
-    parser.add_argument('--output', '-o',
-                        help='File name of the output. '
-                             'If multiple files are saved, then this has to contain '
-                             'exactly one "{}" string which will be replaced by part name.')
-    parser.add_argument('--renderer', '-r', choices=_renderers,
-                        help='Renderer to use.')
-    parser.add_argument('--whole', '-w',
-                        action='store_const', const=AssemblyMode.whole, dest='assembly_mode',
-                        help='Render the assembly combined shape')
-    parser.add_argument('--parts', '-p',
-                        action='store_const', const=AssemblyMode.parts, dest='assembly_mode',
-                        help='Render all assembly parts from its BoM')
+    parser = argparse.ArgumentParser(description="Render an object")
+    parser.add_argument(
+        "--output",
+        "-o",
+        help="File name of the output. "
+        "If multiple files are saved, then this has to contain "
+        'exactly one "{}" string which will be replaced by part name.',
+    )
+    parser.add_argument("--renderer", "-r", choices=_renderers, help="Renderer to use.")
+    parser.add_argument(
+        "--whole",
+        "-w",
+        action="store_const",
+        const=AssemblyMode.whole,
+        dest="assembly_mode",
+        help="Render the assembly combined shape",
+    )
+    parser.add_argument(
+        "--parts",
+        "-p",
+        action="store_const",
+        const=AssemblyMode.parts,
+        dest="assembly_mode",
+        help="Render all assembly parts from its BoM",
+    )
 
     args = parser.parse_args()
 
@@ -87,7 +100,7 @@ def _render_one(renderer, shape, output, **kwargs):
 
 
 def _parse_name_format(string):
-    split = re.split(r'(?<!{){}|{}(?!})', string)
+    split = re.split(r"(?<!{){}|{}(?!})", string)
     if len(split) != 2:
         raise ValueError('Filename must contain exactly one occurence of "{}"')
     return split
@@ -107,7 +120,11 @@ def _register(name, module_name, extensions, assembly_mode, default_extension=No
         _extensions[extension] = name
 
     setattr(sys.modules[__name__], module_name, module)
-    _renderers[name] = (getattr(module, "render_" + name), default_extension, assembly_mode)
+    _renderers[name] = (
+        getattr(module, "render_" + name),
+        default_extension,
+        assembly_mode,
+    )
 
 
 _renderers = {}

@@ -12,7 +12,17 @@ cl_util.opencl_manager.add_compile_unit().append_resource("subdivision.cl")
 
 
 class _Helper:
-    def __init__(self, queue, grid_size, dimension, program_buffer, block_sizes, origin, resolution, final_blocks):
+    def __init__(
+        self,
+        queue,
+        grid_size,
+        dimension,
+        program_buffer,
+        block_sizes,
+        origin,
+        resolution,
+        final_blocks,
+    ):
         self.queue = queue
         self.grid_size = grid_size
         self.dimension = dimension
@@ -22,10 +32,15 @@ class _Helper:
         self.resolution = resolution
         self.final_blocks = final_blocks
 
-        self.counter = cl_util.Buffer(numpy.uint32, 1, pyopencl.mem_flags.READ_WRITE, queue=queue)
-        self.list = cl_util.Buffer(cl_util.Buffer.quad_dtype(numpy.uint8),
-                                   grid_size * grid_size * grid_size,
-                                   pyopencl.mem_flags.WRITE_ONLY, queue=queue)
+        self.counter = cl_util.Buffer(
+            numpy.uint32, 1, pyopencl.mem_flags.READ_WRITE, queue=queue
+        )
+        self.list = cl_util.Buffer(
+            cl_util.Buffer.quad_dtype(numpy.uint8),
+            grid_size * grid_size * grid_size,
+            pyopencl.mem_flags.WRITE_ONLY,
+            queue=queue,
+        )
 
         self.level = None
 
@@ -39,7 +54,9 @@ class _Helper:
         if self.dimension == 3:
             int_shifted_corner = int_box_corner + util.Vector.splat(int_box_step / 2)
         elif self.dimension == 2:
-            int_shifted_corner = int_box_corner + util.Vector(int_box_step / 2, int_box_step / 2)
+            int_shifted_corner = int_box_corner + util.Vector(
+                int_box_step / 2, int_box_step / 2
+            )
         else:
             assert False
 
@@ -51,12 +68,17 @@ class _Helper:
         # Enqueue write instead of fill to work around pyopencl bug #168
         fill_ev = self.counter.enqueue_write(numpy.zeros(1, self.counter.dtype))
 
-        return opencl_manager.k.subdivision_step(grid_dimensions, None,
-                                                 self.program_buffer,
-                                                 shifted_corner.as_float4(), numpy.float32(box_step),
-                                                 numpy.float32(distance_threshold),
-                                                 self.counter, self.list,
-                                                 wait_for=[fill_ev])
+        return opencl_manager.k.subdivision_step(
+            grid_dimensions,
+            None,
+            self.program_buffer,
+            shifted_corner.as_float4(),
+            numpy.float32(box_step),
+            numpy.float32(distance_threshold),
+            self.counter,
+            self.list,
+            wait_for=[fill_ev],
+        )
 
     def process_result(self, event):
         int_box_step = self.block_sizes[self.level][0]
@@ -66,8 +88,10 @@ class _Helper:
         intersecting_count = c[0]
         intersecting_indices = self.list.read()
 
-        int_intersecting_pos = [util.Vector(i, j, k) * int_box_step + self.int_box_corner
-                                for i, j, k, l in intersecting_indices[:intersecting_count]]
+        int_intersecting_pos = [
+            util.Vector(i, j, k) * int_box_step + self.int_box_corner
+            for i, j, k, l in intersecting_indices[:intersecting_count]
+        ]
 
         level = self.level + 1
         if level == len(self.block_sizes) - 1:
@@ -75,15 +99,23 @@ class _Helper:
             next_box_step = next_int_box_step * self.resolution
             for int_pos in int_intersecting_pos:
                 pos = int_pos * self.resolution + self.origin
-                self.final_blocks.append((self.block_sizes[level][1],
-                                          pos, next_box_step,
-                                          int_pos, next_int_box_step))
+                self.final_blocks.append(
+                    (
+                        self.block_sizes[level][1],
+                        pos,
+                        next_box_step,
+                        int_pos,
+                        next_int_box_step,
+                    )
+                )
             return []
         else:
             return ((int_pos, level) for int_pos in int_intersecting_pos)
 
 
-def calculate_block_sizes(box, dimension, resolution, grid_size, overlap, level_size_multiplier=1):
+def calculate_block_sizes(
+    box, dimension, resolution, grid_size, overlap, level_size_multiplier=1
+):
     # Figure out the layout of grids for processing.
     # There shouldn't ever be more than ~10 levels.
 
@@ -114,9 +146,21 @@ def calculate_block_sizes(box, dimension, resolution, grid_size, overlap, level_
             break
         cell_size = next_cell_size
 
-    block_sizes[-1] = (cell_size,
-                       util.Vector(*(util.clamp(util.round_up_to(math.ceil(x) + overlap_delta, level_size_multiplier), 1, s)
-                                   for x, s in zip(box_int_size / cell_size, level_size))))
+    block_sizes[-1] = (
+        cell_size,
+        util.Vector(
+            *(
+                util.clamp(
+                    util.round_up_to(
+                        math.ceil(x) + overlap_delta, level_size_multiplier
+                    ),
+                    1,
+                    s,
+                )
+                for x, s in zip(box_int_size / cell_size, level_size)
+            )
+        ),
+    )
 
     block_sizes.reverse()
     return block_sizes
@@ -159,32 +203,50 @@ def subdivision(shape, resolution, overlap_edge_samples=True, grid_size=None):
 
     assert resolution > 0, "Non-positive resolution makes no sense"
     assert grid_size > 1, "Grid needs to be at least 2x2x2"
-    assert grid_size <= 256, "Grid size > 256 would cause overflows in returned index list."
+    assert (
+        grid_size <= 256
+    ), "Grid size > 256 would cause overflows in returned index list."
 
     program_buffer = nodes.make_program_buffer(shape)
 
-    box = shape.bounding_box().expanded_additive(resolution/2)
+    box = shape.bounding_box().expanded_additive(resolution / 2)
     dimension = shape.dimension()
 
     if dimension == 2:
         box = box.flattened()
 
-    block_sizes = calculate_block_sizes(box,
-                                        shape.dimension(),
-                                        resolution,
-                                        grid_size,
-                                        overlap_edge_samples)
+    block_sizes = calculate_block_sizes(
+        box, shape.dimension(), resolution, grid_size, overlap_edge_samples
+    )
 
     if len(block_sizes) == 1:
-        return program_buffer, block_sizes[0][1], [(block_sizes[0][1], box.a, resolution, util.Vector(0, 0, 0), 1)]
+        return (
+            program_buffer,
+            block_sizes[0][1],
+            [(block_sizes[0][1], box.a, resolution, util.Vector(0, 0, 0), 1)],
+        )
 
     final_blocks = []
-    helper1 = _Helper(opencl_manager.queue, grid_size, dimension,
-                      program_buffer, block_sizes, box.a, resolution,
-                      final_blocks)
-    helper2 = _Helper(opencl_manager.queue, grid_size, dimension,
-                      program_buffer, block_sizes, box.a, resolution,
-                      final_blocks)
+    helper1 = _Helper(
+        opencl_manager.queue,
+        grid_size,
+        dimension,
+        program_buffer,
+        block_sizes,
+        box.a,
+        resolution,
+        final_blocks,
+    )
+    helper2 = _Helper(
+        opencl_manager.queue,
+        grid_size,
+        dimension,
+        program_buffer,
+        block_sizes,
+        box.a,
+        resolution,
+        final_blocks,
+    )
 
     cl_util.interleave([(util.Vector(0, 0, 0), 0)], helper1, helper2)
 

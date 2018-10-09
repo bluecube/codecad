@@ -13,7 +13,9 @@ import data
 codecad.cl_util.opencl_manager.add_compile_unit().append_resource("test_dsdf.cl")
 
 with_2d_shapes = pytest.mark.parametrize("dsdf_common", data.params_2d, indirect=True)
-with_all_shapes = pytest.mark.parametrize("dsdf_common", data.params_2d + data.params_3d, indirect=True)
+with_all_shapes = pytest.mark.parametrize(
+    "dsdf_common", data.params_2d + data.params_3d, indirect=True
+)
 
 
 @pytest.fixture(scope="module")
@@ -32,8 +34,9 @@ def dsdf_common(request):
     epsilon = 0.05
 
     box = shape.bounding_box()
-    assert all(a > -s and b < s for a, b, s in zip(box.a, box.b, size)), \
-        "Shape bounding box must fit into the fixed box"
+    assert all(
+        a > -s and b < s for a, b, s in zip(box.a, box.b, size)
+    ), "Shape bounding box must fit into the fixed box"
 
     scene_buffer = codecad.nodes.make_program_buffer(shape)
 
@@ -50,15 +53,13 @@ def eval_buffer(dsdf_common):
     box_step = dsdf_common["box_step"]
     scene_buffer = dsdf_common["scene_buffer"]
 
-    b = codecad.cl_util.Buffer((pyopencl.cltypes.float4, (2,)),
-                               size,
-                               pyopencl.mem_flags.READ_WRITE)
+    b = codecad.cl_util.Buffer(
+        (pyopencl.cltypes.float4, (2,)), size, pyopencl.mem_flags.READ_WRITE
+    )
 
-    ev = codecad.cl_util.opencl_manager.k.grid_eval_twice(size, None,
-                                                          scene_buffer,
-                                                          box_corner.as_float4(),
-                                                          numpy.float32(box_step),
-                                                          b)
+    ev = codecad.cl_util.opencl_manager.k.grid_eval_twice(
+        size, None, scene_buffer, box_corner.as_float4(), numpy.float32(box_step), b
+    )
 
     b.read(wait_for=[ev])
     return b
@@ -69,13 +70,13 @@ def actual_distance_buffer(dsdf_common, eval_buffer):
     size = dsdf_common["size"]
     box_step = dsdf_common["box_step"]
 
-    b = codecad.cl_util.Buffer(pyopencl.cltypes.float,
-                               size,
-                               pyopencl.mem_flags.WRITE_ONLY)
+    b = codecad.cl_util.Buffer(
+        pyopencl.cltypes.float, size, pyopencl.mem_flags.WRITE_ONLY
+    )
 
-    ev = codecad.cl_util.opencl_manager.k.actual_distance_to_surface(size, None,
-                                                                     numpy.float32(box_step),
-                                                                     eval_buffer, b)
+    ev = codecad.cl_util.opencl_manager.k.actual_distance_to_surface(
+        size, None, numpy.float32(box_step), eval_buffer, b
+    )
     b.read(wait_for=[ev])
     return b
 
@@ -88,16 +89,19 @@ def direction_buffer(dsdf_common):
     scene_buffer = dsdf_common["scene_buffer"]
     epsilon = dsdf_common["epsilon"]
 
-    b = codecad.cl_util.Buffer((pyopencl.cltypes.float3, (2,)),
-                               size,
-                               pyopencl.mem_flags.WRITE_ONLY)
+    b = codecad.cl_util.Buffer(
+        (pyopencl.cltypes.float3, (2,)), size, pyopencl.mem_flags.WRITE_ONLY
+    )
 
-    ev = codecad.cl_util.opencl_manager.k.estimate_direction(size, None,
-                                                             scene_buffer,
-                                                             box_corner.as_float4(),
-                                                             numpy.float32(box_step),
-                                                             numpy.float32(epsilon),
-                                                             b)
+    ev = codecad.cl_util.opencl_manager.k.estimate_direction(
+        size,
+        None,
+        scene_buffer,
+        box_corner.as_float4(),
+        numpy.float32(box_step),
+        numpy.float32(epsilon),
+        b,
+    )
     b.read(wait_for=[ev])
     return b
 
@@ -115,7 +119,7 @@ def test_direction_unit_length(eval_buffer):
     """ All directions must be unit length """
 
     for v in numpy.nditer(eval_buffer.array):
-        assert v["x"]**2 + v["y"]**2 + v["z"]**2 == pytest.approx(1)
+        assert v["x"] ** 2 + v["y"] ** 2 + v["z"] ** 2 == pytest.approx(1)
 
 
 @with_all_shapes
@@ -157,15 +161,19 @@ def test_dsdf_direction(eval_buffer, direction_buffer, dsdf_common):
     """ Direction calculated by `evaluate` is close to one calculated by finite differences """
 
     for index in numpy.ndindex(dsdf_common["size"]):
-        from_eval = codecad.util.Vector(eval_buffer[index][0][0],
-                                        eval_buffer[index][0][1],
-                                        eval_buffer[index][0][2])
-        from_differences1 = codecad.util.Vector(direction_buffer[index][0][0],
-                                                direction_buffer[index][0][1],
-                                                direction_buffer[index][0][2])
-        from_differences2 = codecad.util.Vector(direction_buffer[index][1][0],
-                                                direction_buffer[index][1][1],
-                                                direction_buffer[index][1][2])
+        from_eval = codecad.util.Vector(
+            eval_buffer[index][0][0], eval_buffer[index][0][1], eval_buffer[index][0][2]
+        )
+        from_differences1 = codecad.util.Vector(
+            direction_buffer[index][0][0],
+            direction_buffer[index][0][1],
+            direction_buffer[index][0][2],
+        )
+        from_differences2 = codecad.util.Vector(
+            direction_buffer[index][1][0],
+            direction_buffer[index][1][1],
+            direction_buffer[index][1][2],
+        )
 
         if abs(from_differences1 - from_differences2) > 1e-4:
             # Most likely a dicontinuity and the check doesn't make sense here

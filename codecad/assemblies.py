@@ -9,7 +9,9 @@ Part = collections.namedtuple("Part", "name data attributes")
 Assembly = collections.namedtuple("Assembly", "name instances attributes")
 
 
-class PartTransformBase(collections.namedtuple("PartTransform", "part transform visible")):
+class PartTransformBase(
+    collections.namedtuple("PartTransform", "part transform visible")
+):
     __slots__ = ()
 
     def dimension(self):
@@ -20,14 +22,10 @@ class PartTransformBase(collections.namedtuple("PartTransform", "part transform 
         return self.part.data.transformed(self.transform)
 
     def _transformed(self, transform):
-        return self.__class__(self.part,
-                              transform * self.transform,
-                              self.visible)
+        return self.__class__(self.part, transform * self.transform, self.visible)
 
     def hidden(self, hidden=True):
-        return self.__class__(self.part,
-                              self.transform,
-                              not hidden)
+        return self.__class__(self.part, self.transform, not hidden)
 
     @property
     def name(self):
@@ -42,32 +40,28 @@ class PartTransform2D(PartTransformBase, base.SolidBodyTransformable2D):
     __slots__ = ()
 
     def translated(self, x, y):
-        return self._transformed(util.Transformation.from_degrees((0, 0, 1),
-                                                                  0,
-                                                                  1,
-                                                                  (x, y, 0)))
+        return self._transformed(
+            util.Transformation.from_degrees((0, 0, 1), 0, 1, (x, y, 0))
+        )
 
     def rotated(self, angle):
-        return self._transformed(util.Transformation.from_degrees((0, 0, 1),
-                                                                  angle,
-                                                                  1,
-                                                                  (0, 0, 0)))
+        return self._transformed(
+            util.Transformation.from_degrees((0, 0, 1), angle, 1, (0, 0, 0))
+        )
 
 
 class PartTransform3D(PartTransformBase, base.SolidBodyTransformable3D):
     __slots__ = ()
 
     def translated(self, x, y, z):
-        return self._transformed(util.Transformation.from_degrees((0, 0, 1),
-                                                                  0,
-                                                                  1,
-                                                                  (x, y, z)))
+        return self._transformed(
+            util.Transformation.from_degrees((0, 0, 1), 0, 1, (x, y, z))
+        )
 
     def rotated(self, axis, angle):
-        return self._transformed(util.Transformation.from_degrees(axis,
-                                                                  angle,
-                                                                  1,
-                                                                  (0, 0, 0)))
+        return self._transformed(
+            util.Transformation.from_degrees(axis, angle, 1, (0, 0, 0))
+        )
 
 
 class BomItem:
@@ -111,7 +105,7 @@ class AssemblyInterface:
         otherwise only lists parts and assemblies directly added to this asm. """
         bom = collections.OrderedDict()
 
-        for instance in (self.all_instances() if recursive else self):
+        for instance in self.all_instances() if recursive else self:
             if visible_only and not instance.visible:
                 continue
 
@@ -135,9 +129,11 @@ class AssemblyInterface:
     def shape(self):
         """ Return single shape for the whole assembly put together.
         Parts that are not visible are not included. """
-        return shapes.union(instance.part.data.transformed(instance.transform)
-                            for instance in self.all_instances()
-                            if instance.visible).transformed(self.transform)
+        return shapes.union(
+            instance.part.data.transformed(instance.transform)
+            for instance in self.all_instances()
+            if instance.visible
+        ).transformed(self.transform)
 
 
 class AssemblyTransform2D(AssemblyInterface, PartTransform2D):
@@ -168,15 +164,13 @@ def assembly(name, instances, attributes=[]):
         if dimension is None:
             dimension = instance.dimension()
         elif dimension != instance.dimension():
-            raise ValueError("Part has different dimension (2D vs 3D) than the rest of parts in this assembly")
+            raise ValueError(
+                "Part has different dimension (2D vs 3D) than the rest of parts in this assembly"
+            )
 
     asm = Assembly(name, instances, attributes)
 
     if dimension == 2:
-        return AssemblyTransform2D(asm,
-                                   util.Transformation.zero(),
-                                   True)
+        return AssemblyTransform2D(asm, util.Transformation.zero(), True)
     else:
-        return AssemblyTransform3D(asm,
-                                   util.Transformation.zero(),
-                                   True)
+        return AssemblyTransform3D(asm, util.Transformation.zero(), True)

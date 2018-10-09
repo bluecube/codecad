@@ -10,7 +10,11 @@ notch = codecad.shapes.rectangle(15, 10).translated(55, 0)
 
 shape = (rectangle + circle + notch) - hole
 
-cutout = codecad.shapes.box(200, float("inf"), 200).translated(100, 0, 100).rotated((0, 1, 0), -45)
+cutout = (
+    codecad.shapes.box(200, float("inf"), 200)
+    .translated(100, 0, 100)
+    .rotated((0, 1, 0), -45)
+)
 
 o = shape.revolved() - cutout
 

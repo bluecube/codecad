@@ -10,11 +10,13 @@ from . import codegen
 
 from .. import util
 
-DEFAULT_COMPILER_OPTIONS = ["-Werror",
-                            "-cl-single-precision-constant",
-                            "-cl-denorms-are-zero",
-                            "-cl-no-signed-zeros",
-                            "-cl-fast-relaxed-math"]
+DEFAULT_COMPILER_OPTIONS = [
+    "-Werror",
+    "-cl-single-precision-constant",
+    "-cl-denorms-are-zero",
+    "-cl-no-signed-zeros",
+    "-cl-fast-relaxed-math",
+]
 
 
 class CompileUnit:
@@ -38,19 +40,22 @@ class CompileUnit:
         """ Append content of a file to this compile unit.
         Unless `filename` is absolute, filename is taken as relative to caller filename's directory."""
 
-        self.pieces.extend(codegen.resource_with_origin(resource_name,
-                                                        stacklevel=stacklevel + 1,
-                                                        include_origin=self.include_origin))
+        self.pieces.extend(
+            codegen.resource_with_origin(
+                resource_name,
+                stacklevel=stacklevel + 1,
+                include_origin=self.include_origin,
+            )
+        )
 
     def append_define(self, name, value, stacklevel=1):
-        self.append("#define {} {}".format(name, value),
-                    stacklevel=stacklevel + 1)
+        self.append("#define {} {}".format(name, value), stacklevel=stacklevel + 1)
 
     def append_flags(self, flags, prefix=None):
         """ Given a subclass of flags.Flags, generate defines for its values.
         If prefix is not specified, it is inferred from flags class name. """
         if prefix is None:
-            prefix = re.sub('(?!^)([A-Z]+)', r'_\1', flags.__name__).upper() + "_"
+            prefix = re.sub("(?!^)([A-Z]+)", r"_\1", flags.__name__).upper() + "_"
         elif prefix[-1] != "_":
             prefix = prefix + "_"
 
@@ -59,9 +64,11 @@ class CompileUnit:
 
     def append(self, code, stacklevel=1):
         """ Append a string to the compile unit. Ignores leading newlines. """
-        self.pieces.extend(codegen.string_with_origin(code,
-                                                      stacklevel=stacklevel + 1,
-                                                      include_origin=self.include_origin))
+        self.pieces.extend(
+            codegen.string_with_origin(
+                code, stacklevel=stacklevel + 1, include_origin=self.include_origin
+            )
+        )
 
 
 class _Kernels:
@@ -85,9 +92,11 @@ class OpenCLManager:
         for dev in self.context.devices:
             print("Device", dev.name)
 
-        self.queue = pyopencl.CommandQueue(self.context,
-                                           properties=pyopencl.command_queue_properties.OUT_OF_ORDER_EXEC_MODE_ENABLE |
-                                           pyopencl.command_queue_properties.PROFILING_ENABLE)
+        self.queue = pyopencl.CommandQueue(
+            self.context,
+            properties=pyopencl.command_queue_properties.OUT_OF_ORDER_EXEC_MODE_ENABLE
+            | pyopencl.command_queue_properties.PROFILING_ENABLE,
+        )
 
         self._compile_units = []
         self.common_header = CompileUnit()
@@ -106,8 +115,12 @@ class OpenCLManager:
         return ret
 
     def _build_program(self):
-        code = "\n".join(itertools.chain(self.common_header.pieces,
-                                         itertools.chain.from_iterable(cu.pieces for cu in self._compile_units)))
+        code = "\n".join(
+            itertools.chain(
+                self.common_header.pieces,
+                itertools.chain.from_iterable(cu.pieces for cu in self._compile_units),
+            )
+        )
         program = pyopencl.Program(self.context, code)
         with warnings.catch_warnings():
             # Intel OpenCL generates non empty output and that causes warnings

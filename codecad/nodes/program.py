@@ -28,13 +28,10 @@ class NodeCache:
 def get_shape_nodes(shape):
     cache = NodeCache()
     zero_transform = util.Transformation.zero()
-    point = cache.make_node("initial_transformation_to",
-                            zero_transform.as_list(),
-                            (),
-                            zero_transform)
-    return_node = cache.make_node("_return",
-                                  (),
-                                  (shape.get_node(point, cache),))
+    point = cache.make_node(
+        "initial_transformation_to", zero_transform.as_list(), (), zero_transform
+    )
+    return_node = cache.make_node("_return", (), (shape.get_node(point, cache),))
 
     return return_node
 
@@ -80,6 +77,8 @@ def make_program(shape):
 
 
 def make_program_buffer(shape):
-    return pyopencl.Buffer(opencl_manager.context,
-                           pyopencl.mem_flags.READ_ONLY | pyopencl.mem_flags.COPY_HOST_PTR,
-                           hostbuf=make_program(shape))
+    return pyopencl.Buffer(
+        opencl_manager.context,
+        pyopencl.mem_flags.READ_ONLY | pyopencl.mem_flags.COPY_HOST_PTR,
+        hostbuf=make_program(shape),
+    )

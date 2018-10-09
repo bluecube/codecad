@@ -1,8 +1,7 @@
-from . opencl_manager import instance as opencl_manager
+from .opencl_manager import instance as opencl_manager
 
 
-def generate_sum_helper(h_file, c_file, type_name,
-                        op="a + b", name=None):
+def generate_sum_helper(h_file, c_file, type_name, op="a + b", name=None):
     """ Generates header and implementation of a sum helper function.
 
     h_file is where the declaration goes, c_file where the definition goes.
@@ -16,7 +15,8 @@ def generate_sum_helper(h_file, c_file, type_name,
     if name is None:
         name = type_name
 
-    h_file.append("""
+    h_file.append(
+        """
 /** Sum get_local_size(0) values of type {type_name} in parallel with operation `{op}`.
 Input values are passed into the function as the first parameter.
 Sum of the group is returned for work item 0, otherwise this function
@@ -30,13 +30,21 @@ Barriers are used inside, so all threads in a workgroup must go through this
 function if any one goes through it.
 
 The algorithm works by recursively summing pairs, so it should work fairly well
-with floating point precision. */""".format(**locals()))
+with floating point precision. */""".format(
+            **locals()
+        )
+    )
 
     for f, end in [(h_file, ";"), (c_file, "\n{")]:
-        f.append("""
-{type_name} sum_helper_{name}({type_name} value, __local {type_name}* buffer){end}""".format(**locals()))
+        f.append(
+            """
+{type_name} sum_helper_{name}({type_name} value, __local {type_name}* buffer){end}""".format(
+                **locals()
+            )
+        )
 
-    c_file.append("""
+    c_file.append(
+        """
 
     size_t i = get_local_size(0);
 
@@ -60,14 +68,15 @@ with floating point precision. */""".format(**locals()))
     }}
 
     return value;
-}}""".format(**locals()))
+}}""".format(
+            **locals()
+        )
+    )
 
 
 parallel_sum_c = opencl_manager.add_compile_unit()
 parallel_sum_c.append_resource("parallel_sum.cl")
 opencl_manager.common_header.append_resource("parallel_sum.h")
 
-generate_sum_helper(opencl_manager.common_header, parallel_sum_c,
-                    type_name="float")
-generate_sum_helper(opencl_manager.common_header, parallel_sum_c,
-                    type_name="uint")
+generate_sum_helper(opencl_manager.common_header, parallel_sum_c, type_name="float")
+generate_sum_helper(opencl_manager.common_header, parallel_sum_c, type_name="uint")

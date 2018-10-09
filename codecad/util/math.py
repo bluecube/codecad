@@ -27,7 +27,7 @@ def round_up_to(x, y):
 
 
 def round_up_to_power_of_2(x):
-    return 2**math.ceil(math.log2(x))
+    return 2 ** math.ceil(math.log2(x))
 
 
 def clamp(v, lower, upper):

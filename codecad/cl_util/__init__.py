@@ -1,7 +1,7 @@
-from . cl_buffer import *
-from . cl_assert import *
-from . codegen import *
-from . opencl_manager import instance as opencl_manager
+from .cl_buffer import *
+from .cl_assert import *
+from .codegen import *
+from .opencl_manager import instance as opencl_manager
 from . import parallel_sum
 
 
@@ -25,6 +25,7 @@ def interleave2(job_func, initial_jobs):
 
     class _NoEvent:
         """ Helper class to simplify handling freshly created job functions """
+
         def wait(self):
             pass
 

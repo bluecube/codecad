@@ -16,11 +16,14 @@ from . import nodes
 opencl_manager.add_compile_unit().append_resource("mass_properties.cl")
 
 
-class MassProperties(collections.namedtuple("MassProperties", "volume centroid inertia_tensor")):
+class MassProperties(
+    collections.namedtuple("MassProperties", "volume centroid inertia_tensor")
+):
     """
     Contains volume of a body, position of its centroid and its inertia tensor.
     The inertia tensor is referenced to the centroid, not origin!
     """
+
     __slots__ = ()
 
 
@@ -35,20 +38,19 @@ def mass_properties(shape, resolution, grid_size=None):
     assert shape.dimension() == 3, "2D objects are not supported yet"
     assert resolution > 0, "Non-positive resolution makes no sense"
     assert grid_size > 1, "Grid needs to be at least 2x2x2"
-    assert grid_size**5 <= 2**32, "Centroid coordinate sums would overflow"
+    assert grid_size ** 5 <= 2 ** 32, "Centroid coordinate sums would overflow"
     # TODO: Increase this limit, use 64bit or figure out something else ...
 
     program_buffer = nodes.make_program_buffer(shape)
 
     box = shape.bounding_box()
-    block_sizes = subdivision.calculate_block_sizes(box,
-                                                    shape.dimension(),
-                                                    resolution,
-                                                    grid_size,
-                                                    overlap=False)
+    block_sizes = subdivision.calculate_block_sizes(
+        box, shape.dimension(), resolution, grid_size, overlap=False
+    )
 
-    block_sizes = [(resolution * cell_size, level_size)
-                   for cell_size, level_size in block_sizes]
+    block_sizes = [
+        (resolution * cell_size, level_size) for cell_size, level_size in block_sizes
+    ]
 
     integral_one = util.KahanSummation()
     integral_x = util.KahanSummation()
@@ -65,18 +67,18 @@ def mass_properties(shape, resolution, grid_size=None):
     function_evaluations = 0
 
     def job(job_id):
-        nonlocal integral_one, integral_x, integral_y, integral_z, \
-                 integral_xx, integral_yy, integral_zz, \
-                 integral_xy, integral_xz, integral_yz
+        nonlocal integral_one, integral_x, integral_y, integral_z, integral_xx, integral_yy, integral_zz, integral_xy, integral_xz, integral_yz
         nonlocal kernel_invocations, function_evaluations
 
         box_corner, level = job_id
 
         index_sums = cl_util.Buffer(numpy.uint32, 10, pyopencl.mem_flags.READ_WRITE)
-        intersecting_counter = cl_util.Buffer(numpy.uint32, 1, pyopencl.mem_flags.READ_WRITE)
-        intersecting_list = cl_util.Buffer(pyopencl.cltypes.uchar4,
-                                           grid_size**3,
-                                           pyopencl.mem_flags.WRITE_ONLY)
+        intersecting_counter = cl_util.Buffer(
+            numpy.uint32, 1, pyopencl.mem_flags.READ_WRITE
+        )
+        intersecting_list = cl_util.Buffer(
+            pyopencl.cltypes.uchar4, grid_size ** 3, pyopencl.mem_flags.WRITE_ONLY
+        )
 
         box_step = block_sizes[level][0]
         grid_dimensions = block_sizes[level][1]
@@ -89,15 +91,22 @@ def mass_properties(shape, resolution, grid_size=None):
 
         # Enqueue write instead of fill to work around pyopencl bug #168
         fill_ev = index_sums.enqueue_write(numpy.zeros(10, index_sums.dtype))
-        fill_ev = intersecting_counter.enqueue_write(numpy.zeros(1, intersecting_counter.dtype), wait_for=[fill_ev])
+        fill_ev = intersecting_counter.enqueue_write(
+            numpy.zeros(1, intersecting_counter.dtype), wait_for=[fill_ev]
+        )
 
-        yield opencl_manager.k.mass_properties(grid_dimensions, None,
-                                               program_buffer,
-                                               shifted_corner.as_float4(), numpy.float32(box_step),
-                                               numpy.float32(distance_threshold),
-                                               index_sums,
-                                               intersecting_counter, intersecting_list,
-                                               wait_for=[fill_ev])
+        yield opencl_manager.k.mass_properties(
+            grid_dimensions,
+            None,
+            program_buffer,
+            shifted_corner.as_float4(),
+            numpy.float32(box_step),
+            numpy.float32(distance_threshold),
+            index_sums,
+            intersecting_counter,
+            intersecting_list,
+            wait_for=[fill_ev],
+        )
         kernel_invocations += 1
         function_evaluations += functools.reduce(operator.mul, grid_dimensions)
 
@@ -113,8 +122,9 @@ def mass_properties(shape, resolution, grid_size=None):
         b = box_corner + util.Vector.splat(s / 2)
 
         # Order is defined in mass_properties.cl
-        sum_xx, sum_xy, sum_xz, sum_x, sum_yy, sum_yz, \
-            sum_y, sum_zz, sum_z, n = index_sums.read()
+        sum_xx, sum_xy, sum_xz, sum_x, sum_yy, sum_yz, sum_y, sum_zz, sum_z, n = (
+            index_sums.read()
+        )
 
         tmp_x = s * sum_x
         tmp_y = s * sum_y
@@ -141,8 +151,10 @@ def mass_properties(shape, resolution, grid_size=None):
         assert level < len(block_sizes) or intersecting_count == 0
 
         intersecting_event.wait()
-        return ((util.Vector(i, j, k) * s + box_corner, level)
-                for i, j, k, l in intersecting_list[:intersecting_count])
+        return (
+            (util.Vector(i, j, k) * s + box_corner, level)
+            for i, j, k, l in intersecting_list[:intersecting_count]
+        )
 
     cl_util.interleave2(job, [(box.a, 0)])
 
@@ -171,20 +183,47 @@ def mass_properties(shape, resolution, grid_size=None):
 
     # Prepare the inertia tensor based on the integrals, but make it referenced
     # to object centroid instead of origin
-    shifted_integral_xx = integral_xx - 2 * centroid.x * integral_x + centroid.x * centroid.x * integral_one
-    shifted_integral_yy = integral_yy - 2 * centroid.y * integral_y + centroid.y * centroid.y * integral_one
-    shifted_integral_zz = integral_zz - 2 * centroid.z * integral_z + centroid.z * centroid.z * integral_one
-    shifted_integral_xy = integral_xy - centroid.x * integral_y - centroid.y * integral_x + centroid.x * centroid.y * integral_one
-    shifted_integral_xz = integral_xz - centroid.x * integral_z - centroid.z * integral_x + centroid.x * centroid.z * integral_one
-    shifted_integral_yz = integral_yz - centroid.y * integral_z - centroid.z * integral_y + centroid.y * centroid.z * integral_one
+    shifted_integral_xx = (
+        integral_xx
+        - 2 * centroid.x * integral_x
+        + centroid.x * centroid.x * integral_one
+    )
+    shifted_integral_yy = (
+        integral_yy
+        - 2 * centroid.y * integral_y
+        + centroid.y * centroid.y * integral_one
+    )
+    shifted_integral_zz = (
+        integral_zz
+        - 2 * centroid.z * integral_z
+        + centroid.z * centroid.z * integral_one
+    )
+    shifted_integral_xy = (
+        integral_xy
+        - centroid.x * integral_y
+        - centroid.y * integral_x
+        + centroid.x * centroid.y * integral_one
+    )
+    shifted_integral_xz = (
+        integral_xz
+        - centroid.x * integral_z
+        - centroid.z * integral_x
+        + centroid.x * centroid.z * integral_one
+    )
+    shifted_integral_yz = (
+        integral_yz
+        - centroid.y * integral_z
+        - centroid.z * integral_y
+        + centroid.y * centroid.z * integral_one
+    )
     I_xx = shifted_integral_yy + shifted_integral_zz
     I_yy = shifted_integral_xx + shifted_integral_zz
     I_zz = shifted_integral_xx + shifted_integral_yy
     I_xy = -shifted_integral_xy
     I_xz = -shifted_integral_xz
     I_yz = -shifted_integral_yz
-    inertia_tensor = numpy.array([[I_xx, I_xy, I_xz],
-                                  [I_xy, I_yy, I_yz],
-                                  [I_xz, I_yz, I_zz]])
+    inertia_tensor = numpy.array(
+        [[I_xx, I_xy, I_xz], [I_xy, I_yy, I_yz], [I_xz, I_yz, I_zz]]
+    )
 
     return MassProperties(volume, centroid, inertia_tensor)

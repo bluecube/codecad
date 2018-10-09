@@ -50,7 +50,9 @@ class FileBaselineCompare:
         if not os.path.exists(self.baseline_filename):
             os.makedirs(os.path.dirname(self.baseline_filename), exist_ok=True)
             shutil.move(self.tested_filename, self.baseline_filename)
-            pytest.skip("Baseline file was missing, will use the current result next time")
+            pytest.skip(
+                "Baseline file was missing, will use the current result next time"
+            )
         else:
             baseline_fp = self._stack.enter_context(open(self.baseline_filename, "rb"))
             tested_fp = self._stack.enter_context(open(self.tested_filename, "rb"))
@@ -95,9 +97,13 @@ def assert_shapes_equal(shape, expected, resolution=0.1):
     assert volume <= box.volume() * 0.001
 
     shape_render = io.BytesIO()
-    codecad.rendering.image.render_PIL_image(shape, size=(800, 400)).save(shape_render, format="png")
+    codecad.rendering.image.render_PIL_image(shape, size=(800, 400)).save(
+        shape_render, format="png"
+    )
     shape_render.seek(0)
     expected_render = io.BytesIO()
-    codecad.rendering.image.render_PIL_image(expected, size=(800, 400)).save(expected_render, format="png")
+    codecad.rendering.image.render_PIL_image(expected, size=(800, 400)).save(
+        expected_render, format="png"
+    )
     expected_render.seek(0)
     assert_images_equal(shape_render, expected_render)

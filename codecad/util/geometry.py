@@ -71,9 +71,11 @@ class Vector(collections.namedtuple("Vector", "x y z")):
         return self.x * other.x + self.y * other.y + self.z * other.z
 
     def cross(self, other):
-        return Vector(self.y * other.z - self.z * other.y,
-                      self.z * other.x - self.x * other.z,
-                      self.x * other.y - self.y * other.x)
+        return Vector(
+            self.y * other.z - self.z * other.y,
+            self.z * other.x - self.x * other.z,
+            self.x * other.y - self.y * other.x,
+        )
 
     def normalized(self):
         return self / abs(self)
@@ -82,9 +84,7 @@ class Vector(collections.namedtuple("Vector", "x y z")):
         if other is None:
             return op(self.x, self.y, self.z)
         else:
-            return Vector(op(self.x, other.x),
-                          op(self.y, other.y),
-                          op(self.z, other.z))
+            return Vector(op(self.x, other.x), op(self.y, other.y), op(self.z, other.z))
 
     def applyfunc(self, f):
         return Vector(f(self.x), f(self.y), f(self.z))
@@ -142,14 +142,12 @@ class BoundingBox(collections.namedtuple("BoundingBox", "a b")):
     def expanded(self, expansion_factor):
         """ Expand the bounding box by a given factor on each side """
         expansion_vector = self.size() * expansion_factor
-        return BoundingBox(self.a - expansion_vector,
-                           self.b + expansion_vector)
+        return BoundingBox(self.a - expansion_vector, self.b + expansion_vector)
 
     def expanded_additive(self, expansion):
         """ Expand the bounding box by a given factor on each side """
         expansion_vector = Vector.splat(expansion)
-        return BoundingBox(self.a - expansion_vector,
-                           self.b + expansion_vector)
+        return BoundingBox(self.a - expansion_vector, self.b + expansion_vector)
 
     def size(self):
         return self.b - self.a
@@ -187,16 +185,17 @@ class Quaternion(collections.namedtuple("Quaternion", "v w")):
         phi = math.radians(angle) / 2
         mul = math.sqrt(scale)
         axis = Vector(*axis)
-        return cls(axis.normalized() * math.sin(phi) * mul,
-                   math.cos(phi) * mul)
+        return cls(axis.normalized() * math.sin(phi) * mul, math.cos(phi) * mul)
 
     @classmethod
     def zero(cls):
         return cls(Vector.zero(), 1)
 
     def __mul__(self, other):
-        return Quaternion(self.v * other.w + other.v * self.w + self.v.cross(other.v),
-                          self.w * other.w - self.v.dot(other.v))
+        return Quaternion(
+            self.v * other.w + other.v * self.w + self.v.cross(other.v),
+            self.w * other.w - self.v.dot(other.v),
+        )
 
     def abs_squared(self):
         return self.w * self.w + self.v.abs_squared()
@@ -209,8 +208,9 @@ class Quaternion(collections.namedtuple("Quaternion", "v w")):
         return Quaternion(-self.v, self.w)
 
     def transform_vector(self, vector):
-        return (self.v * self.v.dot(vector) + self.v.cross(vector) * self.w) * 2 + \
-                vector * (self.w * self.w - self.v.abs_squared())
+        return (
+            self.v * self.v.dot(vector) + self.v.cross(vector) * self.w
+        ) * 2 + vector * (self.w * self.w - self.v.abs_squared())
 
     def as_list(self):
         """ Return parameters as a list of floats (for nodes) """
@@ -223,21 +223,25 @@ class Quaternion(collections.namedtuple("Quaternion", "v w")):
         Currently this is slow (but robust) and only intended for testing.
         """
 
-        ret = numpy.hstack([self.transform_vector(Vector(1, 0, 0)).as_matrix(),
-                            self.transform_vector(Vector(0, 1, 0)).as_matrix(),
-                            self.transform_vector(Vector(0, 0, 1)).as_matrix(),
-                            [[0], [0], [0], [1]]])
+        ret = numpy.hstack(
+            [
+                self.transform_vector(Vector(1, 0, 0)).as_matrix(),
+                self.transform_vector(Vector(0, 1, 0)).as_matrix(),
+                self.transform_vector(Vector(0, 0, 1)).as_matrix(),
+                [[0], [0], [0], [1]],
+            ]
+        )
         return ret
 
 
 class Transformation(collections.namedtuple("Transformation", "quaternion offset")):
     """ Quaternion and a vector offset """
+
     __slots__ = ()
 
     @classmethod
     def from_degrees(cls, axis, angle, scale, offset):
-        return cls(Quaternion.from_degrees(axis, angle, scale),
-                   Vector(*offset))
+        return cls(Quaternion.from_degrees(axis, angle, scale), Vector(*offset))
 
     @classmethod
     def zero(cls):
@@ -246,13 +250,16 @@ class Transformation(collections.namedtuple("Transformation", "quaternion offset
     def __mul__(self, other):
         """ Combines two transformations into one,
         order is "second * first" """
-        return Transformation(self.quaternion * other.quaternion,
-                              self.offset + self.quaternion.transform_vector(other.offset))
+        return Transformation(
+            self.quaternion * other.quaternion,
+            self.offset + self.quaternion.transform_vector(other.offset),
+        )
 
     def inverse(self):
         inverse_quaternion = self.quaternion.inverse()
-        return Transformation(inverse_quaternion,
-                              -inverse_quaternion.transform_vector(self.offset))
+        return Transformation(
+            inverse_quaternion, -inverse_quaternion.transform_vector(self.offset)
+        )
 
     def transform_vector(self, vector):
         return self.quaternion.transform_vector(vector) + self.offset
@@ -272,6 +279,6 @@ class Transformation(collections.namedtuple("Transformation", "quaternion offset
         return ret
 
     def is_2d(self):
-        return self.quaternion.v.x == 0 and \
-               self.quaternion.v.y == 0 and \
-               self.offset.z == 0
+        return (
+            self.quaternion.v.x == 0 and self.quaternion.v.y == 0 and self.offset.z == 0
+        )

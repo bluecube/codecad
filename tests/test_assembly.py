@@ -34,17 +34,24 @@ def asm_data():
     for i in range(1, n + 1):
         s = data.bin_counter(i).extruded(0.1)
 
-        row_parts.append(codecad.assembly("row_{}".format(i),
-                                          [row_parts[-1],
-                                           s.make_part("shape_{}".format(i))
-                                            .translated_x(0.5 + 2 * i)
-                                           ]))
+        row_parts.append(
+            codecad.assembly(
+                "row_{}".format(i),
+                [
+                    row_parts[-1],
+                    s.make_part("shape_{}".format(i)).translated_x(0.5 + 2 * i),
+                ],
+            )
+        )
         row_shapes.append(row_shapes[-1] + s.translated_x(0.5 + 2 * i))
 
-    assembly = codecad.assembly("test_assembly", [row.translated_y(i * y_spacing)
-                                for i, row in enumerate(row_parts)])
-    shape = codecad.shapes.union([row.translated_y(i * y_spacing)
-                                  for i, row in enumerate(row_shapes)])
+    assembly = codecad.assembly(
+        "test_assembly",
+        [row.translated_y(i * y_spacing) for i, row in enumerate(row_parts)],
+    )
+    shape = codecad.shapes.union(
+        [row.translated_y(i * y_spacing) for i, row in enumerate(row_shapes)]
+    )
 
     assembly = assembly.rotated_x(90)
     shape = shape.rotated_x(90)
@@ -116,8 +123,7 @@ def test_subassembly_items(asm_data):
 
 def test_visible_bom():
     o = codecad.shapes.sphere()
-    asm = codecad.assembly("test",
-                           [o.make_part("1"), o.make_part("2").hidden()])
+    asm = codecad.assembly("test", [o.make_part("1"), o.make_part("2").hidden()])
 
     assert len(list(asm.bom())) == 2
     assert len(list(asm.bom(visible_only=True))) == 1
