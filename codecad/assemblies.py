@@ -39,9 +39,9 @@ class PartTransformBase(
 class PartTransform2D(PartTransformBase, base.SolidBodyTransformable2D):
     __slots__ = ()
 
-    def translated(self, x, y):
+    def _translated(self, offset):
         return self._transformed(
-            util.Transformation.from_degrees((0, 0, 1), 0, 1, (x, y, 0))
+            util.Transformation.from_degrees((0, 0, 1), 0, 1, offset)
         )
 
     def rotated(self, angle):
@@ -53,9 +53,9 @@ class PartTransform2D(PartTransformBase, base.SolidBodyTransformable2D):
 class PartTransform3D(PartTransformBase, base.SolidBodyTransformable3D):
     __slots__ = ()
 
-    def translated(self, x, y, z):
+    def _translated(self, offset):
         return self._transformed(
-            util.Transformation.from_degrees((0, 0, 1), 0, 1, (x, y, z))
+            util.Transformation.from_degrees((0, 0, 1), 0, 1, offset)
         )
 
     def rotated(self, axis, angle):

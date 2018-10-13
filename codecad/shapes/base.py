@@ -111,48 +111,61 @@ class ShapeBase(metaclass=abc.ABCMeta):
 
 
 class SolidBodyTransformable2D(metaclass=abc.ABCMeta):
-    @abc.abstractmethod
     def translated(self, x, y=None):
         """ Returns current shape translated by a given offset """
+        if y is None:
+            v = util.wrap_vector_like(x)
+        else:
+            v = util.Vector(x, y)
+        return self._translated(v)
 
     def translated_x(self, distance):
         """ Translate along X axis by given angle.
         Alias for translated() remaining two arguments set to zero. """
-        return self.translated(distance, 0)
+        return self._translated(util.Vector(distance, 0))
 
     def translated_y(self, distance):
         """ Translate along Y axis by given angle.
         Alias for translated() remaining two arguments set to zero. """
-        return self.translated(0, distance)
+        return self._translated(util.Vector(0, distance))
+
+    @abc.abstractmethod
+    def _translated(self, offset):
+        """ Internal implementation of translated, gets properly processed offset vector.
+        Must be overridden by subclasses. """
 
     @abc.abstractmethod
     def rotated(self, angle):
-        """ Returns current shape rotated by given angle. """
+        """ Returns current shape rotated by given angle.
+        Must be overridden by subclasses. """
 
 
 class SolidBodyTransformable3D(metaclass=abc.ABCMeta):
-    @abc.abstractmethod
     def translated(self, x, y=None, z=None):
-        """ Returns current shape translated by a given offset """
+        """ Returns current shape translated by a given offset.
+        Arguments are either a single vector-like or three numbers. """
+        if y is None and z is None:
+            v = util.wrap_vector_like(x)
+        elif y is not None and z is not None:
+            v = util.Vector(x, y, z)
+        else:
+            raise ValueError("If y is specified, then z has to be too.")
+        return self._translated(v)
 
     def translated_x(self, distance):
         """ Translate along X axis by given angle.
         Alias for translated() remaining two arguments set to zero. """
-        return self.translated(distance, 0, 0)
+        return self._translated(util.Vector(distance, 0, 0))
 
     def translated_y(self, distance):
         """ Translate along Y axis by given angle.
         Alias for translated() remaining two arguments set to zero. """
-        return self.translated(0, distance, 0)
+        return self._translated(util.Vector(0, distance, 0))
 
     def translated_z(self, distance):
         """ Translate along Z axis by given angle.
         Alias for translated() remaining two arguments set to zero. """
-        return self.translated(0, 0, distance)
-
-    @abc.abstractmethod
-    def rotated(self, vector, angle):
-        """ Returns current shape rotated by an angle around the vector. """
+        return self._translated(util.Vector(0, 0, distance))
 
     def rotated_x(self, angle):
         """ Rotate around X axis by given angle.
@@ -168,6 +181,16 @@ class SolidBodyTransformable3D(metaclass=abc.ABCMeta):
         """ Rotate around Z axis by given angle.
         Alias for rotated() with first argument set to (0, 0, 1). """
         return self.rotated((0, 0, 1), angle)
+
+    @abc.abstractmethod
+    def _translated(self, v):
+        """ Internal implementation of translated, gets properly processed offset vector.
+        Must be overridden by subclasses. """
+
+    @abc.abstractmethod
+    def rotated(self, vector, angle):
+        """ Returns current shape rotated by an angle around the vector.
+        Must be overridden by subclasses. """
 
 
 class Shape2D(SolidBodyTransformable2D, ShapeBase):
@@ -192,25 +215,13 @@ class Shape2D(SolidBodyTransformable2D, ShapeBase):
 
         return simple2d.Subtraction2D(self, second)
 
-    def translated(self, x, y=None):
+    def _translated(self, offset):
         """ Returns current shape translated by a given offset """
-        if isinstance(x, util.Vector):
-            if y is not None:
-                raise TypeError(
-                    "If first parameter is Vector, the others must be left unspecified."
-                )
-            o = x
-        else:
-            if y is None:
-                raise ValueError(
-                    "Y coordinate can only be missing if first parameter is a Vector."
-                )
-            o = util.Vector(x, y)
 
         from . import simple2d
 
         return simple2d.Transformation2D(
-            self, util.Quaternion.from_degrees(util.Vector(0, 0, 1), 0), o
+            self, util.Quaternion.from_degrees(util.Vector(0, 0, 1), 0), offset
         )
 
     def rotated(self, angle, n=1):
@@ -334,20 +345,12 @@ class Shape3D(SolidBodyTransformable3D, ShapeBase):
 
         return simple3d.Subtraction(self, second)
 
-    def translated(self, x, y=None, z=None):
+    def _translated(self, offset):
         """ Returns current shape translated by a given offset """
-        if isinstance(x, util.Vector):
-            if y is not None or z is not None:
-                raise TypeError(
-                    "If first parameter is Vector, the others must be left unspecified."
-                )
-            o = x
-        else:
-            o = util.Vector(x, y, z)
         from . import simple3d
 
         return simple3d.Transformation(
-            self, util.Quaternion.from_degrees(util.Vector(0, 0, 1), 0), o
+            self, util.Quaternion.from_degrees(util.Vector(0, 0, 1), 0), offset
         )
 
     def rotated(self, vector, angle, n=1):
