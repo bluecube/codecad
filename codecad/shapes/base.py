@@ -183,12 +183,12 @@ class SolidBodyTransformable3D(metaclass=abc.ABCMeta):
         return self.rotated((0, 0, 1), angle)
 
     @abc.abstractmethod
-    def _translated(self, v):
+    def _translated(self, offset):
         """ Internal implementation of translated, gets properly processed offset vector.
         Must be overridden by subclasses. """
 
     @abc.abstractmethod
-    def rotated(self, vector, angle):
+    def rotated(self, axis, angle):
         """ Returns current shape rotated by an angle around the vector.
         Must be overridden by subclasses. """
 
@@ -353,7 +353,7 @@ class Shape3D(SolidBodyTransformable3D, ShapeBase):
             self, util.Quaternion.from_degrees(util.Vector(0, 0, 1), 0), offset
         )
 
-    def rotated(self, vector, angle, n=1):
+    def rotated(self, axis, angle, n=1):
         """ Returns current shape rotated by an angle around the vector.
 
         If n > 1, returns an union of n copies of self, rotated in regular intervals
@@ -365,13 +365,13 @@ class Shape3D(SolidBodyTransformable3D, ShapeBase):
         if n == 1:
             return simple3d.Transformation(
                 self,
-                util.Quaternion.from_degrees(util.Vector(*vector), angle),
+                util.Quaternion.from_degrees(util.wrap_vector_like(axis), angle),
                 util.Vector(0, 0, 0),
             )
         else:
             angle_step = angle / n
             return simple3d.Union(
-                [self.rotated(vector, (1 + i) * angle_step) for i in range(n)]
+                [self.rotated(axis, (1 + i) * angle_step) for i in range(n)]
             )
 
     def scaled(self, s):
