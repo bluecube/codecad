@@ -22,7 +22,7 @@ def triangular_mesh(obj, subdivision_grid_size=None, debug_subdivision_boxes=Fal
         opencl_manager.context, pyopencl.mem_flags.WRITE_ONLY, block.nbytes
     )
 
-    for i, (box_size, box_corner, box_resolution, *_) in enumerate(boxes):
+    for box_size, box_corner, box_resolution, *_ in boxes:
         if debug_subdivision_boxes:
             # Export just an outline of the block instead of displaying its contents
             vertices = [
@@ -62,7 +62,7 @@ def triangular_mesh(obj, subdivision_grid_size=None, debug_subdivision_boxes=Fal
 
         vertices, triangles = mcubes.marching_cubes(block, 0)
 
-        if len(triangles) == 0:
+        if not len(triangles):
             continue
 
         vertices[:, [0, 1]] = vertices[:, [1, 0]]

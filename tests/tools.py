@@ -97,12 +97,12 @@ def assert_shapes_equal(shape, expected, resolution=0.1):
     assert volume <= box.volume() * 0.001
 
     shape_render = io.BytesIO()
-    codecad.rendering.image.render_PIL_image(shape, size=(800, 400)).save(
+    codecad.rendering.image.render_pil_image(shape, size=(800, 400)).save(
         shape_render, format="png"
     )
     shape_render.seek(0)
     expected_render = io.BytesIO()
-    codecad.rendering.image.render_PIL_image(expected, size=(800, 400)).save(
+    codecad.rendering.image.render_pil_image(expected, size=(800, 400)).save(
         expected_render, format="png"
     )
     expected_render.seek(0)

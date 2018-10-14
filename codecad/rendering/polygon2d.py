@@ -8,7 +8,7 @@ from .. import subdivision
 
 opencl_manager.add_compile_unit().append_resource("polygon2d.cl")
 
-_link_overflow_mask = 0xfff00000
+_LINK_OVERFLOW_MASK = 0xfff00000
 
 
 def _collect_polygon(vertices, links, starting_index, chain):
@@ -16,13 +16,13 @@ def _collect_polygon(vertices, links, starting_index, chain):
     Returns the overflow spec of the last (invalid) link. """
     i = starting_index
 
-    while not i & _link_overflow_mask:
+    while not i & _LINK_OVERFLOW_MASK:
         chain.append(tuple(vertices[i]))
         last_index = i
         i = links[i]
-        links[last_index] = _link_overflow_mask
+        links[last_index] = _LINK_OVERFLOW_MASK
 
-    return i & _link_overflow_mask
+    return i & _LINK_OVERFLOW_MASK
 
 
 def _step_from_overflow_spec(spec):
@@ -76,10 +76,12 @@ def polygon(obj, subdivision_grid_size=None):
     open_chain_ends = {}
 
     for (
-        i,
-        (box_size, box_corner, box_resolution, int_box_corner, int_box_resolution),
-    ) in enumerate(boxes):
-
+        box_size,
+        box_corner,
+        box_resolution,
+        int_box_corner,
+        int_box_resolution,
+    ) in boxes:
         if len(boxes) > 1:
             assert box_size[0] == box_size[1]
             int_box_step = int_box_resolution * (box_size[0] - 1)
@@ -119,8 +121,8 @@ def polygon(obj, subdivision_grid_size=None):
         # First handle the open chains
         assert start_counter[0] < len(starts)
         for starting_index in starts[: start_counter[0]]:
-            overflow_spec = starting_index & _link_overflow_mask
-            starting_index = starting_index & (~_link_overflow_mask)
+            overflow_spec = starting_index & _LINK_OVERFLOW_MASK
+            starting_index = starting_index & (~_LINK_OVERFLOW_MASK)
 
             # Find existing chain in open chains that can be continued here, or
             # create a new one
@@ -161,11 +163,11 @@ def polygon(obj, subdivision_grid_size=None):
         # Next go through the whole array and find all cells that have valid links
         # Each of these must be a part of a closed chain
         for starting_index in range(len(vertices)):
-            if links[starting_index] & _link_overflow_mask:
+            if links[starting_index] & _LINK_OVERFLOW_MASK:
                 continue
-            polygon = []
-            _collect_polygon(vertices, links, starting_index, polygon)
-            yield polygon  # Closed chains can be yielded directly
+            output_polygon = []
+            _collect_polygon(vertices, links, starting_index, output_polygon)
+            yield output_polygon  # Closed chains can be yielded directly
 
     assert len(open_chain_beginnings) == 0
     assert len(open_chain_ends) == 0

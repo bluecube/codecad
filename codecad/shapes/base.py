@@ -106,7 +106,7 @@ class ShapeBase(metaclass=abc.ABCMeta):
         from ..rendering import image
 
         with io.BytesIO() as fp:
-            image.render_PIL_image(self, size=(800, 400)).save(fp, format="png")
+            image.render_pil_image(self, size=(800, 400)).save(fp, format="png")
             return fp.getvalue()
 
 
@@ -428,7 +428,7 @@ class Shape3D(SolidBodyTransformable3D, ShapeBase):
         from ..rendering import image
 
         with io.BytesIO() as fp:
-            image.render_PIL_image(self, size=(800, 400)).save(fp, format="png")
+            image.render_pil_image(self, size=(800, 400)).save(fp, format="png")
             return fp.getvalue()
 
     def transformed(self, transformation):

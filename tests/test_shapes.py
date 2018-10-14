@@ -18,7 +18,7 @@ def test_repeated_rotation_bbox_tightness():
     cube = codecad.shapes.box()
     original_bbox = cube.bounding_box()
 
-    for i in range(12):
+    for _i in range(12):
         cube = cube.rotated_y(45)
 
     assert cube.bounding_box() == approx(original_bbox)

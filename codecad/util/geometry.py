@@ -134,7 +134,9 @@ class BoundingBox(collections.namedtuple("BoundingBox", "a b")):
             b_tmp = max(a_tmp, min(b1, b2))
             a.append(a_tmp)
             b.append(b_tmp)
-        return BoundingBox(Vector(*a), Vector(*b))
+        return BoundingBox(
+            Vector(*a), Vector(*b)
+        )  # noqa The vector constructor calls are perfectly ok, pylint is drunk.
 
     def union(self, other):
         return BoundingBox(self.a.min(other.a), self.b.max(other.b))

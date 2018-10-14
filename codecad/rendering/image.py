@@ -4,7 +4,7 @@ from . import ray_caster
 from . import bitmap
 
 
-def render_PIL_image(obj, size=(1024, 768), view_angle=None):
+def render_pil_image(obj, size=(1024, 768), view_angle=None):
     if obj.dimension() == 2:
         pixels = bitmap.render(obj, size)
     else:
@@ -17,4 +17,4 @@ def render_PIL_image(obj, size=(1024, 768), view_angle=None):
 
 
 def render_image(obj, filename, size=(1024, 768), view_angle=None):
-    render_PIL_image(obj, size, view_angle).save(filename)
+    render_pil_image(obj, size, view_angle).save(filename)

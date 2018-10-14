@@ -111,7 +111,7 @@ def _register(name, module_name, extensions, assembly_mode, default_extension=No
         print("Renderer {} is unavailable due to import error: {}".format(name, str(e)))
         return
 
-    if default_extension is None and len(extensions):
+    if default_extension is None and extensions:
         default_extension = extensions[0]
 
     for extension in extensions:

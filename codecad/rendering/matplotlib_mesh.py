@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from . import mesh
 
 
-def render_mesh(obj, filename):
+def render_mesh(obj, _filename=None):
     fig = plt.figure()
     ax = fig.gca(projection="3d")
 

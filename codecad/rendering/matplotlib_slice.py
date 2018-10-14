@@ -12,7 +12,7 @@ opencl_manager.add_compile_unit().append_resource("matplotlib_slice.cl")
 
 
 def render_slice(
-    obj, filename=None  # For interface compatibility with other renderers
+    obj, _filename=None  # For interface compatibility with other renderers
 ):
 
     resolution = obj.feature_size() / 2

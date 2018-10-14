@@ -43,8 +43,8 @@ class NumberWrapper:
         | hypothesis.strategies.floats()
         | hypothesis.strategies.decimals()
         | hypothesis.strategies.fractions()
-        | hypothesis.strategies.floats().map(lambda x: NumberWrapper(x))
-        | hypothesis.strategies.floats().map(lambda x: str(x)),
+        | hypothesis.strategies.floats().map(NumberWrapper)
+        | hypothesis.strategies.floats().map(str),
         min_size=2,
         max_size=3,
     )
