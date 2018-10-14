@@ -103,7 +103,7 @@ shapes_2d = {
     "bin_counter_11": bin_counter(11),
     "regular_polygon3": regular_polygon2d(3),
     "symmetrical_xy": circle(d=2).translated(2, 1.75).symmetrical_x().symmetrical_y(),
-    "rotated_pattern_2d": circle(1, 1).translated_x(2).rotated(270, 3)
+    "rotated_pattern_2d": circle(1, 1).translated_x(2).rotated(270, 3),
 }
 shapes_2d.update(("polygon2d_" + k, polygon2d(v)) for k, v in valid_polygon2d.items())
 params_2d = [pytest.param(v, id=k) for k, v in sorted(shapes_2d.items())]
@@ -127,6 +127,6 @@ shapes_3d = {
     .symmetrical_x()
     .symmetrical_y()
     .symmetrical_z(),
-    "rotated_pattern_3d": box(1, 1, 1).translated_x(2).rotated((1, -1, 0), 270, 3)
+    "rotated_pattern_3d": box(1, 1, 1).translated_x(2).rotated((1, -1, 0), 270, 3),
 }
 params_3d = [pytest.param(v, id=k) for k, v in sorted(shapes_3d.items())]

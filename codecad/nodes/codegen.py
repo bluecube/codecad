@@ -10,8 +10,8 @@ def generate_eval_source_code(node_class, register_count):
 
     c = opencl_manager.add_compile_unit()
     c.append_define("EVAL_REGISTER_COUNT", register_count)
-    for name, (params, arity, code) in node_class._node_types.items():
-        _generate_op_decl(c, name, params, arity, code)
+    for name, (params, arity, _code) in node_class.node_types.items():
+        _generate_op_decl(c, name, params, arity)
     c.append(
         """
 float4 evaluate(__constant float* program, float3 point)
@@ -33,7 +33,7 @@ float4 evaluate(__constant float* program, float3 point)
             case {}:
                 // _return
                 return lastValue;""".format(
-            node_class._node_types["_return"][2]
+            node_class.node_types["_return"][2]
         )
     )
     c.append(
@@ -42,7 +42,7 @@ float4 evaluate(__constant float* program, float3 point)
                 // _store
                 registers[secondaryRegister] = lastValue;
                 break;""".format(
-            node_class._node_types["_store"][2]
+            node_class.node_types["_store"][2]
         )
     )
     c.append(
@@ -51,10 +51,10 @@ float4 evaluate(__constant float* program, float3 point)
                 // _load
                 lastValue = registers[secondaryRegister];
                 break;""".format(
-            node_class._node_types["_load"][2]
+            node_class.node_types["_load"][2]
         )
     )
-    for name, (params, arity, code) in node_class._node_types.items():
+    for name, (params, arity, code) in node_class.node_types.items():
         _generate_op_handler(c, name, params, arity, code)
     c.append(
         """
@@ -68,13 +68,13 @@ def _format_function(before, args):
     return before + "(" + ", ".join(args) + ");"
 
 
-def _generate_op_decl(c_file, name, params, arity, code):
+def _generate_op_decl(c_file, name, params, arity):
     if name[0] == "_":
         return  # Underscore nodes don't need declaration
 
     args = []
 
-    if params is node._Variable:
+    if params is node.VARIABLE_COUNT:
         args.append("__constant float* restrict* restrict params")
     else:
         args.extend("float param{}".format(i + 1) for i in range(params))
@@ -93,7 +93,7 @@ def _generate_op_handler(c_file, name, params, arity, code):
         return  # Underscore nodes have hard coded implementation
 
     args = []
-    if params is node._Variable:
+    if params is node.VARIABLE_COUNT:
         args.append("&program")
     else:
         args.extend("program[{}]".format(i) for i in range(params))
@@ -121,7 +121,7 @@ def _generate_op_handler(c_file, name, params, arity, code):
             args,
         )
     )
-    if params is not node._Variable and params != 0:
+    if params is not node.VARIABLE_COUNT and params != 0:
         c_file.append(
             """
                 program += {};""".format(
@@ -138,8 +138,8 @@ def generate_fixed_eval_source_code(schedule, node_class):
     c = opencl_manager.add_compile_unit()
     c.include_origin = False
 
-    for name, (params, arity, code) in node_class._node_types.items():
-        _generate_op_decl(c, name, params, arity, code)
+    for name, (params, arity, _code) in node_class.node_types.items():
+        _generate_op_decl(c, name, params, arity)
     c.append(
         """
 float4 evaluate(__constant float*, float3 point)
@@ -175,7 +175,7 @@ float4 evaluate(__constant float*, float3 point)
             )
         else:
             args = [str(param) for param in n.params]
-            if len(n.dependencies) == 0:
+            if not n.dependencies:
                 args.append("point")
             else:
                 assert 1 <= len(n.dependencies) <= 2

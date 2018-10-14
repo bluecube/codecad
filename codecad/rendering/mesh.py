@@ -12,6 +12,7 @@ def triangular_mesh(obj, subdivision_grid_size=None, debug_subdivision_boxes=Fal
     Yields tuples (vertices, indices). """
     obj.check_dimension(required=3)
 
+    # TODO: Change mesh generation so that it doesn't use the subdivision module
     program_buffer, max_box_size, boxes = subdivision.subdivision(
         obj, obj.feature_size() / 2, grid_size=subdivision_grid_size
     )

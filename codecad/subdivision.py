@@ -42,6 +42,7 @@ class _Helper:
             queue=queue,
         )
 
+        self.int_box_corner = None
         self.level = None
 
     def enqueue(self, int_box_corner, level):

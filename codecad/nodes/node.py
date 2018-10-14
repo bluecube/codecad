@@ -3,17 +3,16 @@ Also handles generating the OpenCL code for evaluation """
 
 import collections
 
-_Variable = object()
+VARIABLE_COUNT = object()
 
 
 class Node:
     # Mapping of node name to tuple (number of parameters, number of input nodes, instruction code)
     # These are also used for code generation and need to be implemented in opencl.
-    _node_types = collections.OrderedDict(
+    node_types = collections.OrderedDict(
         (name, (params, arity, i))
         for i, (name, params, arity) in enumerate(
             [
-                # noqa
                 # Special nodes:
                 ("_return", 0, 1),
                 ("_store", 0, 1),
@@ -23,7 +22,7 @@ class Node:
                 ("rectangle", 2, 1),
                 ("circle", 1, 1),
                 ("regular_polygon2d", 2, 1),
-                ("polygon2d", _Variable, 1),
+                ("polygon2d", VARIABLE_COUNT, 1),
                 # 3D shapes:
                 ("sphere", 1, 1),
                 ("half_space", 0, 1),
@@ -61,14 +60,14 @@ class Node:
         # associative and commutative and that it can be safely broken binary
         # nodes of the same type in any order
 
-        expected_param_count, expected_dependency_count, _ = self._node_types[name]
+        expected_param_count, expected_dependency_count, _ = self.node_types[name]
 
         self.name = name
 
         self.params = tuple(params)
         assert (
             len(self.params) == expected_param_count
-            or expected_param_count is _Variable
+            or expected_param_count is VARIABLE_COUNT
         )
 
         self.dependencies = ()
@@ -93,7 +92,7 @@ class Node:
         self.dependencies = ()
 
     def connect(self, dependencies):
-        assert len(self.dependencies) == 0
+        assert not self.dependencies
         self.dependencies = list(dependencies)
 
     def __hash__(self):

@@ -37,6 +37,7 @@ def polygon(obj, subdivision_grid_size=None):
     """ Generate polygons representing the boundaries of a 2D shape. """
     obj.check_dimension(required=2)
 
+    # TODO: Change polygon so that it doesn't use subdivision module
     program_buffer, grid_size, boxes = subdivision.subdivision(
         obj, obj.feature_size() / 2, grid_size=subdivision_grid_size
     )

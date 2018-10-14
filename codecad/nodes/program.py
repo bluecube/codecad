@@ -37,19 +37,19 @@ def get_shape_nodes(shape):
 
 
 def get_opcode(n):
-    opcode = node.Node._node_types[n.name][2]
+    opcode = node.Node.node_types[n.name][2]
     if n.name == "_load":
         assert len(n.dependencies) == 1
         assert n.dependencies[0].name == "_store"
-        secondaryRegister = n.dependencies[0].register
+        secondary_register = n.dependencies[0].register
     elif n.name == "_store":
-        secondaryRegister = n.register
+        secondary_register = n.register
     elif len(n.dependencies) >= 2:
-        secondaryRegister = n.dependencies[1].register
+        secondary_register = n.dependencies[1].register
     else:
-        secondaryRegister = 0
+        secondary_register = 0
 
-    return opcode, secondaryRegister
+    return opcode, secondary_register
 
 
 def _make_program_pieces(shape):
@@ -62,8 +62,8 @@ def _make_program_pieces(shape):
     for n in schedule:
         assert len(n.dependencies) <= 2
 
-        opcode, secondaryRegister = get_opcode(n)
-        instruction = opcode * opencl_manager.max_register_count + secondaryRegister
+        opcode, secondary_register = get_opcode(n)
+        instruction = opcode * opencl_manager.max_register_count + secondary_register
 
         assert int(numpy.float32(instruction)) == instruction
 

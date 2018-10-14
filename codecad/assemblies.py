@@ -12,16 +12,19 @@ Assembly = collections.namedtuple("Assembly", "name instances attributes")
 class PartTransformBase(
     collections.namedtuple("PartTransform", "part transform visible")
 ):
-    __slots__ = ()
+    """ Main storage class for parts and assemblies.
+    Needs to be subclassed with appropriate solid body transformable to provide dimensionality. """
 
-    def dimension(self):
-        return self.part.data.dimension()
+    __slots__ = ()
 
     def shape(self):
         """ Return shape corresponding to this part. """
         return self.part.data.transformed(self.transform)
 
     def _transformed(self, transform):
+        """ Apply a given transformation on this part. and return a new modified part.
+        This is private, because we don't want to check that the transformation actually
+        is not scaling. """
         return self.__class__(self.part, transform * self.transform, self.visible)
 
     def hidden(self, hidden=True):
@@ -79,11 +82,12 @@ class BomItem:
         return "{}x {}".format(self.count, self.name)
 
 
-class AssemblyInterface:
-    __slots__ = ()
+class AssemblyInterfaceMixin:
+    """ Class that implements methods common to assemblies, regardless of dimensionality.
+    Doesn't store any data and doesn't provide solid body transformations
+    (must be provided by part transform class). """
 
-    def dimension(self):
-        return self.part.instances[0].dimension()
+    __slots__ = ()
 
     def all_instances(self):
         """ Returns iterable of all individual parts comprising this assembly,
@@ -95,7 +99,7 @@ class AssemblyInterface:
         for instance in self:
             if hasattr(instance, "all_instances"):
                 for inner_instance in instance.all_instances():
-                    yield inner_instance._transformed(instance.transform)
+                    yield inner_instance._transformed(instance.transform)  # noqa Accessing protected member is ok-ish, here, this class is a friend :-)
             else:
                 yield instance
 
@@ -135,28 +139,26 @@ class AssemblyInterface:
             if instance.visible
         ).transformed(self.transform)
 
-
-class AssemblyTransform2D(AssemblyInterface, PartTransform2D):
-    __slots__ = ()
-
     def __iter__(self):
         """ Iterate over part instances of this assembly, not entering subassemblies
         recursively. """
         yield from self.part.instances
 
 
-class AssemblyTransform3D(AssemblyInterface, PartTransform3D):
+class AssemblyTransform2D(AssemblyInterfaceMixin, PartTransform2D):
     __slots__ = ()
 
-    def __iter__(self):
-        """ Iterate over part instances of this assembly, not entering subassemblies
-        recursively. """
-        yield from self.part.instances
+
+class AssemblyTransform3D(AssemblyInterfaceMixin, PartTransform3D):
+    __slots__ = ()
 
 
-def assembly(name, instances, attributes=[]):
+def assembly(name, instances, attributes=None):
+    """ Create a new assembly.
+    Returns Assembly transform with zero transformation and visibility enabled. """
+
     instances = list(instances)
-    if not len(instances):
+    if not instances:
         raise ValueError("Empty assemblies are not supported")
 
     dimension = None
@@ -167,6 +169,9 @@ def assembly(name, instances, attributes=[]):
             raise ValueError(
                 "Part has different dimension (2D vs 3D) than the rest of parts in this assembly"
             )
+
+    if attributes is None:
+        attributes = []
 
     asm = Assembly(name, instances, attributes)
 

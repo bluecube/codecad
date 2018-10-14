@@ -111,6 +111,12 @@ class ShapeBase(metaclass=abc.ABCMeta):
 
 
 class SolidBodyTransformable2D(metaclass=abc.ABCMeta):
+    """ Common methods for objects that can be transformed as a 2D solid body. """
+
+    @staticmethod
+    def dimension():
+        return 2
+
     def translated(self, x, y=None):
         """ Returns current shape translated by a given offset """
         if y is None:
@@ -141,6 +147,12 @@ class SolidBodyTransformable2D(metaclass=abc.ABCMeta):
 
 
 class SolidBodyTransformable3D(metaclass=abc.ABCMeta):
+    """ Common methods for objects that can be transformed as a 3D solid body. """
+
+    @staticmethod
+    def dimension():
+        return 3
+
     def translated(self, x, y=None, z=None):
         """ Returns current shape translated by a given offset.
         Arguments are either a single vector-like or three numbers. """
@@ -195,10 +207,6 @@ class SolidBodyTransformable3D(metaclass=abc.ABCMeta):
 
 class Shape2D(SolidBodyTransformable2D, ShapeBase):
     """ A base 2D shape. """
-
-    @staticmethod
-    def dimension():
-        return 2
 
     def __and__(self, second):
         from . import simple2d
@@ -325,10 +333,6 @@ class Shape2D(SolidBodyTransformable2D, ShapeBase):
 
 class Shape3D(SolidBodyTransformable3D, ShapeBase):
     """ A base 3D shape. """
-
-    @staticmethod
-    def dimension():
-        return 3
 
     def __and__(self, second):
         from . import simple3d

@@ -4,7 +4,7 @@ import copy
 
 from .node import Node
 
-_last_value = 9999  # Marker for values in schedule passed in lastValue register
+_LAST_VALUE = 9999  # Marker for values in schedule passed in lastValue register
 
 
 class _SchedulerState:
@@ -27,6 +27,7 @@ class _SchedulerState:
                 if reg >= self.registers_needed:
                     self.registers_needed = reg + 1
                 return reg
+        return 0  # Only to silence pylint, this is unreachable.
 
     def decref_register(self, reg):
         self._allocations[reg] -= 1
@@ -101,12 +102,12 @@ def _contiguous_schedule_recursive(node, need_store, ordering_selector, state):
     # Decref dependency registers before selecting a register for output,
     # because we want to reuse input registers for output when possible
     for dep in node.dependencies:
-        if dep.register != _last_value:
+        if dep.register != _LAST_VALUE:
             state.decref_register(dep.register)
 
     if need_store:
         store_register = state.allocate_register(node.refcount)
-    node.register = _last_value
+    node.register = _LAST_VALUE
 
     need_load = (
         len(node.dependencies) > 0
@@ -116,7 +117,7 @@ def _contiguous_schedule_recursive(node, need_store, ordering_selector, state):
 
     if need_load:
         load_node = Node("_load", (), (node.dependencies[0],))
-        load_node.register = _last_value
+        load_node.register = _LAST_VALUE
         load_node.refcount = 1
         node.dependencies[0] = load_node
         state.load_count += 1
