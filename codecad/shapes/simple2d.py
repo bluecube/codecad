@@ -174,7 +174,7 @@ class Polygon2D(base.Shape2D):
 
                 feature_size = min(feature_size, abs(between_starts))
 
-                consecutive = j == 0 or j == len(points) - 2  # i precedes or follows j
+                consecutive = j in (0, len(points) - 2)  # i precedes or follows j
                 parallel = abs(direction_cross_product) < 1e-12
 
                 if consecutive:

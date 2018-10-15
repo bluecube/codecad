@@ -1,10 +1,7 @@
-import string
 import inspect
 import os.path
 import sys
 import pkg_resources
-
-printable = string.digits + string.ascii_letters + string.punctuation + " "
 
 
 def format_c_string_literal(s):
@@ -38,7 +35,7 @@ def _frame_from_stacklevel(stacklevel):
     if frame is None:
         return None
 
-    for i in range(stacklevel + 1):
+    for _i in range(stacklevel + 1):
         frame = frame.f_back
         if frame is None:
             return None
@@ -56,20 +53,20 @@ def string_with_origin(string, stacklevel=1, include_origin=True):
     the origin). """
 
     # Trim initial newlines
-    string = string.lstrip("\n")
+    trimmed = string.lstrip("\n")
 
     if include_origin:
         frame = _frame_from_stacklevel(stacklevel)
         if frame is not None:
             frameinfo = inspect.getframeinfo(frame, context=0)
-            lines = string.count("\n")
+            lines = trimmed.count("\n")
             line = frameinfo.lineno - lines
 
             yield "#line {} {}".format(
                 line, format_c_string_literal(frameinfo.filename)
             )
 
-    yield string
+    yield trimmed
 
 
 def resource_with_origin(resource_name, stacklevel=1, include_origin=True):
@@ -85,7 +82,7 @@ def resource_with_origin(resource_name, stacklevel=1, include_origin=True):
 
     # Read the resource before yieldin line number so that there is no output at all
     # in case the resource fails.
-    string = pkg_resources.resource_string(module_name, resource_name).decode("utf8")
+    trimmed = pkg_resources.resource_string(module_name, resource_name).decode("utf8")
 
     if include_origin:
         path = os.path.join(
@@ -93,4 +90,4 @@ def resource_with_origin(resource_name, stacklevel=1, include_origin=True):
         )
         yield "#line 1 {}".format(format_c_string_literal(path))
 
-    yield string
+    yield trimmed

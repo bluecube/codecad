@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 
-import codecad
 import os
 import mesh
+
+import codecad
 
 chord = 200
 span = 80

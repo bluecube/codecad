@@ -1,3 +1,5 @@
+# pylint: disable=redefined-outer-name
+
 """
 Test that the directed signed distance function behaves as expected.
 """
@@ -20,6 +22,8 @@ with_all_shapes = pytest.mark.parametrize(
 
 @pytest.fixture(scope="module")
 def dsdf_common(request):
+    # pylint: disable=possibly-unused-variable
+
     shape = request.param
 
     size = 16

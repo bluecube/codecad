@@ -233,6 +233,7 @@ class Shape2D(SolidBodyTransformable2D, ShapeBase):
         )
 
     def rotated(self, angle, n=1):
+        # TODO: Rotated method could be split into one with n=1 and one with selectable n. How to name it, though?
         """ Returns current shape rotated by given angle.
 
         If n > 1, returns an union of n copies of self, rotated in regular intervals
@@ -358,6 +359,7 @@ class Shape3D(SolidBodyTransformable3D, ShapeBase):
         )
 
     def rotated(self, axis, angle, n=1):
+        # TODO: Rotated method could be split into one with n=1 and one with selectable n. How to name it, though?
         """ Returns current shape rotated by an angle around the vector.
 
         If n > 1, returns an union of n copies of self, rotated in regular intervals

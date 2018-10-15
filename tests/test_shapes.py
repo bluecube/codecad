@@ -1,7 +1,9 @@
-import codecad
 import math
+
 import pytest
 from pytest import approx
+
+import codecad
 
 import data
 

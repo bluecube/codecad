@@ -15,7 +15,7 @@ def set_has_approx_item(s1, i2, *args, **kwargs):
     return False
 
 
-class set_approx_equals:
+class SetApproxEquals:
     def __init__(self, s1, s2, *args, **kwargs):
         self.s1_extra = set()
         for item1 in s1:
@@ -158,4 +158,4 @@ def test_block_corners_circle():
         if radius - threshold < abs(center) < radius + threshold:
             expected.add(corner)
 
-    assert set_approx_equals(corners, expected)
+    assert SetApproxEquals(corners, expected)

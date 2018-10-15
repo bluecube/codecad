@@ -5,12 +5,12 @@
 This is a part of an older scrapped project, so the modelling is a bit outdated
 (but the resulting piece is still nice). """
 
-import codecad
-import codecad.shapes as s
-import fractions
 import math
 import itertools
 import datetime
+
+import codecad
+import codecad.shapes as s
 
 
 class Planetary:
@@ -109,15 +109,15 @@ class Planetary:
                     )
 
                 try:
-                    j = cls(*counts)
+                    solution = cls(*counts)
                 except AssertionError:
                     continue
 
-                ratio = j.get_ratio()
+                ratio = solution.get_ratio()
                 if best_ratio is None or ratio < best_ratio:
                     best_ratio = ratio
 
-                solutions.append(j)
+                solutions.append(solution)
         except KeyboardInterrupt:
             print("Interrupted")
 
@@ -125,8 +125,8 @@ class Planetary:
         print("best:")
 
         solutions_sorted = sorted(solutions, key=lambda x: x.get_ratio())
-        for j in solutions_sorted[:n]:
-            j.print_details()
+        for solution in solutions_sorted[:n]:
+            solution.print_details()
 
     def __init__(
         self,
@@ -313,7 +313,7 @@ class Planetary:
         assert g1.module == g2.module
 
         # Load sharing between teeth
-        assert fractions.gcd(g1.n, g2.n) == 1
+        assert math.gcd(g1.n, g2.n) == 1
 
     @classmethod
     def _check_gear_on_shaft(cls, g, shaft_diameter=None):
@@ -555,6 +555,6 @@ class Planetary:
 
 if __name__ == "__main__":
     # Planetary.optimize()
-    j = Planetary(11, 60, 13, 41, 18, 53)
-    j.print_details()
-    codecad.commandline_render(j.make_assembly())
+    p = Planetary(11, 60, 13, 41, 18, 53)
+    p.print_details()
+    codecad.commandline_render(p.make_assembly())

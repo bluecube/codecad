@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """ Generator of cubical statuettes and a wireframe cube """
 
+import math
+
 import codecad
 from codecad.shapes import *
-import math
 
 base_diameter = 50
 base_height = 5

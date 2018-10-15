@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 
-import codecad
 import math
+
+import codecad
 
 
 def mesh(spacing, diameter, rounding=None):
@@ -46,7 +47,7 @@ def mesh(spacing, diameter, rounding=None):
 r = 20
 h = 30
 wall = 0.5
-spacing = 10
+mesh_spacing = 10
 rod_size = 0.8
 
 base = (
@@ -55,7 +56,7 @@ base = (
 ).offset(-wall / 2)
 mask = codecad.shapes.box(4 * r, 4 * r, h).translated(0, 0, h / 2)
 
-unmasked_inside = mesh(spacing, rod_size) & base
+unmasked_inside = mesh(mesh_spacing, rod_size) & base
 unmasked_skin = base.shell(wall)
 
 o = (unmasked_inside + unmasked_skin) & mask

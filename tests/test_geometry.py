@@ -57,8 +57,8 @@ def test_vector_transformation_inverse(transformation, v, target):
     assert transformation.inverse().transform_vector(target) == approx(v)
 
 
-@pytest.mark.parametrize("transformation, v, target", all_to_test)
-def test_vector_transformation_inverse_times_original(transformation, v, target):
+@pytest.mark.parametrize("transformation, v, _target", all_to_test)
+def test_vector_transformation_inverse_times_original(transformation, v, _target):
     assert (transformation.inverse() * transformation).transform_vector(v) == approx(v)
 
 

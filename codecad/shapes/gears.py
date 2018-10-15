@@ -79,12 +79,12 @@ class InvoluteGear(simple2d.Union2D):
             self.outside_diameter = outside_radius * 2
             self.root_diameter = inside_radius * 2
 
-        base = InvoluteGearBase(n, pressure_angle).scaled(pitch_radius)
+        gear_base = InvoluteGearBase(n, pressure_angle).scaled(pitch_radius)
 
         if backlash != 0:
-            base = base.offset(-backlash)
+            gear_base = gear_base.offset(-backlash)
 
         inner_circle = simple2d.Circle(r=inside_radius)
         outer_circle = simple2d.Circle(r=outside_radius)
 
-        super().__init__([base & outer_circle, inner_circle])
+        super().__init__([gear_base & outer_circle, inner_circle])

@@ -13,7 +13,6 @@ class OpenClAssertionError(Exception):
         self.global_id = global_id
         self.expression = expression
 
-    def __str__(self):
         string = "{}:{}: [{}, {}, {}, {}]: Assertion".format(
             self.filename,
             self.line,
@@ -24,13 +23,11 @@ class OpenClAssertionError(Exception):
         )
         if self.expression is not None:
             string += " `{}'".format(self.expression)
-
         string += " failed."
-
         if self.count > 1:
             string += " (+{} others)".format(self.count - 1)
 
-        return string
+        super().__init__(string)
 
 
 class AssertBuffer(cl_buffer.Buffer):

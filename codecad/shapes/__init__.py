@@ -90,7 +90,7 @@ def _group_op_helper(shapes, name, op2, op3, r):
 
         if dim == 2:
             return op2(shapes, r=r)
-        if dim == 3:
+        else:
             return op3(shapes, r=r)
 
 

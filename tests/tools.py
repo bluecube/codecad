@@ -53,6 +53,7 @@ class FileBaselineCompare:
             pytest.skip(
                 "Baseline file was missing, will use the current result next time"
             )
+            return None  # Only to silence pylint
         else:
             baseline_fp = self._stack.enter_context(open(self.baseline_filename, "rb"))
             tested_fp = self._stack.enter_context(open(self.tested_filename, "rb"))

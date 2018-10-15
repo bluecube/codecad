@@ -1,3 +1,5 @@
+# pylint: disable=redefined-outer-name
+
 import pytest
 
 import codecad
@@ -17,8 +19,11 @@ def test_shape_to_assembly():
 
 
 def test_shape_to_assembly_no_part():
+    """ Test converting the shape directly to an assembly without making a part of it first.
+    This should fail. """
+    a = codecad.assembly("X", [codecad.shapes.sphere()])
     with pytest.raises(Exception):
-        codecad.Assembly("X", [codecad.shapes.sphere()])
+        a.shape()
 
 
 @pytest.fixture(scope="module")
@@ -60,7 +65,7 @@ def asm_data():
 
 
 def test_subassemblies_recursive_bom(asm_data):
-    n, asm, shape = asm_data
+    n, asm, _shape = asm_data
     seen = {}
 
     for item in asm.bom():
@@ -77,7 +82,7 @@ def test_subassemblies_recursive_bom(asm_data):
 
 
 def test_subassemblies_flat_bom(asm_data):
-    n, asm, shape = asm_data
+    n, asm, _shape = asm_data
     seen = {}
 
     for item in asm.bom(recursive=False):
@@ -98,12 +103,12 @@ def test_subassemblies_flat_bom(asm_data):
 
 
 def test_subassemblies_shape(asm_data):
-    n, asm, shape = asm_data
+    _n, asm, shape = asm_data
     tools.assert_shapes_equal(asm.shape(), shape)
 
 
 def test_subassembly_items(asm_data):
-    n, asm, shape = asm_data
+    n, asm, _shape = asm_data
     seen = {}
 
     for item in asm:

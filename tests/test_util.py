@@ -1,7 +1,9 @@
-import codecad
+import decimal
+
 import hypothesis
 import pytest
-import decimal
+
+import codecad
 
 
 def test_kahan_summation():

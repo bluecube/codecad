@@ -58,7 +58,7 @@ class Buffer(pyopencl.Buffer):
         Returns event. """
 
         array = self._process_array(out)
-        if array.nbytes < self.size:
+        if array.nbytes < self.size:  # noqa
             raise RuntimeError("Not enough space to store contents of the buffer")
 
         return pyopencl.enqueue_copy(
@@ -71,7 +71,7 @@ class Buffer(pyopencl.Buffer):
         Blocks until the data is ready, returns output array. """
 
         array = self._process_array(out)
-        if array.nbytes < self.size:
+        if array.nbytes < self.size:  # noqa
             raise RuntimeError("Not enough space to store contents of the buffer")
 
         pyopencl.enqueue_copy(
@@ -86,7 +86,7 @@ class Buffer(pyopencl.Buffer):
         `wait_for` can be either None or list of opencl.Event. """
 
         array = self._process_array(a)
-        if array.nbytes > self.size:
+        if array.nbytes > self.size:  # noqa
             raise RuntimeError("Not enough space to store contents in the buffer")
 
         return pyopencl.enqueue_copy(
@@ -108,7 +108,7 @@ class Buffer(pyopencl.Buffer):
         if shape is None:
             shape = self.shape
 
-        array, event = pyopencl.enqueue_map_buffer(
+        array, _event = pyopencl.enqueue_map_buffer(
             self.queue,
             self,
             map_flags,

@@ -31,7 +31,7 @@ function if any one goes through it.
 
 The algorithm works by recursively summing pairs, so it should work fairly well
 with floating point precision. */""".format(
-            **locals()
+            type_name=type_name, op=op
         )
     )
 
@@ -39,7 +39,7 @@ with floating point precision. */""".format(
         f.append(
             """
 {type_name} sum_helper_{name}({type_name} value, __local {type_name}* buffer){end}""".format(
-                **locals()
+                type_name=type_name, name=name, end=end
             )
         )
 
@@ -69,7 +69,7 @@ with floating point precision. */""".format(
 
     return value;
 }}""".format(
-            **locals()
+            type_name=type_name, op=op
         )
     )
 

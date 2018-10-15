@@ -2,18 +2,22 @@
 
 """ A cube with axis directions engraved in the surface """
 
-import codecad
 import math
+import codecad
 
 
-def line(x0, y0, x1, y1, t):
+def line(x0, y0, x1, y1, thickness):
     dx = x1 - x0
     dy = y1 - y0
     midx = (x0 + x1) / 2
     midy = (y0 + y1) / 2
     length = math.hypot(dx, dy)
-    a = math.degrees(math.atan2(dy, dx))
-    return codecad.shapes.rectangle(length, t).rotated(a).translated(midx, midy)
+    angle = math.degrees(math.atan2(dy, dx))
+    return (
+        codecad.shapes.rectangle(length, thickness)
+        .rotated(angle)
+        .translated(midx, midy)
+    )
 
 
 t = 2

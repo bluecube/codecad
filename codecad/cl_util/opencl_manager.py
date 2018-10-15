@@ -88,7 +88,7 @@ class OpenCLManager:
     def __init__(self):
         self.context = pyopencl.create_some_context()
 
-        for dev in self.context.devices:
+        for dev in self.context.devices:  # noqa
             print("Device", dev.name)
 
         self.queue = pyopencl.CommandQueue(

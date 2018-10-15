@@ -99,9 +99,7 @@ class AssemblyInterfaceMixin:
         for instance in self:
             if hasattr(instance, "all_instances"):
                 for inner_instance in instance.all_instances():
-                    yield inner_instance._transformed(
-                        instance.transform
-                    )  # noqa Accessing protected member is ok-ish, here, this class is a friend :-)
+                    yield inner_instance._transformed(instance.transform)  # noqa
             else:
                 yield instance
 
