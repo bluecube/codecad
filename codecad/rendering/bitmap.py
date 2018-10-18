@@ -6,7 +6,7 @@ from .. import cl_util
 from ..cl_util import opencl_manager
 from .. import nodes
 
-opencl_manager.add_compile_unit().append_file("bitmap.cl")
+opencl_manager.add_compile_unit().append_resource("bitmap.cl")
 
 
 def render(obj, size):
@@ -22,12 +22,9 @@ def render(obj, size):
 
     shape = (size[0], size[1], 3)
     program_buffer = nodes.make_program_buffer(obj)
-    output = cl_util.Buffer(numpy.uint8,
-                            shape,
-                            pyopencl.mem_flags.WRITE_ONLY)
+    output = cl_util.Buffer(numpy.uint8, shape, pyopencl.mem_flags.WRITE_ONLY)
 
-    ev = opencl_manager.k.bitmap(size, None,
-                                 program_buffer,
-                                 origin.as_float4(), numpy.float32(step_size),
-                                 output)
+    ev = opencl_manager.k.bitmap(
+        size, None, program_buffer, origin.as_float4(), numpy.float32(step_size), output
+    )
     return output.read(wait_for=[ev]).reshape(shape).transpose((1, 0, 2))

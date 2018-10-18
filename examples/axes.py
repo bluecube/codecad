@@ -2,18 +2,22 @@
 
 """ A cube with axis directions engraved in the surface """
 
-import codecad
 import math
+import codecad
 
 
-def line(x0, y0, x1, y1, t):
+def line(x0, y0, x1, y1, thickness):
     dx = x1 - x0
     dy = y1 - y0
     midx = (x0 + x1) / 2
     midy = (y0 + y1) / 2
-    l = math.hypot(dx, dy)
-    a = math.degrees(math.atan2(dy, dx))
-    return codecad.shapes.rectangle(l, t).rotated(a).translated(midx, midy)
+    length = math.hypot(dx, dy)
+    angle = math.degrees(math.atan2(dy, dx))
+    return (
+        codecad.shapes.rectangle(length, thickness)
+        .rotated(angle)
+        .translated(midx, midy)
+    )
 
 
 t = 2
@@ -42,13 +46,15 @@ def cut(sym1, sym2):
 
 cube = codecad.shapes.box(a)
 
-axes_cube = cube - (cut(plus, z) +
-                    cut(minus, y).rotated((1, 0, 0), 90) +
-                    cut(plus, x).rotated((1, 0, 0), 90).rotated((0, 0, 1), 90) +
-                    cut(plus, y).rotated((1, 0, 0), 90).rotated((0, 0, 1), 180) +
-                    cut(minus, x).rotated((1, 0, 0), 90).rotated((0, 0, 1), 270) +
-                    cut(minus, z).rotated((0, 1, 0), 180))
+axes_cube = cube - (
+    cut(plus, z)
+    + cut(minus, y).rotated((1, 0, 0), 90)
+    + cut(plus, x).rotated((1, 0, 0), 90).rotated((0, 0, 1), 90)
+    + cut(plus, y).rotated((1, 0, 0), 90).rotated((0, 0, 1), 180)
+    + cut(minus, x).rotated((1, 0, 0), 90).rotated((0, 0, 1), 270)
+    + cut(minus, z).rotated((0, 1, 0), 180)
+)
 
 
 if __name__ == "__main__":
-    codecad.commandline_render(axes_cube, 0.25)
+    codecad.commandline_render(axes_cube)

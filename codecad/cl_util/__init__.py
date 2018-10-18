@@ -1,7 +1,8 @@
-from . cl_buffer import *
-from . cl_assert import *
-from . codegen import *
-from . opencl_manager import instance as opencl_manager
+from .cl_buffer import *
+from .cl_assert import *
+from .codegen import *
+from .opencl_manager import instance as opencl_manager
+from . import parallel_sum
 
 def event_time_spent(ev):
     return (ev.profile.end - ev.profile.start) / 1e9
@@ -26,6 +27,7 @@ def interleave2(job_func, initial_jobs):
 
     class _NoEvent:
         """ Helper class to simplify handling freshly created job functions """
+
         def wait(self):
             pass
 
@@ -68,6 +70,8 @@ def interleave2(job_func, initial_jobs):
 
 
 # Collecting utility files that don't belong anywhere else:
-opencl_manager.common_header.append_file("util.h")
-opencl_manager.common_header.append_file("indexing.h")
-opencl_manager.add_compile_unit().append_file("util.cl")
+opencl_manager.common_header.append_resource("util.h")
+opencl_manager.common_header.append_resource("indexing.h")
+opencl_manager.add_compile_unit().append_resource("util.cl")
+
+# pylama:ignore=W0611

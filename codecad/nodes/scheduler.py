@@ -1,11 +1,10 @@
 import itertools
 import random
-import operator
 import copy
 
 from .node import Node
 
-_last_value = 9999  # Marker for values in schedule passed in lastValue register
+_LAST_VALUE = 9999  # Marker for values in schedule passed in lastValue register
 
 
 class _SchedulerState:
@@ -28,6 +27,7 @@ class _SchedulerState:
                 if reg >= self.registers_needed:
                     self.registers_needed = reg + 1
                 return reg
+        return 0  # Only to silence pylint, this is unreachable.
 
     def decref_register(self, reg):
         self._allocations[reg] -= 1
@@ -74,7 +74,9 @@ def _contiguous_schedule_recursive(node, need_store, ordering_selector, state):
         node.connect([dependencies[-1], n])
         dep_order = (1, 0)
     else:
-        dep_order = list(ordering_selector(list(reversed(range(len(node.dependencies))))))
+        dep_order = list(
+            ordering_selector(list(reversed(range(len(node.dependencies)))))
+        )
     # Use reversed dependencies by default, so that the first argument is always
     # evaluated last and we can avoid storing it into a register
 
@@ -86,12 +88,13 @@ def _contiguous_schedule_recursive(node, need_store, ordering_selector, state):
         if dep.register is None:
             # This node hasn't been processed yet
 
-            dep_need_store = dep.refcount > 1 or \
-                             i != 0 or \
-                             dep_order[-1] != 0  # Only last computed dependency can be passed directly
+            dep_need_store = (
+                dep.refcount > 1 or i != 0 or dep_order[-1] != 0
+            )  # Only last computed dependency can be passed directly
 
-            yield from _contiguous_schedule_recursive(dep, dep_need_store,
-                                                      ordering_selector, state)
+            yield from _contiguous_schedule_recursive(
+                dep, dep_need_store, ordering_selector, state
+            )
 
         if i > 0 or state.last_node is not node.dependencies[0]:
             node.dependencies[i] = dep.store_node
@@ -99,20 +102,22 @@ def _contiguous_schedule_recursive(node, need_store, ordering_selector, state):
     # Decref dependency registers before selecting a register for output,
     # because we want to reuse input registers for output when possible
     for dep in node.dependencies:
-        if dep.register != _last_value:
+        if dep.register != _LAST_VALUE:
             state.decref_register(dep.register)
 
     if need_store:
         store_register = state.allocate_register(node.refcount)
-    node.register = _last_value
+    node.register = _LAST_VALUE
 
-    need_load = len(node.dependencies) > 0 and \
-        node.dependencies[0].name == "_store" and \
-        state.last_node is not node.dependencies[0].dependencies[0]
+    need_load = (
+        len(node.dependencies) > 0
+        and node.dependencies[0].name == "_store"
+        and state.last_node is not node.dependencies[0].dependencies[0]
+    )
 
     if need_load:
         load_node = Node("_load", (), (node.dependencies[0],))
-        load_node.register = _last_value
+        load_node.register = _LAST_VALUE
         load_node.refcount = 1
         node.dependencies[0] = load_node
         state.load_count += 1
@@ -140,10 +145,11 @@ def _contiguous_schedule_recursive(node, need_store, ordering_selector, state):
 
 def _contiguous_schedule(node, ordering_selector):
     state = _SchedulerState()
-    order = list(_contiguous_schedule_recursive(copy.deepcopy(node),
-                                                False,  # need_store
-                                                ordering_selector,
-                                                state))
+    order = list(
+        _contiguous_schedule_recursive(
+            copy.deepcopy(node), False, ordering_selector, state  # need_store
+        )
+    )
 
     # print("needs {} registers with selector {}".format(state.registers_needed, str(ordering_selector)))
 
@@ -163,7 +169,10 @@ def _shuffled(x):
 
 
 def randomized_scheduler(node, random_passes=100):
-    return min((_contiguous_schedule(node, selector)
-                for selector in
-                [_identity, reversed] + [_shuffled] * random_passes),
-               key=lambda x: (x[0], x[1]))[1:]
+    return min(
+        (
+            _contiguous_schedule(node, selector)
+            for selector in [_identity, reversed] + [_shuffled] * random_passes
+        ),
+        key=lambda x: (x[0], x[1]),
+    )[1:]

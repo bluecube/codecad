@@ -28,31 +28,28 @@ class NodeCache:
 def get_shape_nodes(shape):
     cache = NodeCache()
     zero_transform = util.Transformation.zero()
-    point = cache.make_node("initial_transformation_to",
-                            zero_transform.as_list(),
-                            (),
-                            zero_transform)
-    return_node = cache.make_node("_return",
-                                  (),
-                                  (shape.get_node(point, cache),))
+    point = cache.make_node(
+        "initial_transformation_to", zero_transform.as_list(), (), zero_transform
+    )
+    return_node = cache.make_node("_return", (), (shape.get_node(point, cache),))
 
     return return_node
 
 
 def get_opcode(n):
-    opcode = node.Node._node_types[n.name][2]
+    opcode = node.Node.node_types[n.name][2]
     if n.name == "_load":
         assert len(n.dependencies) == 1
         assert n.dependencies[0].name == "_store"
-        secondaryRegister = n.dependencies[0].register
+        secondary_register = n.dependencies[0].register
     elif n.name == "_store":
-        secondaryRegister = n.register
+        secondary_register = n.register
     elif len(n.dependencies) >= 2:
-        secondaryRegister = n.dependencies[1].register
+        secondary_register = n.dependencies[1].register
     else:
-        secondaryRegister = 0
+        secondary_register = 0
 
-    return opcode, secondaryRegister
+    return opcode, secondary_register
 
 
 def _make_program_pieces(shape):
@@ -65,8 +62,8 @@ def _make_program_pieces(shape):
     for n in schedule:
         assert len(n.dependencies) <= 2
 
-        opcode, secondaryRegister = get_opcode(n)
-        instruction = opcode * opencl_manager.max_register_count + secondaryRegister
+        opcode, secondary_register = get_opcode(n)
+        instruction = opcode * opencl_manager.max_register_count + secondary_register
 
         assert int(numpy.float32(instruction)) == instruction
 
@@ -80,6 +77,8 @@ def make_program(shape):
 
 
 def make_program_buffer(shape):
-    return pyopencl.Buffer(opencl_manager.context,
-                           pyopencl.mem_flags.READ_ONLY | pyopencl.mem_flags.COPY_HOST_PTR,
-                           hostbuf=make_program(shape))
+    return pyopencl.Buffer(
+        opencl_manager.context,
+        pyopencl.mem_flags.READ_ONLY | pyopencl.mem_flags.COPY_HOST_PTR,
+        hostbuf=make_program(shape),
+    )

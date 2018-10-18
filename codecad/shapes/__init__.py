@@ -43,10 +43,12 @@ def capsule(x1, y1, x2, y2, width):
     dy = y2 - y1
     length = math.hypot(dx, dy)
     angle = math.atan2(dy, dx)
-    return rectangle(length, 0) \
-        .offset(width / 2) \
-        .rotated(math.degrees(angle)) \
+    return (
+        rectangle(length, 0)
+        .offset(width / 2)
+        .rotated(math.degrees(angle))
         .translated((x1 + x2) / 2, (y1 + y2) / 2)
+    )
 
 
 def box(x=1, y=None, z=None):
@@ -76,7 +78,9 @@ def _group_op_helper(shapes, name, op2, op3, r):
     """ Check that shapes is not empty and that dimensions match """
     shapes = list(shapes)
     if len(shapes) == 0:
-        raise ValueError(name + " of empty set objects doesn't make much sense, does it?")
+        raise ValueError(
+            name + " of empty set objects doesn't make much sense, does it?"
+        )
     elif len(shapes) == 1:
         return shapes[0]
     else:
@@ -86,7 +90,7 @@ def _group_op_helper(shapes, name, op2, op3, r):
 
         if dim == 2:
             return op2(shapes, r=r)
-        if dim == 3:
+        else:
             return op3(shapes, r=r)
 
 
@@ -95,4 +99,9 @@ def union(shapes, r=-1):
 
 
 def intersection(shapes, r=-1):
-    return _group_op_helper(shapes, "Intersection", _s2.Intersection2D, _s3.Intersection, r)
+    return _group_op_helper(
+        shapes, "Intersection", _s2.Intersection2D, _s3.Intersection, r
+    )
+
+
+# pylama:ignore=W0611

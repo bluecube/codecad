@@ -4,8 +4,8 @@ from .. import util
 from .. import cl_util
 
 _c_file = cl_util.opencl_manager.add_compile_unit()
-_c_file.append_file("common.h")
-_c_file.append_file("common.cl")
+_c_file.append_resource("common.h")
+_c_file.append_resource("common.cl")
 
 
 class UnionMixin:
@@ -15,16 +15,17 @@ class UnionMixin:
         self.r = r
 
     def bounding_box(self):
-        return functools.reduce(lambda a, b: a.union(b),
-                                (s.bounding_box() for s in self.shapes))
+        return functools.reduce(
+            lambda a, b: a.union(b), (s.bounding_box() for s in self.shapes)
+        )
 
     def feature_size(self):
         return min(s.feature_size() for s in self.shapes)
 
     def get_node(self, point, cache):
-        return cache.make_node("union",
-                               [self.r],
-                               (shape.get_node(point, cache) for shape in self.shapes))
+        return cache.make_node(
+            "union", [self.r], (shape.get_node(point, cache) for shape in self.shapes)
+        )
 
 
 class IntersectionMixin:
@@ -34,16 +35,19 @@ class IntersectionMixin:
         self.r = r
 
     def bounding_box(self):
-        return functools.reduce(lambda a, b: a.intersection(b),
-                                (s.bounding_box() for s in self.shapes))
+        return functools.reduce(
+            lambda a, b: a.intersection(b), (s.bounding_box() for s in self.shapes)
+        )
 
     def feature_size(self):
         return min(s.feature_size() for s in self.shapes)
 
     def get_node(self, point, cache):
-        return cache.make_node("intersection",
-                               [self.r],
-                               (shape.get_node(point, cache) for shape in self.shapes))
+        return cache.make_node(
+            "intersection",
+            [self.r],
+            (shape.get_node(point, cache) for shape in self.shapes),
+        )
 
 
 class SubtractionMixin:
@@ -59,9 +63,11 @@ class SubtractionMixin:
         return min(self.s1.feature_size(), self.s2.feature_size())
 
     def get_node(self, point, cache):
-        return cache.make_node("subtraction",
-                               [-1],
-                               [self.s1.get_node(point, cache), self.s2.get_node(point, cache)])
+        return cache.make_node(
+            "subtraction",
+            [-1],
+            [self.s1.get_node(point, cache), self.s2.get_node(point, cache)],
+        )
 
 
 class TransformationMixin:
@@ -75,7 +81,10 @@ class TransformationMixin:
 
     def get_node(self, point, cache):
         inverse_transformation = self.transformation.inverse()
-        if point.name == "transformation_to" or point.name == "initial_transformation_to":
+        if (
+            point.name == "transformation_to"
+            or point.name == "initial_transformation_to"
+        ):
             # Merge transformation_to nodes
             inverse_transformation = inverse_transformation * point.extra_data
             dependencies = point.dependencies
@@ -84,10 +93,12 @@ class TransformationMixin:
             dependencies = [point]
             node_name = "transformation_to"
 
-        new_point = cache.make_node(node_name,
-                                    inverse_transformation.as_list(),
-                                    dependencies,
-                                    inverse_transformation)
+        new_point = cache.make_node(
+            node_name,
+            inverse_transformation.as_list(),
+            dependencies,
+            inverse_transformation,
+        )
 
         inner_result = self.s.get_node(new_point, cache)
 
@@ -99,10 +110,9 @@ class TransformationMixin:
         else:
             dependencies = [inner_result]
 
-        return cache.make_node("transformation_from",
-                               quat.as_list(),
-                               dependencies,
-                               quat)
+        return cache.make_node(
+            "transformation_from", quat.as_list(), dependencies, quat
+        )
 
 
 class MirrorMixin:
@@ -112,8 +122,10 @@ class MirrorMixin:
 
     def bounding_box(self):
         box = self.s.bounding_box()
-        return util.BoundingBox(util.Vector(-box.b.x, box.a.y, box.a.z),
-                                util.Vector(-box.a.x, box.b.y, box.b.z))
+        return util.BoundingBox(
+            util.Vector(-box.b.x, box.a.y, box.a.z),
+            util.Vector(-box.a.x, box.b.y, box.b.z),
+        )
 
     def feature_size(self):
         return self.s.feature_size()
@@ -122,6 +134,27 @@ class MirrorMixin:
         mirrored_point = cache.make_node("mirror", [], [point])
         mirrored_result = self.s.get_node(mirrored_point, cache)
         return cache.make_node("mirror", [], [mirrored_result])
+
+
+class SymmetricalMixin:
+    def __init__(self, s):
+        self.check_dimension(s)
+        self.s = s
+
+    def bounding_box(self):
+        box = self.s.bounding_box()
+        return util.BoundingBox(
+            util.Vector(-box.b.x, box.a.y, box.a.z),
+            util.Vector(box.b.x, box.b.y, box.b.z),
+        )
+
+    def feature_size(self):
+        return self.s.feature_size()
+
+    def get_node(self, point, cache):
+        symmetrical_point = cache.make_node("symmetrical_to", [], [point])
+        symmetrical_result = self.s.get_node(symmetrical_point, cache)
+        return cache.make_node("symmetrical_from", [], [symmetrical_result, point])
 
 
 class OffsetMixin:
@@ -141,9 +174,9 @@ class OffsetMixin:
         return max(0, self.s.feature_size() + self.distance * 2)
 
     def get_node(self, point, cache):
-        return cache.make_node("offset",
-                               [self.distance],
-                               [self.s.get_node(point, cache)])
+        return cache.make_node(
+            "offset", [self.distance], [self.s.get_node(point, cache)]
+        )
 
 
 class ShellMixin:
@@ -165,6 +198,6 @@ class ShellMixin:
         return self.wall_thickness
 
     def get_node(self, point, cache):
-        return cache.make_node("shell",
-                               [self.wall_thickness / 2],
-                               [self.s.get_node(point, cache)])
+        return cache.make_node(
+            "shell", [self.wall_thickness / 2], [self.s.get_node(point, cache)]
+        )

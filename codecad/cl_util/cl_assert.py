@@ -13,34 +13,39 @@ class OpenClAssertionError(Exception):
         self.global_id = global_id
         self.expression = expression
 
-    def __str__(self):
-        string = "{}:{}: [{}, {}, {}, {}]: Assertion".format(self.filename, self.line,
-                                                             self.global_id[0],
-                                                             self.global_id[1],
-                                                             self.global_id[2],
-                                                             self.global_id[3])
+        string = "{}:{}: [{}, {}, {}, {}]: Assertion".format(
+            self.filename,
+            self.line,
+            self.global_id[0],
+            self.global_id[1],
+            self.global_id[2],
+            self.global_id[3],
+        )
         if self.expression is not None:
             string += " `{}'".format(self.expression)
-
         string += " failed."
-
         if self.count > 1:
             string += " (+{} others)".format(self.count - 1)
 
-        return string
+        super().__init__(string)
 
 
 class AssertBuffer(cl_buffer.Buffer):
     """ Buffer subclass for processing asserts. """
+
     ASSERT_BUFFER_SIZE = 1024
     ASSERT_ENABLED = __debug__
 
     def __init__(self, queue=None):
-        dtype_list = [("assert_count", numpy.uint32),
-                      ("global_id", numpy.uint32, 4),
-                      ("line", numpy.uint32)]
+        dtype_list = [
+            ("assert_count", numpy.uint32),
+            ("global_id", numpy.uint32, 4),
+            ("line", numpy.uint32),
+        ]
         dtype_list_size = numpy.dtype(dtype_list).itemsize
-        dtype_list.append(("text", "a{}".format(self.ASSERT_BUFFER_SIZE - dtype_list_size)))
+        dtype_list.append(
+            ("text", "a{}".format(self.ASSERT_BUFFER_SIZE - dtype_list_size))
+        )
 
         super().__init__(dtype_list, 1, pyopencl.mem_flags.READ_WRITE, queue=queue)
         assert self.size == self.ASSERT_BUFFER_SIZE
@@ -78,16 +83,20 @@ class AssertBuffer(cl_buffer.Buffer):
                 filename = split[0].decode("ascii")
                 expr = split[1].decode("ascii")
 
-            raise OpenClAssertionError(mapped["assert_count"][0],
-                                       filename,
-                                       mapped["line"][0],
-                                       list(mapped["global_id"][0]),
-                                       expr)
+            raise OpenClAssertionError(
+                mapped["assert_count"][0],
+                filename,
+                mapped["line"][0],
+                list(mapped["global_id"][0]),
+                expr,
+            )
 
 
-opencl_manager.common_header.append_define("ASSERT_BUFFER_SIZE", AssertBuffer.ASSERT_BUFFER_SIZE)
+opencl_manager.common_header.append_define(
+    "ASSERT_BUFFER_SIZE", AssertBuffer.ASSERT_BUFFER_SIZE
+)
 if AssertBuffer.ASSERT_ENABLED:
     opencl_manager.common_header.append_define("ASSERT_ENABLED", 1)
-opencl_manager.common_header.append_file("assert.h")
+opencl_manager.common_header.append_resource("assert.h")
 
-opencl_manager.add_compile_unit().append_file("assert.cl")
+opencl_manager.add_compile_unit().append_resource("assert.cl")

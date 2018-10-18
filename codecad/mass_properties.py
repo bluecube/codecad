@@ -32,7 +32,7 @@ assert TREE_CHILD_COUNT * MAX_WORK_SIZE <= 2**23, "Maximum number of split nodes
 
 c = opencl_manager.add_compile_unit()
 c.append_define("TREE_SIZE", TREE_SIZE)
-c.append_file("mass_properties.cl")
+c.append_resource("mass_properties.cl")
 
 logger = logging.getLogger(__name__)
 

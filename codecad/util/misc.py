@@ -26,6 +26,7 @@ class Concatenate:
 
 
 def at_most_one(iterable):
+    """ Return true if an iterable has at most one truthy value """
     it = iter(iterable)
     any(it)
     return not any(it)

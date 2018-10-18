@@ -1,3 +1,5 @@
+# pylint: disable=redefined-outer-name
+
 import pytest
 
 import codecad
@@ -17,8 +19,11 @@ def test_shape_to_assembly():
 
 
 def test_shape_to_assembly_no_part():
+    """ Test converting the shape directly to an assembly without making a part of it first.
+    This should fail. """
+    a = codecad.assembly("X", [codecad.shapes.sphere()])
     with pytest.raises(Exception):
-        codecad.Assembly("X", [codecad.shapes.sphere()])
+        a.shape()
 
 
 @pytest.fixture(scope="module")
@@ -34,17 +39,24 @@ def asm_data():
     for i in range(1, n + 1):
         s = data.bin_counter(i).extruded(0.1)
 
-        row_parts.append(codecad.assembly("row_{}".format(i),
-                                          [row_parts[-1],
-                                           s.make_part("shape_{}".format(i))
-                                            .translated_x(0.5 + 2 * i)
-                                           ]))
+        row_parts.append(
+            codecad.assembly(
+                "row_{}".format(i),
+                [
+                    row_parts[-1],
+                    s.make_part("shape_{}".format(i)).translated_x(0.5 + 2 * i),
+                ],
+            )
+        )
         row_shapes.append(row_shapes[-1] + s.translated_x(0.5 + 2 * i))
 
-    assembly = codecad.assembly("test_assembly", [row.translated_y(i * y_spacing)
-                                for i, row in enumerate(row_parts)])
-    shape = codecad.shapes.union([row.translated_y(i * y_spacing)
-                                  for i, row in enumerate(row_shapes)])
+    assembly = codecad.assembly(
+        "test_assembly",
+        [row.translated_y(i * y_spacing) for i, row in enumerate(row_parts)],
+    )
+    shape = codecad.shapes.union(
+        [row.translated_y(i * y_spacing) for i, row in enumerate(row_shapes)]
+    )
 
     assembly = assembly.rotated_x(90)
     shape = shape.rotated_x(90)
@@ -53,7 +65,7 @@ def asm_data():
 
 
 def test_subassemblies_recursive_bom(asm_data):
-    n, asm, shape = asm_data
+    n, asm, _shape = asm_data
     seen = {}
 
     for item in asm.bom():
@@ -70,7 +82,7 @@ def test_subassemblies_recursive_bom(asm_data):
 
 
 def test_subassemblies_flat_bom(asm_data):
-    n, asm, shape = asm_data
+    n, asm, _shape = asm_data
     seen = {}
 
     for item in asm.bom(recursive=False):
@@ -91,12 +103,12 @@ def test_subassemblies_flat_bom(asm_data):
 
 
 def test_subassemblies_shape(asm_data):
-    n, asm, shape = asm_data
+    _n, asm, shape = asm_data
     tools.assert_shapes_equal(asm.shape(), shape)
 
 
 def test_subassembly_items(asm_data):
-    n, asm, shape = asm_data
+    n, asm, _shape = asm_data
     seen = {}
 
     for item in asm:
@@ -116,8 +128,7 @@ def test_subassembly_items(asm_data):
 
 def test_visible_bom():
     o = codecad.shapes.sphere()
-    asm = codecad.assembly("test",
-                           [o.make_part("1"), o.make_part("2").hidden()])
+    asm = codecad.assembly("test", [o.make_part("1"), o.make_part("2").hidden()])
 
     assert len(list(asm.bom())) == 2
     assert len(list(asm.bom(visible_only=True))) == 1

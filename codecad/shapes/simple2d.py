@@ -7,8 +7,8 @@ from . import common
 from ..cl_util import opencl_manager
 
 _c_file = opencl_manager.add_compile_unit()
-_c_file.append_file("common.h")
-_c_file.append_file("simple2d.cl")
+_c_file.append_resource("common.h")
+_c_file.append_resource("simple2d.cl")
 
 
 class Rectangle(base.Shape2D):
@@ -24,7 +24,9 @@ class Rectangle(base.Shape2D):
         return 2 * min(self.half_size.x, self.half_size.y)
 
     def get_node(self, point, cache):
-        return cache.make_node("rectangle", [self.half_size.x, self.half_size.y], [point])
+        return cache.make_node(
+            "rectangle", [self.half_size.x, self.half_size.y], [point]
+        )
 
 
 class Circle(base.Shape2D):
@@ -49,9 +51,11 @@ class Circle(base.Shape2D):
 
 class HalfPlane(base.Shape2D):
     """ Half space y > 0. """
+
     def bounding_box(self):
-        return util.BoundingBox(util.Vector(-float("inf"), 0),
-                                util.Vector(float("inf"), float("inf")))
+        return util.BoundingBox(
+            util.Vector(-float("inf"), 0), util.Vector(float("inf"), float("inf"))
+        )
 
     def feature_size(self):
         return float("inf")
@@ -64,8 +68,12 @@ class RegularPolygon2D(base.Shape2D):
     def __init__(self, n, d=1, r=None, side_length=None, across_flats=None):
         self.n = n
 
-        if not util.at_most_one([d != 1, r is not None, side_length is not None, across_flats is not None]):
-            raise ValueError("At most one of d, r, side_length and across_flats can be used at the same time")
+        if not util.at_most_one(
+            [d != 1, r is not None, side_length is not None, across_flats is not None]
+        ):
+            raise ValueError(
+                "At most one of d, r, side_length and across_flats can be used at the same time"
+            )
 
         self.d = None
         self.r = None
@@ -129,7 +137,9 @@ class Polygon2D(base.Shape2D):
         self.points = numpy.asarray(points, dtype=numpy.float32, order="c")
         s = self.points.shape
         if len(s) != 2 or s[1] != 2:
-            raise ValueError("points must be a list of (x, y) pairs or array with shape (x, 2)")
+            raise ValueError(
+                "points must be a list of (x, y) pairs or array with shape (x, 2)"
+            )
         if s[0] < 3:
             raise ValueError("Polygon must have at least three vertices")
 
@@ -153,26 +163,27 @@ class Polygon2D(base.Shape2D):
                 raise ValueError("Zero length segments are not allowed in polygon")
 
             inner_previous = current
-            has_intersection = False
-            for j, inner_current in enumerate(self.points[i + 1:]):
+            for j, inner_current in enumerate(self.points[i + 1 :]):
                 inner_current = util.Vector(*inner_current)
                 inner_direction = inner_current - inner_previous
 
                 inner_perpendicular_direction = inner_direction.perpendicular2d()
 
                 direction_cross_product = inner_direction.dot(perpendicular_direction)
-                between_starts = (previous - inner_previous)
+                between_starts = previous - inner_previous
 
                 feature_size = min(feature_size, abs(between_starts))
 
-                consecutive = j == 0 or j == len(points) - 2  # i precedes or follows j
+                consecutive = j in (0, len(points) - 2)  # i precedes or follows j
                 parallel = abs(direction_cross_product) < 1e-12
 
                 if consecutive:
                     # Consecutive segments always intersect, but we must check that they are
                     # not collinear and in opposite direction
                     if parallel and direction.dot(inner_direction) < 0:
-                        raise ValueError("Polygon cannot be self intersecting (anti-parallel consecutive edges)")
+                        raise ValueError(
+                            "Polygon cannot be self intersecting (anti-parallel consecutive edges)"
+                        )
                 else:
                     if parallel:
                         if abs(between_starts.dot(perpendicular_direction)) < 1e-12:
@@ -184,7 +195,9 @@ class Polygon2D(base.Shape2D):
                             t1, t2 = sorted([t1, t2])
 
                             if t2 >= 0 and t1 <= 1:
-                                raise ValueError("Polygon cannot be self intersecting (colinear segments)")
+                                raise ValueError(
+                                    "Polygon cannot be self intersecting (colinear segments)"
+                                )
 
                         else:
                             # parallel
@@ -215,9 +228,9 @@ class Polygon2D(base.Shape2D):
         return self._feature_size
 
     def get_node(self, point, cache):
-        return cache.make_node("polygon2d",
-                               util.Concatenate([len(self.points)], self.points.flat),
-                               [point])
+        return cache.make_node(
+            "polygon2d", util.Concatenate([len(self.points)], self.points.flat), [point]
+        )
 
 
 class Union2D(common.UnionMixin, base.Shape2D):
@@ -249,10 +262,17 @@ class Transformation2D(common.TransformationMixin, base.Shape2D):
             inf = util.Vector(float("inf"), float("inf"))
             return util.BoundingBox(-inf, inf)
         else:
-            ret = util.BoundingBox.containing(self.transformation.transform_vector(v) for v in b.vertices())
-            return util.BoundingBox(util.Vector(ret.a.x, ret.a.y),
-                                    util.Vector(ret.b.x, ret.b.y))
+            ret = util.BoundingBox.containing(
+                self.transformation.transform_vector(v) for v in b.vertices()
+            )
+            return util.BoundingBox(
+                util.Vector(ret.a.x, ret.a.y), util.Vector(ret.b.x, ret.b.y)
+            )
 
 
 class Mirror2D(common.MirrorMixin, base.Shape2D):
+    pass
+
+
+class Symmetrical2D(common.SymmetricalMixin, base.Shape2D):
     pass

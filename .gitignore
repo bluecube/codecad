@@ -7,9 +7,13 @@
 /.eggs/
 /*.egg-info/
 /htmlcov/
+/.pytest_cache/
+/.hypothesis/
+
 /output.*
 /*.stl
 /*error.png
+
 __pycache__/
 .ipynb_checkpoints/
 *.swp

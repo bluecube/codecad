@@ -12,11 +12,11 @@ class Buffer(pyopencl.Buffer):
 
     @staticmethod
     def dual_dtype(scalar):
-        return numpy.dtype([(name, scalar) for name in 'xy'])
+        return numpy.dtype([(name, scalar) for name in "xy"])
 
     @staticmethod
     def quad_dtype(scalar):
-        return numpy.dtype([(name, scalar) for name in 'xyzw'])
+        return numpy.dtype([(name, scalar) for name in "xyzw"])
 
     def __init__(self, dtype, shape, mem_flags, queue=None):
         self.queue = queue if queue is not None else opencl_manager.instance.queue
@@ -33,9 +33,11 @@ class Buffer(pyopencl.Buffer):
 
         self.array = None
 
-        super().__init__(self.queue.context,
-                         mem_flags | pyopencl.mem_flags.ALLOC_HOST_PTR,
-                         self.nitems * self.dtype.itemsize)
+        super().__init__(
+            self.queue.context,
+            mem_flags | pyopencl.mem_flags.ALLOC_HOST_PTR,
+            self.nitems * self.dtype.itemsize,
+        )
 
     def create_host_side_array(self):
         """ Create numpy array of appropriate size and dtype, assign it to buffer's
@@ -56,11 +58,12 @@ class Buffer(pyopencl.Buffer):
         Returns event. """
 
         array = self._process_array(out)
-        if array.nbytes < self.size:
+        if array.nbytes < self.size:  # noqa
             raise RuntimeError("Not enough space to store contents of the buffer")
 
-        return pyopencl.enqueue_copy(self.queue, array, self,
-                                     wait_for=wait_for, is_blocking=False)
+        return pyopencl.enqueue_copy(
+            self.queue, array, self, wait_for=wait_for, is_blocking=False
+        )
 
     def read(self, out=None, wait_for=None):
         """ Read contents of the buffer either into `self.array`, or to `out`.
@@ -68,11 +71,12 @@ class Buffer(pyopencl.Buffer):
         Blocks until the data is ready, returns output array. """
 
         array = self._process_array(out)
-        if array.nbytes < self.size:
+        if array.nbytes < self.size:  # noqa
             raise RuntimeError("Not enough space to store contents of the buffer")
 
-        pyopencl.enqueue_copy(self.queue, array, self,
-                              wait_for=wait_for, is_blocking=True)
+        pyopencl.enqueue_copy(
+            self.queue, array, self, wait_for=wait_for, is_blocking=True
+        )
 
         return array
 
@@ -82,11 +86,12 @@ class Buffer(pyopencl.Buffer):
         `wait_for` can be either None or list of opencl.Event. """
 
         array = self._process_array(a)
-        if array.nbytes > self.size:
+        if array.nbytes > self.size:  # noqa
             raise RuntimeError("Not enough space to store contents in the buffer")
 
-        return pyopencl.enqueue_copy(self.queue, self, array,
-                                     wait_for=wait_for, is_blocking=False)
+        return pyopencl.enqueue_copy(
+            self.queue, self, array, wait_for=wait_for, is_blocking=False
+        )
 
     def enqueue_fill_compatible(self, value, wait_for=None):
         return self.enqueue_write(numpy.full(self.shape, value, dtype=self.dtype),
@@ -105,9 +110,16 @@ class Buffer(pyopencl.Buffer):
         if shape is None:
             shape = self.shape
 
-        array, event = pyopencl.enqueue_map_buffer(self.queue, self, map_flags,
-                                                   offset, shape, self.dtype,
-                                                   wait_for=wait_for, is_blocking=True)
+        array, _event = pyopencl.enqueue_map_buffer(
+            self.queue,
+            self,
+            map_flags,
+            offset,
+            shape,
+            self.dtype,
+            wait_for=wait_for,
+            is_blocking=True,
+        )
         with array.base:
             yield array
 

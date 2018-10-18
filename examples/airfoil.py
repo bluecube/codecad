@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 
-import codecad
 import os
 import mesh
+
+import codecad
 
 chord = 200
 span = 80
@@ -21,4 +22,4 @@ endcap = airfoil.extruded(wall, symmetrical=False)
 o = (inside + skin + endcap).rotated_x(90)
 
 if __name__ == "__main__":
-    codecad.commandline_render(o, 0.1)
+    codecad.commandline_render(o)
