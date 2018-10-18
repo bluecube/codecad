@@ -5,8 +5,9 @@ https://en.wikipedia.org/wiki/Constructive_solid_geometry#/media/File:Csg_tree.p
 
 import codecad
 import logging
+
 logging.basicConfig()
-logging.getLogger('codecad').setLevel(logging.DEBUG)
+logging.getLogger("codecad").setLevel(logging.DEBUG)
 
 sphere = codecad.shapes.sphere(130)
 cube = codecad.shapes.box(100)

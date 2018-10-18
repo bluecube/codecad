@@ -94,8 +94,9 @@ class Buffer(pyopencl.Buffer):
         )
 
     def enqueue_fill_compatible(self, value, wait_for=None):
-        return self.enqueue_write(numpy.full(self.shape, value, dtype=self.dtype),
-                                  wait_for=wait_for)
+        return self.enqueue_write(
+            numpy.full(self.shape, value, dtype=self.dtype), wait_for=wait_for
+        )
 
     def enqueue_zero_fill_compatible(self, wait_for=None):
         return self.enqueue_fill_compatible(0, wait_for)

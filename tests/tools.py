@@ -96,7 +96,7 @@ def assert_shapes_equal(shape, expected, resolution=0.1):
         return
 
     difference = (shape ^ expected).offset(-1e-6)
-    mp = codecad.mass_properties(difference,
-                                 abs_allowed_error=box.volume() * 1e-3,
-                                 rel_allowed_error=0)
+    mp = codecad.mass_properties(
+        difference, abs_allowed_error=box.volume() * 1e-3, rel_allowed_error=0
+    )
     assert mp.volume <= mp.volume_error
