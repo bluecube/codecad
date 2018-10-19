@@ -1,6 +1,4 @@
 import collections
-import functools
-import operator
 import math
 import time
 import logging
@@ -12,7 +10,6 @@ from pyopencl import cltypes
 
 from . import util
 from . import cl_util
-from . import subdivision
 from .cl_util import opencl_manager
 from . import nodes
 
@@ -477,14 +474,14 @@ def mass_properties(
         - centroid.z * integral_y
         + centroid.y * centroid.z * integral_one
     )
-    I_xx = shifted_integral_yy + shifted_integral_zz
-    I_yy = shifted_integral_xx + shifted_integral_zz
-    I_zz = shifted_integral_xx + shifted_integral_yy
-    I_xy = -shifted_integral_xy
-    I_xz = -shifted_integral_xz
-    I_yz = -shifted_integral_yz
+    i_xx = shifted_integral_yy + shifted_integral_zz
+    i_yy = shifted_integral_xx + shifted_integral_zz
+    i_zz = shifted_integral_xx + shifted_integral_yy
+    i_xy = -shifted_integral_xy
+    i_xz = -shifted_integral_xz
+    i_yz = -shifted_integral_yz
     inertia_tensor = numpy.array(
-        [[I_xx, I_xy, I_xz], [I_xy, I_yy, I_yz], [I_xz, I_yz, I_zz]]
+        [[i_xx, i_xy, i_xz], [i_xy, i_yy, i_yz], [i_xz, i_yz, i_zz]]
     )
 
     return MassProperties(volume, centroid, inertia_tensor, total_error.result)

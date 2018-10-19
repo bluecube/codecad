@@ -1,5 +1,4 @@
 import math
-import random
 
 import numpy
 import scipy.integrate
@@ -197,7 +196,7 @@ def test_mass_properties_cube_halfspace_volume(normal, distance):
     # The sampling algorithm is randomized, so we just retry with higher sample
     # count up to 3 times after a failed check to be sure that we're not failing
     # the test due to a random fluke
-    for i in range(3):
+    for _i in range(3):
         indices = numpy.linspace(-0.5, 0.5, n, endpoint=False)
         x, y, z = numpy.meshgrid(indices, indices, indices)
         x += numpy.random.random(x.shape) / n

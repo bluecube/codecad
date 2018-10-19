@@ -2,7 +2,6 @@ import contextlib
 import tempfile
 import os
 import shutil
-import io
 
 import pytest
 import PIL
@@ -79,12 +78,12 @@ def assert_images_equal(tested_fp, baseline_fp, error_filename=None):
         raise AssertionError("Mean squared error is too big.")
 
 
-def assert_shapes_equal(shape, expected, resolution=0.1):
+def assert_shapes_equal(shape, expected):
     """ Checks that two shapes are equal, raises AssertionError if they are not.
 
-    For now this does a bounding box chec, very rough check using volume of
-    symmetric difference of the two shapes and then a comparison of low resolution renders.
-    This is certainly not optimal (too slow and too imprecise), but that's what we've got. """
+    This does a bounding box check, very rough check using volume of
+    symmetric difference of the two shapes and then calculates volume of the
+    symmetric difference shape. """
 
     box = shape.bounding_box()
     expected_box = expected.bounding_box()
