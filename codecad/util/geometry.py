@@ -101,6 +101,9 @@ class Vector(collections.namedtuple("Vector", "x y z")):
     def as_float2(self):
         return numpy.array((self.x, self.y), dtype=pyopencl.cltypes.float2)
 
+    def as_tuple2(self):
+        return (self.x, self.y)
+
     def as_matrix(self):
         return numpy.matrix([[self.x], [self.y], [self.z], [1]])
 

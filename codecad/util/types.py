@@ -19,10 +19,10 @@ def wrap_number_like(value):
             )
 
 
-def wrap_vector_like(value):
+def wrap_vector_like(value, max_dimension=3):
     """ Try to use value as a vector.
     Vector-like is either instance of Vector or its subclass, or an iterable with
-    two or three number-like items. """
+    between two and max_dimension elements. """
 
     if isinstance(value, geometry.Vector):
         return value
@@ -39,18 +39,21 @@ def wrap_vector_like(value):
         y = next(wrapped)
     except StopIteration:
         raise TypeError("Value must have at least two items to be vector-like")
-    try:
-        z = next(wrapped)
-    except StopIteration:
-        z = 0
-    else:
+
+    z = 0
+    if max_dimension == 3:
         try:
-            next(it)
-            # We don't want to try converting the item after the last one to not
-            # hide the "too long" message with potentional "not a number" message
+            z = next(wrapped)
         except StopIteration:
             pass
-        else:
-            raise TypeError("Value must have at most three items to be vector-like")
+
+    try:
+        next(it)
+        # We don't want to try converting the item after the last one to not
+        # hide the "too long" message with potentional "not a number" message
+    except StopIteration:
+        pass
+    else:
+        raise TypeError("Value must have at most three items to be vector-like")
 
     return geometry.Vector(x, y, z)

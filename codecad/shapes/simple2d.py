@@ -134,13 +134,12 @@ class Polygon2D(base.Shape2D):
     First and last point are implicitly connected. """
 
     def __init__(self, points):
-        self.points = numpy.asarray(points, dtype=numpy.float32, order="c")
-        s = self.points.shape
-        if len(s) != 2 or s[1] != 2:
-            raise ValueError(
-                "points must be a list of (x, y) pairs or array with shape (x, 2)"
-            )
-        if s[0] < 3:
+        self.points = numpy.asarray(
+            [util.types.wrap_vector_like(p).as_tuple2() for p in points],
+            dtype=numpy.float32,
+            order="c",
+        )
+        if self.points.shape[0] < 3:
             raise ValueError("Polygon must have at least three vertices")
 
         area = util.KahanSummation()

@@ -77,3 +77,14 @@ def test_wrap_vector_like2(value, expected):
 def test_wrap_vector_like_fail(value):
     with pytest.raises((TypeError, ValueError)):
         codecad.util.wrap_vector_like(value)
+
+
+def test_wrap_vector_like2d():
+    assert codecad.util.wrap_vector_like(
+        (1, 2), max_dimension=2
+    ) == codecad.util.Vector(1, 2)
+
+
+def test_wrap_vector_like2d_fail():
+    with pytest.raises((TypeError, ValueError)):
+        codecad.util.wrap_vector_like((1, 2, 3), max_dimension=2)
