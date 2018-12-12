@@ -1,0 +1,22 @@
+language: python
+
+python:
+  - "3.3"
+  - "3.4"
+  - "3.5"
+  - "3.6"
+  - "3.7"
+  - "pypy3"
+
+addons:
+  apt:
+    packages:
+    - ocl-icd-opencl-dev
+
+install:
+  - pip install --editable .
+  - pip install coveralls
+
+script: coverage run --source collections_extended setup.py test
+
+after_success: coveralls
