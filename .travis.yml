@@ -8,7 +8,7 @@ python:
 addons:
   apt:
     packages:
-    - pocl-opencl-icd
+    - pocl
 
 install:
   - pip install --editable .
