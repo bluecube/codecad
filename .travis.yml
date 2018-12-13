@@ -10,7 +10,9 @@ python:
 before_install:
   - sudo add-apt-repository -y ppa:anbe/opencl
   - sudo apt-get update -q
+  - sudo apt-get install ocl-icd-opencl-dev
   - sudo apt-get install -y pocl-opencl-icd libpocl-dev libpocl2 libpocl2-common
+  - dpkg -L libpocl-dev
 
 install:
   - pip install pybind11 # Must be installed in advance for pyopencl
