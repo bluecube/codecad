@@ -10,7 +10,7 @@ python:
 addons:
   apt:
     sources:
-    - ppa:anbe/opencl
+      sourceline: 'ppa:anbe/opencl'
     packages:
     - pocl
 
