@@ -9,9 +9,9 @@ addons:
   apt:
     packages:
     - ocl-icd-opencl-dev
-    - pybind11-dev
 
 install:
+  - pip install pybind11
   - pip install --editable .
   - pip install coveralls
 
