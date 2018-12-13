@@ -1,18 +1,16 @@
 dist: xenial
 
 language: python
-os: osx
 
 python:
   - "3.5"
   - "3.6"
   - "pypy3.5"
 
-#before_install:
-  #- sudo apt install ocl-icd-opencl-dev
-  #- sudo add-apt-repository ppa:anbe/opencl -y
-  #- sudo apt-get update -q
-  #- sudo apt-get install pocl -y
+before_install:
+  - sudo add-apt-repository -y ppa:anbe/opencl
+  - sudo apt-get update -q
+  - sudo apt-get install -y pocl-opencl-icd libpocl2 libpocl2-common
 
 install:
   - pip install --editable .
