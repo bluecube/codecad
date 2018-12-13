@@ -1,3 +1,5 @@
+dist: xenial
+
 language: python
 
 python:
@@ -7,6 +9,8 @@ python:
 
 addons:
   apt:
+    sources:
+    - ppa:anbe/opencl
     packages:
     - pocl
 
