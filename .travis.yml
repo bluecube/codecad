@@ -11,7 +11,6 @@ addons:
     - ocl-icd-opencl-dev
 
 install:
-  - pip install pybind11
   - pip install --editable .
   - pip install coveralls
 
