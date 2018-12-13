@@ -13,6 +13,7 @@ before_install:
   - sudo apt-get install -y pocl-opencl-icd libpocl2 libpocl2-common
 
 install:
+  - pip install pybind11 # Must be installed in advance for pyopencl
   - pip install --editable .
   - pip install coveralls
 
