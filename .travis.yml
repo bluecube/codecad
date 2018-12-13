@@ -5,12 +5,13 @@ language: python
 python:
   - "3.5"
   - "3.6"
-  - "pypy3"
+  - "pypy3.5"
 
 before_install:
-  - sudo add-apt-repository ppa:anbe/opencl -y
-  - sudo apt-get update -q
-  - sudo apt-get install pocl -y
+  - sudo apt install ocl-icd-opencl-dev
+  #- sudo add-apt-repository ppa:anbe/opencl -y
+  #- sudo apt-get update -q
+  #- sudo apt-get install pocl -y
 
 install:
   - pip install --editable .
