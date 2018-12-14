@@ -83,14 +83,14 @@ drunk_box_matrix = codecad.util.Quaternion.from_degrees((7, 11, 13), 17).as_matr
             2 * 3 * 5,
             codecad.util.Vector(0, 0, 0),
             drunk_box_matrix
-            * (
+            @ (
                 numpy.diag([3 ** 2 + 5 ** 2, 2 ** 2 + 5 ** 2, 2 ** 2 + 3 ** 2])
                 * 2
                 * 3
                 * 5
                 / 12
             )
-            * drunk_box_matrix.T,
+            @ drunk_box_matrix.T,
             id="drunk_box",
         ),
     ],

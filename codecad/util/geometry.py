@@ -105,7 +105,12 @@ class Vector(collections.namedtuple("Vector", "x y z")):
         return (self.x, self.y)
 
     def as_matrix(self):
-        return numpy.matrix([[self.x], [self.y], [self.z], [1]])
+        """
+        Return a 1x4 numpy array corresponding to this vector.
+
+        Currently this is slow (but robust) and only intended for testing.
+        """
+        return numpy.array([[self.x], [self.y], [self.z], [1]])
 
     def __str__(self):
         return "({}, {}, {})".format(self.x, self.y, self.z)
@@ -221,7 +226,7 @@ class Quaternion(collections.namedtuple("Quaternion", "v w")):
 
     def as_matrix(self):
         """
-        Return a 4x4 numpy matrix that represents the same transformation.
+        Return a 4x4 numpy array that represents the same transformation.
 
         Currently this is slow (but robust) and only intended for testing.
         """

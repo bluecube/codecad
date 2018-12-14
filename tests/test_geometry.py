@@ -64,8 +64,8 @@ def test_vector_transformation_inverse_times_original(transformation, v, _target
 
 @pytest.mark.parametrize("transformation, v, target", all_to_test)
 def test_vector_transformatio_matrix(transformation, v, target):
-    matrix_transformed = transformation.as_matrix() * v.as_matrix()
-    assert codecad.util.Vector(*matrix_transformed.A1[:3]) == approx(target)
+    matrix_transformed = transformation.as_matrix() @ v.as_matrix()
+    assert codecad.util.Vector(*matrix_transformed.flat[:3]) == approx(target)
 
 
 @pytest.mark.parametrize("transformation, v, target", all_to_test)
