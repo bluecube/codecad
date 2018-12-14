@@ -2,6 +2,8 @@
 import pytest
 from codecad.shapes import *
 
+import test_polygons2d
+
 
 def bin_counter(n):
     """ Generate a 2D shape that contains binary representation of n """
@@ -23,46 +25,6 @@ def bin_counter(n):
         return base - union(blips)
     else:
         return base
-
-
-valid_polygon2d = {
-    "triangle": [(0, 0), (3, 0), (3, 2)],
-    "non_convex": [(0, 0), (3, 0), (3, 1), (2, 2), (3, 3), (0, 3)],
-    "collinear_consecutive_edges": [(0, 0), (2, 0), (4, 0), (4, 3)],
-    "collinear_non_consecutive_edges": [
-        (0, 0),
-        (3, 0),
-        (3, 1),
-        (2, 2),
-        (3, 3),
-        (3, 4),
-        (0, 4),
-    ],
-    "square": [(0, 0), (5, 0), (5, 5), (0, 5)],
-    "parallel_same_direction_edges": [(0, 0), (6, -1), (5, 5), (5, 0), (0, 5)],
-}
-
-invalid_polygon2d = {
-    "edge_crossing": [(0, 0), (3, 0), (0, 3), (3, 3)],
-    "point_crossing": [(0, 0), (3, 0), (2.5, 2.5), (0, 3), (3, 3), (2.5, 2.5)],
-    "repeated_point_on_collinear_edges": [
-        (0, 0),
-        (3, 0),
-        (3, 2),
-        (2, 1),
-        (2, 3),
-        (3, 2),
-        (3, 4),
-        (0, 4),
-    ],
-    "collinear_edge_crossing": [(0, 0), (3, 0), (3, 3), (2, 2), (3, 1), (3, 4), (0, 4)],
-    "repeated_point": [(0, 0), (4, 0), (4, 3), (0, 0), (1, 3), (0, 3)],
-    "point_on_edge": [(0, 0), (4, 0), (4, 3), (2, 0), (0, 3)],
-    "shared_edge": [(0, 0), (3, 0), (5, 0), (3, 0), (3, 3)],
-    "shared_edge_part": [(0, 0), (5, 0), (3, 0), (3, 3)],
-    "duplicate_point": [(0, 0), (2, 0), (2, 0), (4, 3)],
-    "duplicate_point_at_start": [(0, 0), (3, 0), (3, 2), (0, 0)],
-}
 
 
 nonconvex = polygon2d([(0, 0), (4, 6), (4, -2), (-4, -2), (-4, 6)])
@@ -105,7 +67,9 @@ shapes_2d = {
     "symmetrical_xy": circle(d=2).translated(2, 1.75).symmetrical_x().symmetrical_y(),
     "rotated_pattern_2d": circle(1, 1).translated_x(2).rotated(270, 3),
 }
-shapes_2d.update(("polygon2d_" + k, polygon2d(v)) for k, v in valid_polygon2d.items())
+shapes_2d.update(
+    ("polygon2d_" + k, polygon2d(v)) for k, v in test_polygons2d.valid_polygon2d.items()
+)
 params_2d = [pytest.param(v, id=k) for k, v in sorted(shapes_2d.items())]
 
 shapes_3d = {

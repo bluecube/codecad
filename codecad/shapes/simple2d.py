@@ -1,5 +1,4 @@
 import math
-import numpy
 
 from .. import util
 from . import base
@@ -127,109 +126,6 @@ class RegularPolygon2D(base.Shape2D):
 
     def get_node(self, point, cache):
         return cache.make_node("regular_polygon2d", [math.pi / self.n, self.r], [point])
-
-
-class Polygon2D(base.Shape2D):
-    """ 2D simple (without self intersections) polygon.
-    First and last point are implicitly connected. """
-
-    def __init__(self, points):
-        self.points = numpy.asarray(
-            [util.types.wrap_vector_like(p).as_tuple2() for p in points],
-            dtype=numpy.float32,
-            order="c",
-        )
-        if self.points.shape[0] < 3:
-            raise ValueError("Polygon must have at least three vertices")
-
-        area = util.KahanSummation()
-        minimum = util.Vector.splat(float("inf"))
-        maximum = -minimum
-        feature_size = float("inf")
-        previous = util.Vector(*self.points[-1])
-        for i, current in enumerate(self.points):
-            current = util.Vector(*current)
-            direction = current - previous
-            direction_abs_squared = direction.abs_squared()
-            perpendicular_direction = direction.perpendicular2d()
-
-            area += direction.x * (previous.y + current.y) / 2
-
-            minimum = minimum.min(current)
-            maximum = maximum.max(current)
-
-            if direction_abs_squared == 0:
-                raise ValueError("Zero length segments are not allowed in polygon")
-
-            inner_previous = current
-            for j, inner_current in enumerate(self.points[i + 1 :]):
-                inner_current = util.Vector(*inner_current)
-                inner_direction = inner_current - inner_previous
-
-                inner_perpendicular_direction = inner_direction.perpendicular2d()
-
-                direction_cross_product = inner_direction.dot(perpendicular_direction)
-                between_starts = previous - inner_previous
-
-                feature_size = min(feature_size, abs(between_starts))
-
-                consecutive = j in (0, len(points) - 2)  # i precedes or follows j
-                parallel = abs(direction_cross_product) < 1e-12
-
-                if consecutive:
-                    # Consecutive segments always intersect, but we must check that they are
-                    # not collinear and in opposite direction
-                    if parallel and direction.dot(inner_direction) < 0:
-                        raise ValueError(
-                            "Polygon cannot be self intersecting (anti-parallel consecutive edges)"
-                        )
-                else:
-                    if parallel:
-                        if abs(between_starts.dot(perpendicular_direction)) < 1e-12:
-                            # collinear
-                            scaled_direction = direction / direction_abs_squared
-                            t1 = between_starts.dot(scaled_direction)
-                            t2 = t1 + inner_direction.dot(scaled_direction)
-
-                            t1, t2 = sorted([t1, t2])
-
-                            if t2 >= 0 and t1 <= 1:
-                                raise ValueError(
-                                    "Polygon cannot be self intersecting (colinear segments)"
-                                )
-
-                        else:
-                            # parallel
-                            pass
-                    else:
-                        tmp = between_starts / direction_cross_product
-
-                        t1 = tmp.dot(inner_perpendicular_direction)
-                        t2 = tmp.dot(perpendicular_direction)
-
-                        if 0 <= t1 <= 1 and 0 <= t2 <= 1:
-                            raise ValueError("Polygon cannot be self intersecting")
-
-                inner_previous = inner_current
-
-            previous = current
-
-        if area.result < 0:
-            self.points = numpy.flipud(self.points)
-
-        self.box = util.BoundingBox(minimum, maximum)
-        self._feature_size = feature_size
-
-    def bounding_box(self):
-        return self.box
-
-    def feature_size(self):
-        return self._feature_size
-
-    def get_node(self, point, cache):
-        return cache.make_node(
-            "polygon2d", util.Concatenate([len(self.points)], self.points.flat), [point]
-        )
 
 
 class Union2D(common.UnionMixin, base.Shape2D):

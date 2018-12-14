@@ -9,6 +9,7 @@ import math
 
 from . import simple2d as _s2
 from . import simple3d as _s3
+from . import polygons2d as _polygons2d
 
 from . import unsafe
 from . import gears
@@ -34,7 +35,11 @@ def regular_polygon2d(n, d=1, r=None, side_length=None, across_flats=None):
 
 
 def polygon2d(points):
-    return _s2.Polygon2D(points)
+    return _polygons2d.Polygon2D(points)
+
+
+def polygon2d_builder(origin_x, origin_y):
+    return _polygons2d.Polygon2D.build(origin_x, origin_y)
 
 
 def capsule(x1, y1, x2, y2, width):
