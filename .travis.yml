@@ -5,7 +5,7 @@ language: python
 python:
   - "3.5"
   - "3.6"
-  - "pypy3.5"
+#  - "pypy3.5" # Fails mysteriously on a `pip install`
 
 before_install:
   - sudo add-apt-repository -y ppa:anbe/opencl
