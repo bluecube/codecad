@@ -2,6 +2,7 @@
 
 import math
 
+
 def cos(deg):
     return math.cos(math.radians(deg))
 
