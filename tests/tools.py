@@ -108,3 +108,15 @@ def assert_shapes_equal(shape, expected, resolution=0.1):
     )
     expected_render.seek(0)
     assert_images_equal(shape_render, expected_render)
+
+
+def approx_equal(a, b, rel_tol=1e-9, abs_tol=1e-12):
+    """ Equilvalent to math.approx_equal that can work with vectors. """
+    return abs(a - b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
+
+
+def bounding_box_approx_equal(a, b, rel_tol=1e-9, abs_tol=1e-12):
+    """ approx_equal for bounding boxes, checks that both corners are approximately equal. """
+    return approx_equal(a.a, b.a, rel_tol=rel_tol, abs_tol=abs_tol) and approx_equal(
+        a.b, b.b, rel_tol=rel_tol, abs_tol=abs_tol
+    )

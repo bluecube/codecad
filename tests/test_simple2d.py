@@ -5,6 +5,7 @@ import pytest
 import codecad.shapes.simple2d
 
 import data
+import tools
 
 
 @pytest.mark.parametrize(
@@ -92,12 +93,14 @@ def test_mirrored_bounding_box():
         codecad.util.Vector(0, 0), codecad.util.Vector(1, 2)
     )
     mx = shape.mirrored_x()
-    assert mx.bounding_box() == pytest.approx(
-        codecad.util.BoundingBox(codecad.util.Vector(-1, 0), codecad.util.Vector(0, 2))
+    assert tools.bounding_box_approx_equal(
+        mx.bounding_box(),
+        codecad.util.BoundingBox(codecad.util.Vector(-1, 0), codecad.util.Vector(0, 2)),
     )
     my = shape.mirrored_y()
-    assert my.bounding_box() == pytest.approx(
-        codecad.util.BoundingBox(codecad.util.Vector(0, -2), codecad.util.Vector(1, 0))
+    assert tools.bounding_box_approx_equal(
+        my.bounding_box(),
+        codecad.util.BoundingBox(codecad.util.Vector(0, -2), codecad.util.Vector(1, 0)),
     )
 
 

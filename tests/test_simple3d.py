@@ -3,6 +3,8 @@ import pytest
 
 import codecad
 
+import tools
+
 
 def test_revolve_bounding_box():
     box = (
@@ -38,21 +40,24 @@ def test_mirrored_bounding_box():
     )
 
     mx = shape.mirrored_x()
-    assert mx.bounding_box() == pytest.approx(
+    assert tools.bounding_box_approx_equal(
+        mx.bounding_box(),
         codecad.util.BoundingBox(
             codecad.util.Vector(-1, 0, 0), codecad.util.Vector(0, 2, 3)
-        )
+        ),
     )
     my = shape.mirrored_y()
-    assert my.bounding_box() == pytest.approx(
+    assert tools.bounding_box_approx_equal(
+        my.bounding_box(),
         codecad.util.BoundingBox(
             codecad.util.Vector(0, -2, 0), codecad.util.Vector(1, 0, 3)
-        )
+        ),
     )
 
     mz = shape.mirrored_z()
-    assert mz.bounding_box() == pytest.approx(
+    assert tools.bounding_box_approx_equal(
+        mz.bounding_box(),
         codecad.util.BoundingBox(
             codecad.util.Vector(0, 0, -3), codecad.util.Vector(1, 2, 0)
-        )
+        ),
     )
