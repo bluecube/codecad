@@ -4,7 +4,7 @@ language: python
 
 python:
   - "3.5"
-  - "nightly"
+  - "3.6"
   - "pypy3.5"
 
 before_install:
@@ -14,9 +14,9 @@ before_install:
   - sudo apt-get install -y pocl-opencl-icd libpocl-dev libpocl2 libpocl2-common
 
 install:
-  - pip install --user pybind11 # Must be installed in advance for pyopencl
-  - pip install --user --editable .
-  - pip install --user coveralls
+  - pip install pybind11 # Must be installed in advance for pyopencl
+  - pip install --editable .
+  - pip install coveralls
 
 script: coverage run --source codecad setup.py test
 
