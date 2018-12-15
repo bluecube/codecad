@@ -96,7 +96,7 @@ def test_valid_polygon_builder_abs_construction(points):
 def test_polygon_builder_absolute(points):
     p1 = codecad.shapes.polygons2d.Polygon2D(points)
 
-    builder = codecad.shapes.polygons2d.Polygon2D.build(points[0][0], points[0][1])
+    builder = codecad.shapes.polygon2d_builder(points[0][0], points[0][1])
     for x, y in points[1:]:
         builder = builder.xy(x, y)
     p2 = builder.close()
@@ -128,7 +128,7 @@ def test_polygon_builder_absolute(points):
     ],
 )
 def test_polygon_builder_step(name, args, point):
-    builder_before = codecad.shapes.polygons2d.Polygon2D.build(1, 1)
+    builder_before = codecad.shapes.polygon2d_builder(1, 1)
     builder_after = getattr(builder_before, name)(*args)
 
     assert callable(builder_after.close), "The returned object must still be a polygon builder to support chaining"
@@ -138,7 +138,7 @@ def test_polygon_builder_step(name, args, point):
 def test_polygon_builder_symmetrical_x():
     points = symmetry_builder_test_data
 
-    builder = codecad.shapes.polygons2d.Polygon2D.build(points[0][0], points[0][1])
+    builder = codecad.shapes.polygon2d_builder(points[0][0], points[0][1])
     for x, y in points[1:len(points) // 2]:
         builder = builder.xy(x, y)
     builder = builder.symmetrical_x((points[0][0] + points[-1][0]) / 2)
@@ -150,7 +150,7 @@ def test_polygon_builder_symmetrical_x():
 def test_polygon_builder_symmetrical_y():
     points = [(y, x) for (x, y) in symmetry_builder_test_data]
 
-    builder = codecad.shapes.polygons2d.Polygon2D.build(points[0][0], points[0][1])
+    builder = codecad.shapes.polygon2d_builder(points[0][0], points[0][1])
     for x, y in points[1:len(points) // 2]:
         builder = builder.xy(x, y)
     builder = builder.symmetrical_y((points[0][1] + points[-1][1]) / 2)
@@ -161,7 +161,7 @@ def test_polygon_builder_symmetrical_y():
 
 def test_polygon_builder_nop_block():
     points = symmetry_builder_test_data
-    builder = codecad.shapes.polygons2d.Polygon2D.build(points[0][0], points[0][1])
+    builder = codecad.shapes.polygon2d_builder(points[0][0], points[0][1])
 
     for x, y in points[1:len(points) // 2]:
         builder = builder.xy(x, y)
@@ -174,8 +174,7 @@ def test_polygon_builder_nop_block():
 
 
 def test_polygon_builder_block_partial_symmetry():
-    builder = codecad.shapes.polygons2d.Polygon2D \
-        .build(0, 0) \
+    builder = codecad.shapes.polygon2d_builder(0, 0) \
         .xy(9, 0) \
         .block() \
         .xy(8, 1) \
@@ -186,8 +185,7 @@ def test_polygon_builder_block_partial_symmetry():
     assert builder.points == [(0, 0), (9, 0), (8, 1), (12, 1), (11, 0), (10, -1)]
 
 def test_polygon_builder_reversed_block():
-    builder = codecad.shapes.polygons2d.Polygon2D \
-        .build(0, 0) \
+    builder = codecad.shapes.polygon2d_builder(0, 0) \
         .xy(10, 10) \
         .reversed_block() \
         .dx(-2) \
@@ -197,8 +195,7 @@ def test_polygon_builder_reversed_block():
     assert builder.points == [(0, 0), (8, 10), (10, 10), (10, 5)]
 
 def test_polygon_builder_custom_block():
-    builder = codecad.shapes.polygons2d.Polygon2D \
-        .build(0, 0) \
+    builder = codecad.shapes.polygon2d_builder(0, 0) \
         .block(lambda points: [(2 * x, 2 * y) for (x, y) in points]) \
         .xy(1, 2) \
         .xy(3, 3) \
