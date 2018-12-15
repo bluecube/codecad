@@ -18,6 +18,6 @@ install:
   - pip install --editable .
   - pip install coveralls
 
-script: coverage run --source codecad setup.py test
+script: coverage run setup.py test
 
 after_success: coveralls
