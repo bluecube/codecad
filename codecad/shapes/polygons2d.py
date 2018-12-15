@@ -1,3 +1,5 @@
+import math
+
 import numpy
 
 from .. import util
@@ -27,10 +29,9 @@ class Polygon2DBuilder:
         """ Finalize the polygon.
         Typically this connects the last added point to the starting point and
         returns the polygon shape. """
-        print(self.points)
         return self._close_callback(self.points)
 
-    def close_symmetrical_x(self, center_x):
+    def symmetrical_x(self, center_x):
         """ Finalize the polygon by mirroring the existing points in X and close it.
 
         Adds all existing points again in a reverse order with flipped X coordinate. """
@@ -38,11 +39,9 @@ class Polygon2DBuilder:
             p = self.points[i]
             self.points.append((2 * center_x - p[0], p[1]))
 
-        print(self.points)
+        return self
 
-        return self.close()
-
-    def close_symmetrical_y(self, center_y):
+    def symmetrical_y(self, center_y):
         """ Finalize the polygon by mirroring the existing points in Y and close it.
 
         Adds all existing points again in a reverse order with flipped Y coordinate. """
@@ -50,19 +49,31 @@ class Polygon2DBuilder:
             p = self.points[i]
             self.points.append((p[0], 2 * center_y - p[1]))
 
-        return self.close()
+        return self
+
+    def block(self, modifier=lambda x: x):
+        """ Start a new polygon builder from the last added point that after closing
+        continues the current block.
+
+        modifier is a function that given a list of points of the closed internal block
+        returns an iterable of points to be added.
+
+        With the default no-op modifier this is useful for delimiting parts that
+        should be symmetrical. """
+
+        # Captures self, allows returning to the original builder.
+        def new_callback(new_points):
+            self.points.extend(modifier(new_points))
+            return self
+
+        return self.__class__(new_callback, *self.points.pop())
 
     def reversed_block(self):
         """ Replace the last segment with a part that gets built from its end point
         towards its start point using the polygon builder api.
 
         Close the internal builder to resume processing the outer polygon """
-
-        # Captures self, allows returning to the original builder.
-        def new_callback(new_points):
-            self.points.extend(reversed(new_points))
-
-        return self.__class__(new_callback, *self.points.pop())
+        return self.block(reversed)
 
     def xy(self, x, y):
         self.points.append((x, y))
@@ -92,13 +103,26 @@ class Polygon2DBuilder:
 
     def angle_dx(self, angle, dx):
         """ Continue the polygon by moving in the direction of the absolute angle (in degrees)
-        for dx units in x direction. """
+        for dx units in X direction. """
         return self.dxdy(dx, dx * ccmath.tan(angle))
 
     def angle_dy(self, angle, dy):
         """ Continue the polygon by moving in the direction of the absolute angle (in degrees)
-        for dy units in y direction. """
+        for dy units in Y direction. """
         return self.dxdy(dy / ccmath.tan(angle), dy)
+
+    def tangent_point(self, center_x, center_y, radius):
+        """ Continue the polygon to a tangent point on a circle with given center and radius.
+
+        Sign of the radius distinguishes the tangent points. Positive radius has the circle center
+        on the right side of the line, negative radius on the left side. """
+        cx = center_x - self.points[-1][0]
+        cy = center_y - self.points[-1][1]
+        l2 = cx * cx + cy * cy
+        s = 1 - radius * radius / l2
+        t = radius * math.sqrt(s / l2)
+
+        return self.dxdy(cx * s - cy * t, cx * t + cy * s)
 
 
 class Polygon2D(base.Shape2D):
