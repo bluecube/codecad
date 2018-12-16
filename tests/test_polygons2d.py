@@ -138,9 +138,7 @@ def test_polygon_builder_step(name, args, point):
     builder_before = codecad.shapes.polygon2d_builder(1, 1)
     builder_after = getattr(builder_before, name)(*args)
 
-    assert callable(
-        builder_after.close
-    ), "The returned object must still be a polygon builder to support chaining"
+    assert callable(builder_after.close)
     assert builder_after.points[-1] == pytest.approx(point)
 
 
@@ -152,9 +150,7 @@ def test_polygon_builder_symmetrical_x():
         builder = builder.xy(x, y)
     builder = builder.symmetrical_x((points[0][0] + points[-1][0]) / 2)
 
-    assert callable(
-        builder.close
-    ), "The returned object must still be a polygon builder to support chaining"
+    assert callable(builder.close)
     assert builder.points == points
 
 
@@ -166,9 +162,7 @@ def test_polygon_builder_symmetrical_y():
         builder = builder.xy(x, y)
     builder = builder.symmetrical_y((points[0][1] + points[-1][1]) / 2)
 
-    assert callable(
-        builder.close
-    ), "The returned object must still be a polygon builder to support chaining"
+    assert callable(builder.close)
     assert builder.points == points
 
 
@@ -223,3 +217,7 @@ def test_polygon_builder_custom_block():
     )
 
     assert builder.points == [(0, 0), (2, 4), (6, 6)]
+
+
+def test_polygon_builder_print():
+    builder = codecad.shapes.polygon2d_builder(0, 0).xy(1, 1)
