@@ -45,9 +45,16 @@ invalid_polygon2d = {
 }
 
 symmetry_builder_test_data = [
-    (10, 0), (12, 1), (13, 3), (11, 2),
-    (7, 2), (5, 3), (6, 1), (8, 0)
-    ]
+    (10, 0),
+    (12, 1),
+    (13, 3),
+    (11, 2),
+    (7, 2),
+    (5, 3),
+    (6, 1),
+    (8, 0),
+]
+
 
 @pytest.mark.parametrize(
     "points",
@@ -131,7 +138,9 @@ def test_polygon_builder_step(name, args, point):
     builder_before = codecad.shapes.polygon2d_builder(1, 1)
     builder_after = getattr(builder_before, name)(*args)
 
-    assert callable(builder_after.close), "The returned object must still be a polygon builder to support chaining"
+    assert callable(
+        builder_after.close
+    ), "The returned object must still be a polygon builder to support chaining"
     assert builder_after.points[-1] == pytest.approx(point)
 
 
@@ -139,11 +148,13 @@ def test_polygon_builder_symmetrical_x():
     points = symmetry_builder_test_data
 
     builder = codecad.shapes.polygon2d_builder(points[0][0], points[0][1])
-    for x, y in points[1:len(points) // 2]:
+    for x, y in points[1 : len(points) // 2]:
         builder = builder.xy(x, y)
     builder = builder.symmetrical_x((points[0][0] + points[-1][0]) / 2)
 
-    assert callable(builder.close), "The returned object must still be a polygon builder to support chaining"
+    assert callable(
+        builder.close
+    ), "The returned object must still be a polygon builder to support chaining"
     assert builder.points == points
 
 
@@ -151,11 +162,13 @@ def test_polygon_builder_symmetrical_y():
     points = [(y, x) for (x, y) in symmetry_builder_test_data]
 
     builder = codecad.shapes.polygon2d_builder(points[0][0], points[0][1])
-    for x, y in points[1:len(points) // 2]:
+    for x, y in points[1 : len(points) // 2]:
         builder = builder.xy(x, y)
     builder = builder.symmetrical_y((points[0][1] + points[-1][1]) / 2)
 
-    assert callable(builder.close), "The returned object must still be a polygon builder to support chaining"
+    assert callable(
+        builder.close
+    ), "The returned object must still be a polygon builder to support chaining"
     assert builder.points == points
 
 
@@ -163,10 +176,10 @@ def test_polygon_builder_nop_block():
     points = symmetry_builder_test_data
     builder = codecad.shapes.polygon2d_builder(points[0][0], points[0][1])
 
-    for x, y in points[1:len(points) // 2]:
+    for x, y in points[1 : len(points) // 2]:
         builder = builder.xy(x, y)
     builder = builder.block()
-    for x, y in points[len(points) // 2:]:
+    for x, y in points[len(points) // 2 :]:
         builder = builder.xy(x, y)
     builder = builder.close()
 
@@ -174,31 +187,39 @@ def test_polygon_builder_nop_block():
 
 
 def test_polygon_builder_block_partial_symmetry():
-    builder = codecad.shapes.polygon2d_builder(0, 0) \
-        .xy(9, 0) \
-        .block() \
-        .xy(8, 1) \
-        .symmetrical_x(10) \
-        .close() \
+    builder = (
+        codecad.shapes.polygon2d_builder(0, 0)
+        .xy(9, 0)
+        .block()
+        .xy(8, 1)
+        .symmetrical_x(10)
+        .close()
         .xy(10, -1)
+    )
 
     assert builder.points == [(0, 0), (9, 0), (8, 1), (12, 1), (11, 0), (10, -1)]
 
+
 def test_polygon_builder_reversed_block():
-    builder = codecad.shapes.polygon2d_builder(0, 0) \
-        .xy(10, 10) \
-        .reversed_block() \
-        .dx(-2) \
-        .close() \
+    builder = (
+        codecad.shapes.polygon2d_builder(0, 0)
+        .xy(10, 10)
+        .reversed_block()
+        .dx(-2)
+        .close()
         .xy(10, 5)
+    )
 
     assert builder.points == [(0, 0), (8, 10), (10, 10), (10, 5)]
 
+
 def test_polygon_builder_custom_block():
-    builder = codecad.shapes.polygon2d_builder(0, 0) \
-        .block(lambda points: [(2 * x, 2 * y) for (x, y) in points]) \
-        .xy(1, 2) \
-        .xy(3, 3) \
+    builder = (
+        codecad.shapes.polygon2d_builder(0, 0)
+        .block(lambda points: [(2 * x, 2 * y) for (x, y) in points])
+        .xy(1, 2)
+        .xy(3, 3)
         .close()
+    )
 
     assert builder.points == [(0, 0), (2, 4), (6, 6)]
