@@ -1,4 +1,5 @@
 import math
+import io
 
 import pytest
 import numpy
@@ -221,3 +222,8 @@ def test_polygon_builder_custom_block():
 
 def test_polygon_builder_print():
     builder = codecad.shapes.polygon2d_builder(0, 0).xy(1, 1)
+    f = io.StringIO()
+    new_builder = builder.print(f)
+
+    assert f.getvalue() == "[(0, 0), (1, 1)]\n"
+    assert callable(new_builder.close)

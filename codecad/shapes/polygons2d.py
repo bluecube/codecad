@@ -1,4 +1,5 @@
 import math
+import sys
 
 import numpy
 
@@ -123,6 +124,11 @@ class Polygon2DBuilder:
         t = radius * math.sqrt(s / l2)
 
         return self.dxdy(cx * s - cy * t, cx * t + cy * s)
+
+    def print(self, file=sys.stdout):
+        """ Print the points to given file object and return self. Debugging tool. """
+        print(str(self.points), file=file)
+        return self
 
 
 class Polygon2D(base.Shape2D):
