@@ -23,13 +23,13 @@ int _assert_internal(int result,
 // Evaluates to 1 if the assertion failed, 0 otherwise, contrary to assert in
 // regular C this doesn't interrupt execution if it fails (because we couldn't
 // stop all the kernels anyway).
-// Instead assert stores the number of registered assertions and details of the
-// first one in assertBuffer.
+// Instead assert stores the number of registered assertion failures and details
+// of the first one in assertBuffer.
 // If macro ASSERT_ENABLED is not defined, assert does nothing (and assertBuffer
 // need not be valid).
 #if defined(ASSERT_ENABLED)
     #define assert(assertBuffer, x) \
-        _assert_internal(x, assertBuffer, __FILE__, __LINE__, #x)
+        _assert_internal((x), (assertBuffer), __FILE__, __LINE__, #x)
     #define WHEN_ASSERT(x) x
 #else
     #define assert(assertBuffer, x) (sizeof(assertBuffer), sizeof(x), 0)
