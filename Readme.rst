@@ -1,6 +1,25 @@
 =============================================================
 CodeCad: A programming CAD based on signed distance functions
 =============================================================
+
+**The project is dead**
+
+Some good points:
+
+* The modeling API turned out to be surprisingly comfortable. Might be worth reusing in some later project.
+* OpenCL and Python is an awesome combination.
+
+... and some bad points ..
+
+* SDF is a neat way to represent geometry, but there are some serious drawbacks
+
+  * It's hard to make them robust. Things like `s.offset(-1).offset(1)` tend to break the invariants create weird glitches. This becomes extra visible when using the distance function value for shading, but is hard to avoid even when just working for surface export.
+  * While physical objects are mostly comprised of their insides, the surface is where the interesting things happen and it is a bit wastefull to have to *find* the surface agin for every rendering operation, physics query...
+  
+* Only code for modelling is not good enough. While some things are easier than with GUI clickery, most are more difficult and I'm still looking for a way that is bettern than either of these.
+
+Now you can enjoy the old description:
+
 Inspired by OpenSCAD and ImplicitCad, implemented in Python using OpenCL for
 computing power.
 
