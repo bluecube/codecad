@@ -4,7 +4,7 @@ pyopencl==2017.1.1
 py-flags==1.1.2
 
 # Image export:
-Pillow==6.2.0
+Pillow==6.2.2
 
 # STL export:
 Cython==0.24 # Needed for PyMCubes :-/
